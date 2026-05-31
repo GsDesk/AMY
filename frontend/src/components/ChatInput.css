@@ -1,0 +1,79 @@
+.chat-input-area {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-primary);
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    padding: 0.3rem 0.4rem 0.3rem 1rem;
+    transition: border-color 0.2s;
+    gap: 0.4rem;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--border-focus);
+}
+
+.input-wrapper.input-disabled {
+    opacity: 0.5;
+}
+
+.input-wrapper textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    resize: none;
+    padding: 0.5rem 0;
+    outline: none;
+    max-height: 150px;
+    line-height: 1.5;
+}
+
+.input-wrapper textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: var(--btn-bg);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.send-btn:hover:not(:disabled) {
+    background: var(--btn-hover);
+    color: var(--text-primary);
+}
+
+.send-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.loading-spinner {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--border-secondary);
+    border-top-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

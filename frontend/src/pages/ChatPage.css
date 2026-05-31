@@ -1,0 +1,16 @@
+.chat-page {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+}
+
+.chat-page.with-panel {
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .chat-page {
+        flex-direction: column;
+        width: 100%;
+    }
+}

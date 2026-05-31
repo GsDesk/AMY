@@ -1,0 +1,122 @@
+# ============================================================
+# Tutor IA — Fundamentos de Base de Datos UPEC
+# Docker Compose: Orquestación de servicios contenerizados
+# ============================================================
+# NOTA: Ollama se ejecuta en el HOST local (no en contenedor)
+# para aprovechar toda la RAM del sistema.
+# Asegúrate de tener Ollama corriendo: ollama serve
+# Y el modelo descargado: ollama pull mistral
+# ============================================================
+
+services:
+  # ── Base de Datos Vectorial ──────────────────────────────
+  db:
+    build: ./database
+    container_name: tutor-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tutor-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ── Inteligencia Artificial (Ollama + Mistral) ───────────
+  ollama:
+    build: ./ollama
+    container_name: tutor-ollama
+    restart: always
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_GPU_LAYERS=999        # Cargar todas las capas en GPU
+      - CUDA_VISIBLE_DEVICES=0      # Usar la primera GPU (RTX 2080)
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - tutor-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── Caché en Memoria (Redis) ──────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: tutor-redis
+    restart: always
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    networks:
+      - tutor-net
+
+  # ── Backend API (FastAPI + Gunicorn + RAG) ──────────────────
+  backend:
+    build: ./backend
+    container_name: tutor-backend
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_HOST: db
+      DB_PORT: 5432
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: mistral
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      ollama:
+        condition: service_started
+    networks:
+      - tutor-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ── Frontend (React en Producción con Nginx) ──────────────
+  frontend:
+    build: ./frontend
+    container_name: tutor-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - tutor-net
+
+# ── Volúmenes Persistentes ──────────────────────────────────
+volumes:
+  pgdata:
+    name: tutor-pgdata
+  ollama_data:
+    name: tutor-ollama-data
+  redisdata:
+    name: tutor-redis-data
+
+# ── Red Interna ─────────────────────────────────────────────
+networks:
+  tutor-net:
+    driver: bridge
+    name: tutor-network
+

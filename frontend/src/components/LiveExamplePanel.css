@@ -1,0 +1,241 @@
+/* -- Live Example Panel ---------------------------------- */
+.live-panel {
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-primary);
+    border-radius: 0;
+    overflow-y: auto;
+    animation: panel-slide-in 0.3s ease-out;
+}
+
+@keyframes panel-slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+
+.live-header {
+    padding: 1.2rem;
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.8rem;
+    flex-shrink: 0;
+}
+
+.live-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.3rem;
+}
+
+.live-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 4px;
+    display: flex;
+    transition: color 0.15s;
+    flex-shrink: 0;
+}
+
+.close-btn:hover {
+    color: var(--text-primary);
+}
+
+/* -- Body ------------------------------------------------ */
+.live-body {
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+/* -- Tables ---------------------------------------------- */
+.tables-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.tables-container.three-tables {
+    gap: 0.6rem;
+}
+
+.table-card {
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.4s ease-out;
+}
+
+.table-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.table-name {
+    padding: 0.5rem 0.8rem;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.table-columns {
+    display: flex;
+    flex-direction: column;
+}
+
+.table-col {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.73rem;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.table-col:last-child {
+    border-bottom: none;
+}
+
+.col-name {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    min-width: 100px;
+}
+
+.col-type {
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+}
+
+.col-constraint {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.constraint-pk {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border: 1px solid var(--border-secondary);
+}
+
+.constraint-fk {
+    background: rgba(74, 222, 128, 0.08);
+    color: var(--success);
+    border: 1px solid rgba(74, 222, 128, 0.15);
+}
+
+.has-constraint .col-name {
+    font-weight: 500;
+}
+
+/* -- Relationships --------------------------------------- */
+.relationships {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.4s ease-out;
+}
+
+.relationships.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.rel-label, .sql-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.rel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.rel-from, .rel-to {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.rel-arrow {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.rel-type {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border-primary);
+}
+
+/* -- SQL Section ----------------------------------------- */
+.sql-section {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.4s ease-out;
+}
+
+.sql-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* -- Responsive ------------------------------------------ */
+@media (max-width: 1200px) {
+    .live-panel {
+        width: 320px;
+    }
+}
+
+@media (max-width: 900px) {
+    .live-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 100;
+        background: var(--panel-bg);
+    }
+}

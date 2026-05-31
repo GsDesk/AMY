@@ -1,0 +1,27 @@
+# ── Core ─────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.7.0
+python-dotenv==1.0.1
+python-multipart==0.0.18
+
+# ── Base de Datos ────────────────────────────
+asyncpg==0.30.0
+
+# ── HTTP Client (Ollama) ────────────────────
+httpx==0.28.1
+
+# ── Autenticacion ────────────────────────────
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ── Servidor de Produccion ───────────────────
+gunicorn==22.0.0
+
+# ── Utilidades ───────────────────────────────
+uuid6==2024.7.10
+
+# ── Caché y Redis ────────────────────────────
+redis>=5.0.1
+

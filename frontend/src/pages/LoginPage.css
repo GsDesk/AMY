@@ -1,0 +1,189 @@
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 2.5rem;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.login-back {
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--text-muted);
+    padding: 0.3rem;
+    border-radius: 6px;
+    transition: color 0.2s;
+    display: flex;
+}
+
+.login-back:hover {
+    color: var(--text-primary);
+}
+
+.login-brand {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* -- Form -------------------------------------------- */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.form-group label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input {
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.form-group input:focus {
+    border-color: var(--border-focus);
+}
+
+.login-error {
+    font-size: 0.82rem;
+    color: var(--error);
+    padding: 0.5rem 0.8rem;
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.15);
+    border-radius: 6px;
+}
+
+.login-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.ms-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    background-color: #000;
+    color: #fff;
+    border: 1px solid var(--border-primary);
+    transition: all 0.2s;
+}
+
+.ms-btn:hover {
+    background-color: #1a1a1a;
+    border-color: #333;
+}
+
+.ms-icon {
+    font-size: 1.1rem;
+    color: #00a4ef;
+}
+
+/* SSO Loading States */
+.sso-loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+    gap: 1.2rem;
+    min-height: 250px;
+}
+
+.sso-email {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-primary);
+}
+
+.ms-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 164, 239, 0.1);
+    border-radius: 50%;
+    border-top-color: #00a4ef;
+    animation: spin 1s ease-in-out infinite;
+}
+
+.sso-loading-container.success {
+    color: var(--text-primary);
+}
+
+.success-icon {
+    width: 48px;
+    height: 48px;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 50%;
+    padding: 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.login-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.login-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.login-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
