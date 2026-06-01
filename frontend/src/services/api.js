@@ -40,6 +40,32 @@ export async function login(email, password) {
     return data;
 }
 
+export async function getAuthConfig() {
+    const response = await fetch(`${API_BASE}/api/auth/config`);
+    if (!response.ok) {
+        throw new Error(`Error al obtener configuracion: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function googleLogin(credential) {
+    const response = await fetch(`${API_BASE}/api/auth/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || `Error de autenticacion con Google: ${response.status}`);
+    }
+
+    const data = await response.json();
+    localStorage.setItem('amy_token', data.token);
+    localStorage.setItem('amy_user', JSON.stringify(data.user));
+    return data;
+}
+
 export async function register(email, password, nombre) {
     const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',

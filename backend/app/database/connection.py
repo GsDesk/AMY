@@ -35,7 +35,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id VARCHAR(100) PRIMARY KEY,
                     email VARCHAR(150) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
+                    password_hash VARCHAR(255),
                     nombre VARCHAR(100) NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 );
@@ -76,6 +76,9 @@ class Database:
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 );
             """)
+
+            # Quitar restriccion NOT NULL en password_hash para soportar OAuth
+            await conn.execute("ALTER TABLE usuarios ALTER COLUMN password_hash DROP NOT NULL;")
 
         logger.info("Tablas del sistema verificadas y listas")
 

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { register } from '../services/api';
+import { register, googleLogin, getAuthConfig } from '../services/api';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import './RegisterPage.css';
 
 export default function RegisterPage() {
@@ -10,7 +11,37 @@ export default function RegisterPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [googleClientId, setGoogleClientId] = useState(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        getAuthConfig()
+            .then((data) => {
+                if (data.googleClientId) {
+                    setGoogleClientId(data.googleClientId);
+                }
+            })
+            .catch((err) => {
+                console.error("Error al obtener la configuracion de auth:", err);
+            });
+    }, []);
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setLoading(true);
+        setError('');
+        try {
+            await googleLogin(credentialResponse.credential);
+            navigate('/chat');
+        } catch (err) {
+            setError(err.message || 'Error al registrarse con Google.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = () => {
+        setError('Fallo el registro con Google.');
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -127,6 +158,25 @@ export default function RegisterPage() {
                         {loading ? 'Registrando...' : 'Crear cuenta'}
                     </button>
                 </form>
+
+                {googleClientId && (
+                    <GoogleOAuthProvider clientId={googleClientId}>
+                        <div className="login-separator">
+                            <span>o continuar con</span>
+                        </div>
+                        <div className="google-btn-container">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                theme="filled_dark"
+                                size="large"
+                                width="320"
+                                text="signup_with"
+                                shape="rectangular"
+                            />
+                        </div>
+                    </GoogleOAuthProvider>
+                )}
 
                 <div className="login-footer">
                     <span>Ya tienes cuenta? <Link to="/login" className="login-link">Inicia sesion</Link></span>

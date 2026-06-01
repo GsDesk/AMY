@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from app.auth.dependencies import get_current_user
 from app.auth.security import create_access_token, hash_password, verify_password
 from app.database.connection import db
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,10 @@ class RegisterRequest(BaseModel):
     email: str
     password: str = Field(..., min_length=4)
     nombre: str
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: str
 
 
 class LoginRequest(BaseModel):
@@ -104,3 +109,74 @@ async def login(body: LoginRequest):
 async def me(current_user: dict = Depends(get_current_user)):
     """Retorna la informacion del usuario autenticado."""
     return UserOut(**current_user)
+
+
+@router.get("/config")
+async def get_auth_config():
+    """Retorna la configuracion publica para la autenticacion."""
+    return {"googleClientId": settings.GOOGLE_CLIENT_ID}
+
+
+@router.post("/google-login", response_model=AuthResponse)
+async def google_login(body: GoogleLoginRequest):
+    """Inicia sesion o registra a un usuario mediante Google OAuth."""
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            body.credential,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID
+        )
+
+        email = idinfo.get("email")
+        nombre = idinfo.get("name", "Usuario de Google")
+
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El token de Google no contiene un correo valido."
+            )
+            
+        email_clean = email.strip().lower()
+
+    except ValueError as e:
+        logger.warning("Fallo la verificacion del token de Google: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token de Google invalido: {str(e)}"
+        )
+    except Exception as e:
+        logger.error("Error inesperado verificando token de Google: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al verificar la identidad con Google."
+        )
+
+    row = await db.fetchrow(
+        "SELECT id, email, nombre FROM usuarios WHERE email = $1",
+        email_clean
+    )
+
+    if not row:
+        user_id = str(uuid.uuid4())
+        await db.execute(
+            """INSERT INTO usuarios (id, email, password_hash, nombre)
+               VALUES ($1, $2, NULL, $3)""",
+            user_id,
+            email_clean,
+            nombre
+        )
+        logger.info("Nuevo usuario registrado via Google: %s", email_clean)
+        row = {"id": user_id, "email": email_clean, "nombre": nombre}
+    else:
+        logger.info("Usuario existente inicio sesion via Google: %s", email_clean)
+
+    user_id = str(row["id"])
+    token = create_access_token({"sub": user_id})
+    return AuthResponse(
+        token=token,
+        user=UserOut(id=user_id, email=row["email"], nombre=row["nombre"])
+    )
+

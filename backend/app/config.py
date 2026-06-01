@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # ── Autenticacion ────────────────────────────
     SECRET_KEY: str = "amy-upec-secret-key-change-in-production-2024"
     JWT_EXPIRE_MINUTES: int = 480
+    GOOGLE_CLIENT_ID: str = ""
 
     # ── Caché (Redis) ────────────────────────────
     REDIS_URL: str = "redis://redis:6379/0"

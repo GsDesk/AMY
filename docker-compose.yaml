@@ -79,6 +79,7 @@ services:
       OLLAMA_HOST: http://ollama:11434
       OLLAMA_MODEL: mistral
       REDIS_URL: redis://redis:6379/0
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     depends_on:
       db:
         condition: service_healthy
