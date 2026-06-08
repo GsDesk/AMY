@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "mistral"
 
     # ── RAG ──────────────────────────────────────
-    EMBEDDING_DIM: int = 4096
+    EMBEDDING_DIM: int = 768
     RAG_TOP_K: int = 5
     CHUNK_SIZE: int = 500
     CHUNK_OVERLAP: int = 50
@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # ── Caché (Redis) ────────────────────────────
     REDIS_URL: str = "redis://redis:6379/0"
 
+
+    # ── Groq API ─────────────────────────────────
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
     @property
     def db_url(self) -> str:

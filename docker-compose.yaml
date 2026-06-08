@@ -27,10 +27,6 @@ services:
       retries: 5
     networks:
       - tutor-net
-    deploy:
-      resources:
-        limits:
-          memory: 1G
 
   # ── Inteligencia Artificial (Ollama + Mistral) ───────────
   ollama:
@@ -38,22 +34,12 @@ services:
     container_name: tutor-ollama
     restart: always
     environment:
-      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_NUM_PARALLEL=1
       - OLLAMA_MAX_LOADED_MODELS=1
-      - OLLAMA_GPU_LAYERS=999        # Cargar todas las capas en GPU
-      - CUDA_VISIBLE_DEVICES=0      # Usar la primera GPU (RTX 2080)
     volumes:
       - ollama_data:/root/.ollama
     networks:
       - tutor-net
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
   # ── Caché en Memoria (Redis) ──────────────────────────────
   redis:
     image: redis:7-alpine
@@ -80,6 +66,8 @@ services:
       OLLAMA_MODEL: mistral
       REDIS_URL: redis://redis:6379/0
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: llama-3.3-70b-versatile
     depends_on:
       db:
         condition: service_healthy
@@ -89,10 +77,6 @@ services:
         condition: service_started
     networks:
       - tutor-net
-    deploy:
-      resources:
-        limits:
-          memory: 1G
 
   # ── Frontend (React en Producción con Nginx) ──────────────
   frontend:

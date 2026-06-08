@@ -56,6 +56,7 @@ async def semantic_search(query: str, top_k: int | None = None, category_filter:
                 "similarity": float(row["similarity"])
             })
 
+        results = [r for r in results if r["similarity"] >= 0.65]
         if results:
             logger.info(f"Busqueda semantica: {len(results)} resultados (similitud max: {results[0]['similarity']:.4f})")
         else:

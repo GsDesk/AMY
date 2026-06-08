@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS fragmentos_conocimiento (
     metadata JSONB DEFAULT '{}',
     
     -- Vector de embedding (4096 dimensiones para Mistral via Ollama)
-    embedding vector(4096),
+    embedding vector(768),
     
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -44,7 +44,7 @@ class OllamaClient:
     async def get_embedding(self, text: str) -> list[float]:
         try:
             response = await self.client.post("/api/embeddings", json={
-                "model": self.model, "prompt": text
+                "model": "nomic-embed-text", "prompt": text
             })
             response.raise_for_status()
             embedding = response.json().get("embedding", [])

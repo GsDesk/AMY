@@ -6,10 +6,11 @@ Detecta consultas sobre relaciones de tablas para activar el panel interactivo.
 
 import logging
 from app.rag.retriever import semantic_search
-from app.integrations.ollama_client import ollama_client
+from app.integrations.groq_client import groq_client
 from app.core.guardrails import SYSTEM_PROMPT, validate_response
 from app.core.prompts import build_rag_prompt
 from app.core.examples import detect_example
+from app.core.db_model_detector import detect_db_model
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +45,20 @@ class TutorBrain:
             enriched_prompt = build_rag_prompt(student_query, context_fragments, chat_history=chat_history)
 
             # Paso 3: Generacion con Mistral
-            raw_response = await ollama_client.generate(
+            from datetime import datetime
+            from datetime import timezone, timedelta
+            ecuador = timezone(timedelta(hours=-5))
+            fecha_actual = datetime.now(ecuador).strftime('%A %d de %B del %Y, %H:%M')
+            system_con_fecha = SYSTEM_PROMPT + f' La fecha y hora actual en Ecuador es: {fecha_actual}.'
+            raw_response = await groq_client.generate(
                 prompt=enriched_prompt,
-                system=SYSTEM_PROMPT
+                system=system_con_fecha
             )
 
             # Paso 4: Guardrails (Validacion)
+            logger.info(f"RAW GROQ FULL: {repr(raw_response[:1000])}")
             result = validate_response(raw_response)
-            result["source"] = "ollama-mistral"
+            result["source"] = "groq-llama3"
             result["rag_context_used"] = rag_context_used
 
             # Paso 5: Deteccion de ejemplo interactivo
@@ -60,6 +67,13 @@ class TutorBrain:
             if live_example:
                 result["live_example"] = live_example
                 logger.info(f"Ejemplo interactivo activado: {live_example['title']}")
+            else:
+                fb = result.get("feedback", "")
+                logger.info(f"DETECTOR feedback[:200]: {fb[:200]}")
+                db_model = detect_db_model(student_query, fb)
+                if db_model:
+                    result["live_example"] = db_model
+                    logger.info(f"Modelo BD generado: {db_model['title']}")
 
             # 2. Guardar la respuesta en caché si no es un error
             if result.get("source") != "error":
