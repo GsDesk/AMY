@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import WorkflowSourceVisualizer from './WorkflowSourceVisualizer';
 import { useChat } from '../hooks/useChat';
 import './ChatWindow.css';
 
@@ -9,6 +10,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         messages,
         isLoading,
         sendMessage,
+        stopGeneration,
         clearChat,
         messagesEndRef,
         lastExample,
@@ -16,14 +18,14 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         loadConversation
     } = useChat();
 
-    // Cuando llega un conversationId externo (del sidebar), cargar esa conversacion
+    // Cuando llega un conversationId externo (del sidebar), cargar esa conversación
     useEffect(() => {
         if (conversationId && conversationId !== currentConversationId) {
             loadConversation(conversationId);
         }
     }, [conversationId, currentConversationId, loadConversation]);
 
-    // Notificar al padre cuando se crea una conversacion nueva internamente
+    // Notificar al padre cuando se crea una conversación nueva internamente
     useEffect(() => {
         if (currentConversationId && onConversationCreated) {
             onConversationCreated(currentConversationId);
@@ -37,13 +39,35 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         }
     }, [lastExample, onExampleReceived]);
 
+    const handleExplainAndFocus = useCallback((text) => {
+        sendMessage(text);
+    }, [sendMessage]);
+
+    // Extraer las fuentes RAG del último mensaje del tutor
+    const lastTutorMsg = [...messages].reverse().find(m => m.sender === 'tutor' && m.ragSources && m.ragSources.length > 0);
+    const currentSources = lastTutorMsg ? lastTutorMsg.ragSources : [];
+
     return (
         <main className="chat-window panel">
             <div className="chat-header">
-                <h2>Sesion Educativa</h2>
-                <div className="header-controls">
-                    {isLoading && <span className="thinking-indicator">Procesando...</span>}
-                    <button className="icon-btn" onClick={clearChat} title="Limpiar conversacion" id="clear-chat-btn">
+                <h2>Sesión Educativa</h2>
+
+                {/* CONTENEDOR DERECHO (Extremo derecho del header) */}
+                <div className="header-right-controls">
+                    <WorkflowSourceVisualizer isLoading={isLoading} sources={currentSources} />
+
+                    {isLoading && (
+                        <button
+                            className="btn-stop-generation"
+                            onClick={stopGeneration}
+                            title="Detener generación de respuesta"
+                        >
+                            <span className="stop-icon">⏹</span>
+                            <span>Detener</span>
+                        </button>
+                    )}
+
+                    <button className="icon-btn" onClick={clearChat} title="Limpiar conversación" id="clear-chat-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/></svg>
                     </button>
                 </div>
@@ -51,7 +75,11 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
 
             <div className="chat-messages" id="chat-messages">
                 {messages.map(msg => (
-                    <ChatMessage key={msg.id} message={msg} />
+                    <ChatMessage
+                        key={msg.id}
+                        message={msg}
+                        onExplainCode={handleExplainAndFocus}
+                    />
                 ))}
 
                 {isLoading && (

@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 class RegisterRequest(BaseModel):
     email: str
-    password: str = Field(..., min_length=4)
+    password: str = Field(..., min_length=8)
     nombre: str
 
 
@@ -41,6 +41,7 @@ class UserOut(BaseModel):
     id: str
     email: str
     nombre: str
+    rol: str = "estudiante"
 
 
 class AuthResponse(BaseModel):
@@ -63,23 +64,28 @@ async def register(body: RegisterRequest):
             detail="El correo ya esta registrado.",
         )
 
+    # Si es el primer usuario registrado en la plataforma, asignarle rol de admin
+    total_users = await db.fetchval("SELECT COUNT(*) FROM usuarios") or 0
+    assigned_role = "admin" if total_users == 0 else "estudiante"
+
     user_id = str(uuid.uuid4())
     hashed = hash_password(body.password)
 
     await db.execute(
-        """INSERT INTO usuarios (id, email, password_hash, nombre)
-           VALUES ($1, $2, $3, $4)""",
+        """INSERT INTO usuarios (id, email, password_hash, nombre, rol)
+           VALUES ($1, $2, $3, $4, $5)""",
         user_id,
         body.email,
         hashed,
         body.nombre,
+        assigned_role,
     )
 
-    token = create_access_token({"sub": user_id})
-    logger.info("Usuario registrado: %s", body.email)
+    token = create_access_token({"sub": user_id, "rol": assigned_role})
+    logger.info("Usuario registrado: %s (rol=%s)", body.email, assigned_role)
     return AuthResponse(
         token=token,
-        user=UserOut(id=user_id, email=body.email, nombre=body.nombre),
+        user=UserOut(id=user_id, email=body.email, nombre=body.nombre, rol=assigned_role),
     )
 
 
@@ -87,7 +93,7 @@ async def register(body: RegisterRequest):
 async def login(body: LoginRequest):
     """Inicia sesion con credenciales existentes."""
     row = await db.fetchrow(
-        "SELECT id, email, nombre, password_hash FROM usuarios WHERE email = $1",
+        "SELECT id, email, nombre, password_hash, rol FROM usuarios WHERE email = $1",
         body.email,
     )
     if row is None or not verify_password(body.password, row["password_hash"]):
@@ -97,11 +103,12 @@ async def login(body: LoginRequest):
         )
 
     user_id = str(row["id"])
-    token = create_access_token({"sub": user_id})
-    logger.info("Inicio de sesion: %s", body.email)
+    user_role = row.get("rol", "estudiante")
+    token = create_access_token({"sub": user_id, "rol": user_role})
+    logger.info("Inicio de sesion: %s (rol=%s)", body.email, user_role)
     return AuthResponse(
         token=token,
-        user=UserOut(id=user_id, email=row["email"], nombre=row["nombre"]),
+        user=UserOut(id=user_id, email=row["email"], nombre=row["nombre"], rol=user_role),
     )
 
 
@@ -155,28 +162,33 @@ async def google_login(body: GoogleLoginRequest):
         )
 
     row = await db.fetchrow(
-        "SELECT id, email, nombre FROM usuarios WHERE email = $1",
+        "SELECT id, email, nombre, rol FROM usuarios WHERE email = $1",
         email_clean
     )
 
     if not row:
+        total_users = await db.fetchval("SELECT COUNT(*) FROM usuarios") or 0
+        assigned_role = "admin" if total_users == 0 else "estudiante"
         user_id = str(uuid.uuid4())
         await db.execute(
-            """INSERT INTO usuarios (id, email, password_hash, nombre)
-               VALUES ($1, $2, NULL, $3)""",
+            """INSERT INTO usuarios (id, email, password_hash, nombre, rol)
+               VALUES ($1, $2, NULL, $3, $4)""",
             user_id,
             email_clean,
-            nombre
+            nombre,
+            assigned_role,
         )
-        logger.info("Nuevo usuario registrado via Google: %s", email_clean)
-        row = {"id": user_id, "email": email_clean, "nombre": nombre}
+        logger.info("Nuevo usuario registrado via Google: %s (rol=%s)", email_clean, assigned_role)
+        row = {"id": user_id, "email": email_clean, "nombre": nombre, "rol": assigned_role}
     else:
         logger.info("Usuario existente inicio sesion via Google: %s", email_clean)
 
     user_id = str(row["id"])
-    token = create_access_token({"sub": user_id})
+    user_role = row.get("rol", "estudiante")
+    token = create_access_token({"sub": user_id, "rol": user_role})
     return AuthResponse(
         token=token,
-        user=UserOut(id=user_id, email=row["email"], nombre=row["nombre"])
+        user=UserOut(id=user_id, email=row["email"], nombre=row["nombre"], rol=user_role)
     )
+
 

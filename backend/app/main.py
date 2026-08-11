@@ -5,15 +5,17 @@ Backend con RAG para ensenanza socratica de Bases de Datos.
 
 import json
 import logging
-import time
 import uuid
-from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends, status as http_status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.database.connection import db
@@ -27,15 +29,18 @@ from app.models.schemas import (
 )
 from app.auth.router import router as auth_router
 from app.auth.security import decode_token
+from app.auth.dependencies import get_current_admin_user
 from app.chat.router import router as chat_router
+from app.admin.router import router as admin_router
+from app.rag.dmz_validator import validate_document_dmz
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Rate limiting en memoria ─────────────────────────────────
-_RATE_LIMIT_MAX = 30  # max peticiones
-_RATE_LIMIT_WINDOW = 60  # ventana en segundos
-_rate_tracker: dict[str, list[float]] = defaultdict(list)
+# ── Rate Limiting con slowapi + Redis ────────────────────────────────
+# Usa Redis como backend para funcionar correctamente con múltiples workers Gunicorn.
+_redis_url = getattr(settings, "REDIS_URL", "redis://redis:6379/0")
+limiter = Limiter(key_func=get_remote_address, storage_uri=_redis_url)
 
 _optional_bearer = HTTPBearer(auto_error=False)
 
@@ -89,6 +94,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# ── Configurar slowapi en la app ──────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://frontend:5173"],
@@ -101,33 +110,6 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(chat_router)
 
-
-# ── Rate Limiting Middleware ─────────────────────────────────
-
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    """Limita las peticiones a /api/chat a un maximo por minuto por IP."""
-    if request.url.path == "/api/chat" and request.method == "POST":
-        client_ip = request.client.host if request.client else "unknown"
-        now = time.time()
-        window_start = now - _RATE_LIMIT_WINDOW
-
-        # Limpiar entradas antiguas
-        _rate_tracker[client_ip] = [
-            ts for ts in _rate_tracker[client_ip] if ts > window_start
-        ]
-
-        if len(_rate_tracker[client_ip]) >= _RATE_LIMIT_MAX:
-            logger.warning("Rate limit alcanzado para IP: %s", client_ip)
-            from fastapi.responses import JSONResponse
-            return JSONResponse(
-                status_code=429,
-                content={"detail": "Demasiadas solicitudes. Intenta de nuevo en un momento."},
-            )
-
-        _rate_tracker[client_ip].append(now)
-
-    return await call_next(request)
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -212,6 +194,7 @@ async def _save_chat_messages(
 
 
 @app.post("/api/chat", response_model=ChatResponse)
+@limiter.limit("30/minute")
 async def chat_endpoint(request_body: ChatRequest, request: Request):
     if not request_body.student_query.strip():
         raise HTTPException(status_code=400, detail="La consulta no puede estar vacia.")
@@ -264,8 +247,29 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
 
 
 @app.post("/api/rag/ingest", response_model=IngestResponse)
-async def ingest_document(request: IngestRequest):
+@limiter.limit("10/minute")
+async def ingest_document(
+    request: IngestRequest,
+    current_admin: dict = Depends(get_current_admin_user)
+):
+    """
+    Pasa todo documento entrante por la Zona Militarizada de Ingesta (DMZ).
+    Si el documento no trata sobre Fundamentos o Administración de BD, es rechazado.
+    """
     try:
+        # 1. Pasar por la Zona Militarizada de Ingesta RAG
+        dmz_result = await validate_document_dmz(request.contenido, request.categoria)
+        if not dmz_result["is_valid"]:
+            logger.warning("Ingesta RECHAZADA por la Zona Militarizada: %s", dmz_result["reason"])
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=dmz_result["reason"]
+            )
+
+        # Usar la categoría sugerida por el guardrail si aplica
+        assigned_category = dmz_result.get("category") or request.categoria
+
+        # 2. Fragmentar el contenido aprobado
         chunks = chunk_text(request.contenido, chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
         if not chunks:
             raise HTTPException(status_code=400, detail="El documento no genero fragmentos validos.")
@@ -278,7 +282,7 @@ async def ingest_document(request: IngestRequest):
             await db.execute(
                 """INSERT INTO fragmentos_conocimiento (categoria, contenido, metadata, embedding)
                    VALUES ($1, $2, $3::jsonb, $4::vector)""",
-                request.categoria, chunk, metadata_json, embedding_str
+                assigned_category, chunk, metadata_json, embedding_str
             )
             created += 1
 
@@ -286,12 +290,14 @@ async def ingest_document(request: IngestRequest):
         from app.cache.redis_cache import redis_cache
         await redis_cache.invalidate_responses()
 
-        return IngestResponse(fragments_created=created, message=f"Documento ingestado: {created} fragmentos creados.")
+        logger.info("Admin %s ingesto documento aprobado (%d fragmentos)", current_admin["email"], created)
+        return IngestResponse(fragments_created=created, message=f"Documento APROBADO por la DMZ: {created} fragmentos creados.")
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Error en ingesta: %s", e)
         raise HTTPException(status_code=500, detail=f"Error al ingestar documento: {str(e)}")
+
 
 
 @app.get("/health", response_model=HealthResponse)

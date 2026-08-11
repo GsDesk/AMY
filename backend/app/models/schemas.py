@@ -62,6 +62,10 @@ class ChatResponse(BaseModel):
         default=False,
         description="Indica si se uso contexto RAG en la respuesta."
     )
+    rag_sources: list[dict] = Field(
+        default_factory=list,
+        description="Fragmentos de conocimiento RAG usados como contexto (para panel de fuentes en UI)."
+    )
     live_example: Optional[dict] = Field(
         default=None,
         description="Ejemplo interactivo de relacion entre tablas (si aplica)."

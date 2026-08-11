@@ -1,0 +1,111 @@
+/* WorkflowSourceVisualizer.css — Estilo Minimalista con pathLength 100 */
+
+.header-workflow-visualizer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 0.35rem 0.8rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.hwv-status-line {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-bottom: 0.15rem;
+}
+
+.hwv-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #38bdf8;
+}
+
+.hwv-dot.loading {
+    animation: hwvPulse 1.4s infinite ease-in-out;
+}
+
+.hwv-dot.done {
+    background-color: #4ade80;
+}
+
+.hwv-status-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #a3a3a3;
+}
+
+.hwv-pct {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+.hwv-graph-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.hwv-svg {
+    width: 100%;
+    height: auto;
+    max-height: 70px;
+}
+
+/* Trazos base neutros */
+.hwv-path-base {
+    stroke: #262626;
+    stroke-width: 1.2px;
+    fill: none;
+}
+
+/* Animación continua del haz de luz basada en pathLength="100" */
+@keyframes flowLaser {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.hwv-laser {
+  fill: none;
+  stroke-width: 2.5px;
+  /* 25 unidades de haz visible, 75 unidades de espacio */
+  stroke-dasharray: 25 75;
+  animation: flowLaser 1.4s infinite linear;
+}
+
+/* Tramo 1: FUENTE -> BDD (Azul Cian) */
+.hwv-p1 {
+  stroke: #38bdf8;
+  animation-delay: 0s;
+}
+
+/* Tramo 2: BDD -> Documentos (Con ligero retardo para sincronizar) */
+.hwv-p2 {
+  animation-delay: 0.35s;
+}
+
+.hwv-p2-pdf { stroke: #ff2a55; }
+.hwv-p2-doc { stroke: #2a85ff; }
+.hwv-p2-txt { stroke: #ff7000; }
+
+@keyframes hwvPulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.15); }
+}

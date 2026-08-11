@@ -37,6 +37,7 @@ class Database:
                     email VARCHAR(150) UNIQUE NOT NULL,
                     password_hash VARCHAR(255),
                     nombre VARCHAR(100) NOT NULL,
+                    rol VARCHAR(20) NOT NULL DEFAULT 'estudiante',
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 );
             """)
@@ -71,7 +72,7 @@ class Database:
                     categoria VARCHAR(100) NOT NULL,
                     contenido TEXT NOT NULL,
                     metadata JSONB DEFAULT '{}',
-                    embedding vector(4096),
+                    embedding vector(768),
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 );
@@ -79,6 +80,8 @@ class Database:
 
             # Quitar restriccion NOT NULL en password_hash para soportar OAuth
             await conn.execute("ALTER TABLE usuarios ALTER COLUMN password_hash DROP NOT NULL;")
+            # Migración idempotente para asegurar columna rol en tablas existentes
+            await conn.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(20) NOT NULL DEFAULT 'estudiante';")
 
         logger.info("Tablas del sistema verificadas y listas")
 

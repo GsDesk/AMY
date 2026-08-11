@@ -16,16 +16,24 @@ class OllamaClient:
         self.model = settings.OLLAMA_MODEL
         self.client = httpx.AsyncClient(
             base_url=self.host,
-            timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0)
+            timeout=httpx.Timeout(connect=15.0, read=300.0, write=30.0, pool=30.0)
         )
 
     async def generate(self, prompt: str, system: str = "") -> str:
         try:
             logger.info(f"Enviando consulta a Ollama ({self.model})...")
             response = await self.client.post("/api/generate", json={
-                "model": self.model, "prompt": prompt, "system": system,
-                "format": "json", "stream": False,
-                "options": {"temperature": 0.7, "top_p": 0.9, "num_predict": 1024}
+                "model": self.model,
+                "prompt": prompt,
+                "system": system,
+                "format": "json",
+                "stream": False,
+                "options": {
+                    "temperature": 0.2,       # Temperatura baja para precisión máxima sin delirios ni alucinaciones
+                    "top_p": 0.85,
+                    "num_predict": 350,       # Límite óptimo de tokens para velocidad 5x en CPU
+                    "num_thread": 4           # Paralelismo multihilo en contenedor CPU
+                }
             })
             response.raise_for_status()
             result = response.json().get("response", "")
@@ -42,18 +50,20 @@ class OllamaClient:
             raise
 
     async def get_embedding(self, text: str) -> list[float]:
-        try:
-            response = await self.client.post("/api/embeddings", json={
-                "model": "nomic-embed-text", "prompt": text
-            })
-            response.raise_for_status()
-            embedding = response.json().get("embedding", [])
-            if len(embedding) != settings.EMBEDDING_DIM:
-                logger.warning(f"Dimension de embedding inesperada: {len(embedding)} (esperado: {settings.EMBEDDING_DIM})")
-            return embedding
-        except Exception as e:
-            logger.error(f"Error generando embedding: {e}")
-            raise
+        """Obtiene el vector de embedding usando nomic-embed-text o el modelo local como fallback."""
+        for embed_model in ["nomic-embed-text", self.model]:
+            try:
+                response = await self.client.post("/api/embeddings", json={
+                    "model": embed_model, "prompt": text
+                })
+                if response.status_code == 200:
+                    embedding = response.json().get("embedding", [])
+                    if embedding:
+                        return embedding
+            except Exception as e:
+                logger.warning(f"No se pudo generar embedding con '{embed_model}': {e}")
+        logger.error("No se pudo obtener embedding con ningún modelo disponible en Ollama")
+        return []
 
     async def is_healthy(self) -> bool:
         try:

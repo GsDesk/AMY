@@ -1,0 +1,145 @@
+/* RAGWorkflowDiagram.css — Estilos para el diagrama de flujo de trabajo RAG */
+
+.rag-workflow-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 8, 16, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 16px;
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    width: 100%;
+    max-width: 480px;
+    margin: 0.5rem auto;
+    overflow: hidden;
+}
+
+.rag-workflow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rag-workflow-status-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #c4b5fd;
+}
+
+.rag-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #38bdf8;
+    box-shadow: 0 0 10px #38bdf8;
+    animation: statusPulse 1.5s infinite ease-in-out;
+}
+
+.rag-pulse-dot.done {
+    background-color: #4ade80;
+    box-shadow: 0 0 10px #4ade80;
+    animation: none;
+}
+
+.rag-workflow-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+/* Canvas del Diagrama */
+.rag-workflow-svg-wrap {
+    position: relative;
+    width: 100%;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.rag-workflow-svg {
+    width: 100%;
+    height: auto;
+    max-height: 210px;
+}
+
+/* Estilos de Trazo */
+.path-base {
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.path-pulse {
+    stroke-width: 2.5;
+    fill: none;
+    stroke-dasharray: 20 180;
+    animation: laserFlow 1.8s linear infinite;
+}
+
+.path-pulse-pdf {
+    stroke: url(#grad-pdf);
+    animation-delay: 0s;
+}
+
+.path-pulse-doc {
+    stroke: url(#grad-doc);
+    animation-delay: 0.3s;
+}
+
+.path-pulse-txt {
+    stroke: url(#grad-txt);
+    animation-delay: 0.6s;
+}
+
+@keyframes laserFlow {
+    0% { stroke-dashoffset: 200; }
+    100% { stroke-dashoffset: 0; }
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Nodos */
+.node-card {
+    transition: all 0.3s ease;
+}
+
+.node-card:hover {
+    filter: brightness(1.2);
+}
+
+.node-card-active {
+    animation: cardGlow 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes cardGlow {
+    from { filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.3)); }
+    to   { filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.8)); }
+}
+
+.center-node-spinner {
+    animation: rotateNode 12s linear infinite;
+    transform-origin: 200px 100px;
+}
+
+@keyframes rotateNode {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}

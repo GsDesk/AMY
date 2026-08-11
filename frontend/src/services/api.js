@@ -104,17 +104,22 @@ export function isAuthenticated() {
 
 /* ── Chat ───────────────────────────────────────────── */
 
-export async function sendChatMessage(studentQuery, conversationId = null) {
+export async function sendChatMessage(studentQuery, conversationId = null, signal = null) {
     const body = { student_query: studentQuery };
     if (conversationId) {
         body.conversation_id = conversationId;
     }
 
-    const response = await fetch(`${API_BASE}/api/chat`, {
+    const fetchOptions = {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(body)
-    });
+    };
+    if (signal) {
+        fetchOptions.signal = signal;
+    }
+
+    const response = await fetch(`${API_BASE}/api/chat`, fetchOptions);
 
     if (!response.ok && response.status !== 503) {
         throw new Error(`Error del servidor: ${response.status}`);
@@ -144,10 +149,11 @@ export async function checkHealth() {
 
 /* ── Conversations ──────────────────────────────────── */
 
-export async function getConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
-        headers: authHeaders()
-    });
+export async function getConversations(signal = null) {
+    const fetchOptions = { headers: authHeaders() };
+    if (signal) fetchOptions.signal = signal;
+
+    const response = await fetch(`${API_BASE}/api/conversations`, fetchOptions);
 
     if (!response.ok) {
         throw new Error(`Error al obtener conversaciones: ${response.status}`);
@@ -156,12 +162,15 @@ export async function getConversations() {
     return await response.json();
 }
 
-export async function createConversation(titulo) {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
+export async function createConversation(titulo, signal = null) {
+    const fetchOptions = {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ titulo })
-    });
+    };
+    if (signal) fetchOptions.signal = signal;
+
+    const response = await fetch(`${API_BASE}/api/conversations`, fetchOptions);
 
     if (!response.ok) {
         throw new Error(`Error al crear conversacion: ${response.status}`);
@@ -170,10 +179,11 @@ export async function createConversation(titulo) {
     return await response.json();
 }
 
-export async function getMessages(conversationId) {
-    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
-        headers: authHeaders()
-    });
+export async function getMessages(conversationId, signal = null) {
+    const fetchOptions = { headers: authHeaders() };
+    if (signal) fetchOptions.signal = signal;
+
+    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, fetchOptions);
 
     if (!response.ok) {
         throw new Error(`Error al obtener mensajes: ${response.status}`);
@@ -182,11 +192,14 @@ export async function getMessages(conversationId) {
     return await response.json();
 }
 
-export async function deleteConversation(id) {
-    const response = await fetch(`${API_BASE}/api/conversations/${id}`, {
+export async function deleteConversation(id, signal = null) {
+    const fetchOptions = {
         method: 'DELETE',
         headers: authHeaders()
-    });
+    };
+    if (signal) fetchOptions.signal = signal;
+
+    const response = await fetch(`${API_BASE}/api/conversations/${id}`, fetchOptions);
 
     if (!response.ok) {
         throw new Error(`Error al eliminar conversacion: ${response.status}`);
@@ -198,3 +211,78 @@ export async function deleteConversation(id) {
     
     return await response.json().catch(() => true);
 }
+
+/* ── Admin & DMZ Ingestion ────────────────────────────── */
+
+export async function getAdminStats() {
+    const response = await fetch(`${API_BASE}/api/admin/stats`, {
+        headers: authHeaders()
+    });
+    if (!response.ok) {
+        throw new Error(`Error al obtener estadísticas: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function getAdminUsers() {
+    const response = await fetch(`${API_BASE}/api/admin/users`, {
+        headers: authHeaders()
+    });
+    if (!response.ok) {
+        throw new Error(`Error al obtener usuarios: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function updateUserRole(userId, rol) {
+    const response = await fetch(`${API_BASE}/api/admin/users/${userId}/role`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ rol })
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Error al actualizar rol: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function getAdminKnowledge(category = 'all', limit = 50, offset = 0) {
+    const url = `${API_BASE}/api/admin/knowledge?category=${category}&limit=${limit}&offset=${offset}`;
+    const response = await fetch(url, {
+        headers: authHeaders()
+    });
+    if (!response.ok) {
+        throw new Error(`Error al obtener fragmentos RAG: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function deleteKnowledgeFragment(fragmentId) {
+    const response = await fetch(`${API_BASE}/api/admin/knowledge/${fragmentId}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+    });
+    if (!response.ok) {
+        throw new Error(`Error al eliminar fragmento RAG: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function ingestKnowledge(contenido, categoria, metadata = {}) {
+    const response = await fetch(`${API_BASE}/api/rag/ingest`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ contenido, categoria, metadata })
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        // Manejar respuesta de la Zona Militarizada (422)
+        throw new Error(data.detail || `Error de la Zona Militarizada (${response.status})`);
+    }
+
+    return data;
+}
+

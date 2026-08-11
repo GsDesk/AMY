@@ -1,47 +1,74 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusIndicator from './StatusIndicator';
 import { getConversations, deleteConversation, getUser, logout } from '../services/api';
 import './Sidebar.css';
 
+const LOCAL_STORAGE_KEY = 'amy_conversations_cache';
+
 export default function Sidebar({ onSelectConversation, onNewConversation, activeConversationId }) {
-    const [conversations, setConversations] = useState([]);
+    // Inicializar estado con caché local para carga instantánea
+    const [conversations, setConversations] = useState(() => {
+        try {
+            const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+            return cached ? JSON.parse(cached) : [];
+        } catch {
+            return [];
+        }
+    });
+
     const navigate = useNavigate();
     const user = getUser();
 
-    const fetchConversations = async () => {
+    // Obtener conversaciones desde la API de FastAPI y sincronizar con localStorage
+    const fetchConversations = useCallback(async () => {
         try {
             const data = await getConversations();
-            setConversations(data || []);
+            const list = data || [];
+            setConversations(list);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
         } catch (err) {
-            console.error('Error cargando conversaciones:', err);
+            console.error('Error cargando conversaciones desde API:', err);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchConversations();
-    }, []);
+    }, [fetchConversations, activeConversationId]);
+
+    const handleSelectConversation = (id) => {
+        if (onSelectConversation) {
+            onSelectConversation(id);
+        }
+    };
 
     const handleDelete = async (e, id) => {
         e.stopPropagation();
         try {
             await deleteConversation(id);
-            setConversations(prev => prev.filter(c => c.id !== id));
+            setConversations(prev => {
+                const updated = prev.filter(c => c.id !== id);
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+                return updated;
+            });
             if (activeConversationId === id && onNewConversation) {
                 onNewConversation();
             }
         } catch (err) {
-            console.error('Error eliminando conversacion:', err);
+            console.error('Error eliminando conversación:', err);
         }
     };
 
     const handleLogout = () => {
         logout();
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
         navigate('/');
     };
 
     const handleNewConversation = () => {
-        if (onNewConversation) onNewConversation();
+        if (onNewConversation) {
+            onNewConversation();
+        }
         fetchConversations();
     };
 
@@ -63,6 +90,15 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
                 <div className="user-info">
                     <span className="user-name">{user.nombre || user.email}</span>
                     <span className="user-email">{user.email}</span>
+                    {user.rol === 'admin' && (
+                        <button
+                            className="admin-link-btn"
+                            onClick={() => navigate('/admin')}
+                        >
+                            <span className="admin-icon">🛡️</span>
+                            <span>Panel Admin (DMZ)</span>
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -71,7 +107,7 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
             <div className="conversations">
                 <div className="conversations-header">
                     <h3>Conversaciones</h3>
-                    <button className="new-conv-btn" onClick={handleNewConversation} title="Nueva conversacion">
+                    <button className="new-conv-btn" onClick={handleNewConversation} title="Nueva conversación">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
                     </button>
                 </div>
@@ -85,16 +121,16 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
                         <li
                             key={conv.id}
                             className={`conv-item ${activeConversationId === conv.id ? 'active' : ''}`}
-                            onClick={() => onSelectConversation && onSelectConversation(conv.id)}
+                            onClick={() => handleSelectConversation(conv.id)}
                         >
                             <div className="conv-info">
-                                <span className="conv-title">{conv.titulo || 'Sin titulo'}</span>
+                                <span className="conv-title">{conv.titulo || 'Sin título'}</span>
                                 <span className="conv-date">{formatDate(conv.created_at)}</span>
                             </div>
                             <button
                                 className="conv-delete"
                                 onClick={(e) => handleDelete(e, conv.id)}
-                                title="Eliminar"
+                                title="Eliminar conversación"
                             >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                             </button>
@@ -113,17 +149,17 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
                 <h3>Temas disponibles:</h3>
                 <ul>
                     <li>SQL (SELECT, JOIN, DDL, DML)</li>
-                    <li>Normalizacion (1NF-BCNF)</li>
-                    <li>Modelo Entidad-Relacion</li>
-                    <li>Algebra Relacional</li>
+                    <li>Normalización (1NF-BCNF)</li>
+                    <li>Modelo Entidad-Relación</li>
+                    <li>Álgebra Relacional</li>
                     <li>Transacciones (ACID)</li>
-                    <li>Indices y Optimizacion</li>
+                    <li>Índices y Optimización</li>
                 </ul>
             </div>
 
             <div className="sidebar-footer">
-                <p>Metodo Socratico: te guiare con preguntas, no con respuestas directas.</p>
-                <button className="btn logout-btn" onClick={handleLogout}>Cerrar sesion</button>
+                <p>Método Socrático: te guiaré con preguntas, no con respuestas directas.</p>
+                <button className="btn logout-btn" onClick={handleLogout}>Cerrar sesión</button>
             </div>
         </aside>
     );

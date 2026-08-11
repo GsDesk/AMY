@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email VARCHAR(150) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
     nombre VARCHAR(100) NOT NULL,
+    rol VARCHAR(20) NOT NULL DEFAULT 'estudiante' CHECK (rol IN ('estudiante', 'admin')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -60,10 +61,16 @@ CREATE TABLE IF NOT EXISTS fragmentos_conocimiento (
     -- Contenido técnico del fragmento
     contenido TEXT NOT NULL,
     
+    -- Columna generada para Búsqueda de Texto Completo en español (FTS)
+    -- Se actualiza automáticamente cada vez que cambia `contenido`
+    contenido_fts TSVECTOR GENERATED ALWAYS AS (
+        to_tsvector('spanish', coalesce(contenido, ''))
+    ) STORED,
+    
     -- Metadatos adicionales (fuentes bibliográficas, autor, etc.)
     metadata JSONB DEFAULT '{}',
     
-    -- Vector de embedding (4096 dimensiones para Mistral via Ollama)
+    -- Vector de embedding (768 dimensiones para nomic-embed-text via Ollama)
     embedding vector(768),
     
     -- Timestamps
@@ -179,9 +186,7 @@ INSERT INTO fragmentos_conocimiento (categoria, contenido, metadata) VALUES
 '{"fuente": "Sistemas de Bases de Datos - Elmasri & Navathe", "capitulo": "18 - Indexación", "edicion": "6ta"}'::jsonb);
 
 -- ────────────────────────────────────────────────────────────
--- Índice vectorial (se crea después de los datos semilla)
--- IVFFlat requiere datos existentes para construir los centroides
--- Se creará desde el backend una vez generados los embeddings
+-- Índices para Búsqueda Híbrida (Vectorial + Full-Text Search)
 -- ────────────────────────────────────────────────────────────
 
 -- Índice B-Tree para búsquedas por categoría
@@ -189,3 +194,18 @@ CREATE INDEX IF NOT EXISTS idx_categoria ON fragmentos_conocimiento(categoria);
 
 -- Índice para ordenamiento temporal
 CREATE INDEX IF NOT EXISTS idx_created_at ON fragmentos_conocimiento(created_at);
+
+-- Índice HNSW para búsqueda vectorial eficiente por similitud coseno
+-- HNSW (Hierarchical Navigable Small World) no requiere REINDEX al insertar
+-- nuevos vectores, a diferencia de IVFFlat. Parámetros por defecto (m=16, ef=64).
+CREATE INDEX IF NOT EXISTS idx_fragmentos_hnsw
+    ON fragmentos_conocimiento
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
+
+-- Índice GIN para Full-Text Search en español (columna generada contenido_fts)
+-- Permite búsquedas léxicas eficientes como plainto_tsquery('spanish', 'clave foránea')
+CREATE INDEX IF NOT EXISTS idx_fragmentos_fts
+    ON fragmentos_conocimiento
+    USING gin (contenido_fts);
+

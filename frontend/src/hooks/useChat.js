@@ -16,6 +16,7 @@ export function useChat() {
     const [lastExample, setLastExample] = useState(null);
     const [currentConversationId, setCurrentConversationId] = useState(null);
     const messagesEndRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -25,8 +26,26 @@ export function useChat() {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
+    /**
+     * Cancela la petición HTTP en curso si existe
+     */
+    const stopGeneration = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setIsLoading(false);
+        }
+    }, []);
+
     const sendMessage = useCallback(async (text) => {
         if (!text.trim() || isLoading) return;
+
+        // Cancelar petición anterior si estuviese activa
+        stopGeneration();
+
+        // Crear una nueva instancia de AbortController para esta petición
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
 
         const userMsg = {
             id: `user-${Date.now()}`,
@@ -39,16 +58,16 @@ export function useChat() {
         setIsLoading(true);
 
         try {
-            // Si es el primer mensaje, crear una conversacion en el backend
+            // Si es el primer mensaje, crear la conversación en el backend
             let convId = currentConversationId;
             if (!convId) {
                 const firstWords = text.trim().substring(0, 60);
-                const conv = await createConversation(firstWords);
+                const conv = await createConversation(firstWords, controller.signal);
                 convId = conv.id;
                 setCurrentConversationId(convId);
             }
 
-            const response = await sendChatMessage(text.trim(), convId);
+            const response = await sendChatMessage(text.trim(), convId, controller.signal);
 
             const tutorMsg = {
                 id: `tutor-${Date.now()}`,
@@ -58,35 +77,46 @@ export function useChat() {
                 source: response.source || 'ollama-mistral',
                 topic: response.topic || 'General',
                 ragUsed: response.rag_context_used || false,
+                ragSources: response.rag_sources || [],
                 hasExample: !!response.live_example,
                 timestamp: new Date()
             };
 
             setMessages(prev => [...prev, tutorMsg]);
 
-            // Si la respuesta incluye un ejemplo interactivo, guardarlo
             if (response.live_example) {
                 setLastExample(response.live_example);
             }
         } catch (error) {
+            if (error.name === 'AbortError') {
+                // Actualizar estado de carga silenciosamente sin error fatal ni romper el flujo
+                return;
+            }
             const errorMsg = {
                 id: `error-${Date.now()}`,
                 sender: 'tutor',
-                text: `Error: ${error.message || 'Sin conexion con el servidor.'}`,
+                text: `Error: ${error.message || 'Sin conexión con el servidor.'}`,
                 source: 'error',
                 topic: 'Error',
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMsg]);
         } finally {
+            abortControllerRef.current = null;
             setIsLoading(false);
         }
-    }, [isLoading, currentConversationId]);
+    }, [isLoading, currentConversationId, stopGeneration]);
 
     const loadConversation = useCallback(async (id) => {
+        // Cancelar petición en curso antes de cambiar de conversación
+        stopGeneration();
         setIsLoading(true);
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
-            const data = await getMessages(id);
+            const data = await getMessages(id, controller.signal);
             const loaded = (data || []).map((msg, idx) => ({
                 id: msg.id || `msg-${idx}-${Date.now()}`,
                 sender: msg.sender === 'user' ? 'user' : 'tutor',
@@ -100,22 +130,27 @@ export function useChat() {
             setCurrentConversationId(id);
             setLastExample(null);
         } catch (error) {
-            console.error('Error cargando conversacion:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Error cargando conversación:', error);
+            }
         } finally {
+            abortControllerRef.current = null;
             setIsLoading(false);
         }
-    }, []);
+    }, [stopGeneration]);
 
     const clearChat = useCallback(() => {
+        stopGeneration();
         setMessages([WELCOME_MESSAGE]);
         setLastExample(null);
         setCurrentConversationId(null);
-    }, []);
+    }, [stopGeneration]);
 
     return {
         messages,
         isLoading,
         sendMessage,
+        stopGeneration,
         clearChat,
         messagesEndRef,
         lastExample,

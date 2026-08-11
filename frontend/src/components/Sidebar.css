@@ -71,6 +71,34 @@
     color: var(--text-muted);
 }
 
+.admin-link-btn {
+    margin-top: 0.5rem;
+    width: 100%;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    color: #a78bfa;
+    padding: 0.45rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+}
+
+.admin-link-btn:hover {
+    background: rgba(139, 92, 246, 0.18);
+    border-color: rgba(139, 92, 246, 0.45);
+    color: #c4b5fd;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+    transform: translateY(-1px);
+}
+
 /* ── Conversations ────────────────────────────────── */
 .conversations {
     display: flex;

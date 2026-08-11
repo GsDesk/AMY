@@ -68,6 +68,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GROQ_API_KEY: ${GROQ_API_KEY}
       GROQ_MODEL: llama-3.3-70b-versatile
+      # Umbral mínimo de similitud coseno para el retriever híbrido (0.0 - 1.0)
+      SIMILARITY_THRESHOLD: "0.55"
     depends_on:
       db:
         condition: service_healthy

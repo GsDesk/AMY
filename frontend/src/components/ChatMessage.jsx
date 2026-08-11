@@ -1,10 +1,124 @@
+import { useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './ChatMessage.css';
 
-export default function ChatMessage({ message }) {
+// ── Componente: Toolbar de Código SQL ────────────────────────────────────────
+function CodeToolbar({ code, language, onExplain }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Fallback para navegadores sin soporte Clipboard API
+            const el = document.createElement('textarea');
+            el.value = code;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    }, [code]);
+
+    const handleExplain = useCallback(() => {
+        if (onExplain) {
+            onExplain(`Explica esta consulta SQL paso a paso:\n\`\`\`sql\n${code}\n\`\`\``);
+        }
+    }, [code, onExplain]);
+
+    return (
+        <div className="code-toolbar">
+            <span className="code-lang-badge">{language?.toUpperCase() || 'CODE'}</span>
+            <div className="code-toolbar-actions">
+                <button
+                    className={`code-btn ${copied ? 'code-btn--copied' : ''}`}
+                    onClick={handleCopy}
+                    title="Copiar código"
+                    id={`copy-btn-${Math.random().toString(36).slice(2)}`}
+                >
+                    {copied ? '✓ Copiado' : '📋 Copiar'}
+                </button>
+                {(language === 'sql' || language === 'SQL') && onExplain && (
+                    <button
+                        className="code-btn code-btn--explain"
+                        onClick={handleExplain}
+                        title="Explicar esta consulta"
+                    >
+                        💡 Explicar
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ── Componente: Panel de Fuentes Glassmórfico ─────────────────────────────────
+function SourcesPanel({ sources }) {
+    const [open, setOpen] = useState(false);
+
+    if (!sources || sources.length === 0) return null;
+
+    const categoryColors = {
+        'SQL': '#3b82f6',
+        'Normalización': '#8b5cf6',
+        'Modelo E-R': '#06b6d4',
+        'Álgebra Relacional': '#f59e0b',
+        'Diseño de BD': '#10b981',
+        'Transacciones': '#ef4444',
+        'Índices': '#f97316',
+        'Fundamentos': '#6366f1',
+    };
+
+    return (
+        <div className="sources-panel-wrapper">
+            <button
+                className="sources-toggle-btn"
+                onClick={() => setOpen(o => !o)}
+                aria-expanded={open}
+            >
+                <span className="sources-icon">📚</span>
+                <span>{open ? 'Ocultar fuentes' : `Ver fuentes (${sources.length})`}</span>
+                <span className={`sources-chevron ${open ? 'sources-chevron--open' : ''}`}>›</span>
+            </button>
+
+            <div className={`sources-panel ${open ? 'sources-panel--open' : ''}`}>
+                {sources.map((src, idx) => (
+                    <div key={src.id || idx} className="source-card">
+                        <div className="source-card-header">
+                            <span
+                                className="source-category-badge"
+                                style={{ '--cat-color': categoryColors[src.categoria] || '#6b7280' }}
+                            >
+                                {src.categoria}
+                            </span>
+                            <span className="source-score">
+                                {src.rrf_score > 0
+                                    ? `RRF: ${src.rrf_score.toFixed(4)}`
+                                    : `sim: ${(src.similarity * 100).toFixed(1)}%`}
+                            </span>
+                        </div>
+                        <p className="source-excerpt">
+                            {src.contenido?.slice(0, 220)}{src.contenido?.length > 220 ? '…' : ''}
+                        </p>
+                        {src.metadata?.fuente && (
+                            <p className="source-ref">📖 {src.metadata.fuente}</p>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Componente principal: ChatMessage ─────────────────────────────────────────
+export default function ChatMessage({ message, onExplainCode }) {
     const isTutor = message.sender === 'tutor';
     const isError = message.source === 'error';
 
@@ -24,21 +138,33 @@ export default function ChatMessage({ message }) {
                             components={{
                                 code({ node, inline, className, children, ...props }) {
                                     const match = /language-(\w+)/.exec(className || '');
+                                    const language = match ? match[1] : null;
+                                    const codeString = String(children).replace(/\n$/, '');
+
                                     return !inline && match ? (
-                                        <SyntaxHighlighter
-                                            style={oneDark}
-                                            language={match[1]}
-                                            PreTag="div"
-                                            customStyle={{
-                                                borderRadius: '6px',
-                                                fontSize: '0.82rem',
-                                                margin: '0.6rem 0',
-                                                background: '#111111'
-                                            }}
-                                            {...props}
-                                        >
-                                            {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
+                                        <div className="code-block-wrapper">
+                                            <CodeToolbar
+                                                code={codeString}
+                                                language={language}
+                                                onExplain={onExplainCode}
+                                            />
+                                            <SyntaxHighlighter
+                                                style={vscDarkPlus}
+                                                language={language}
+                                                showLineNumbers={true}
+                                                PreTag="div"
+                                                customStyle={{
+                                                    borderRadius: '0 0 8px 8px',
+                                                    fontSize: '0.82rem',
+                                                    margin: '0',
+                                                    background: '#0d0d1a',
+                                                    borderTop: 'none',
+                                                }}
+                                                {...props}
+                                            >
+                                                {codeString}
+                                            </SyntaxHighlighter>
+                                        </div>
                                     ) : (
                                         <code className="inline-code" {...props}>
                                             {children}
@@ -57,7 +183,7 @@ export default function ChatMessage({ message }) {
                 {isTutor && message.source && message.source !== 'system' && (
                     <div className="msg-meta">
                         <span className={`source-badge ${isError ? 'badge-error' : 'badge-default'}`}>
-                            {isError ? 'Error' : 'Mistral'}
+                            {isError ? 'Error' : message.source === 'groq-llama3' ? 'Groq/Llama3' : 'Mistral'}
                         </span>
                         {message.topic && message.topic !== 'Error' && (
                             <span className="topic-badge">{message.topic}</span>
@@ -70,6 +196,11 @@ export default function ChatMessage({ message }) {
                         )}
                     </div>
                 )}
+
+                {/* Panel de fuentes RAG (glassmorphism) */}
+                {isTutor && message.ragSources && message.ragSources.length > 0 && (
+                    <SourcesPanel sources={message.ragSources} />
+                )}
             </div>
 
             {!isTutor && (
@@ -80,3 +211,5 @@ export default function ChatMessage({ message }) {
         </div>
     );
 }
+
+
