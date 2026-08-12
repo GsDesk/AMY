@@ -29,10 +29,12 @@ class OllamaClient:
                 "format": "json",
                 "stream": False,
                 "options": {
-                    "temperature": 0.2,       # Temperatura baja para precisión máxima sin delirios ni alucinaciones
-                    "top_p": 0.85,
-                    "num_predict": 350,       # Límite óptimo de tokens para velocidad 5x en CPU
-                    "num_thread": 4           # Paralelismo multihilo en contenedor CPU
+                    "temperature": 0.15,       # Temperatura muy baja para respuestas precisas y rapidas
+                    "top_p": 0.80,
+                    "num_predict": 280,        # Tokens reducidos para mayor velocidad en CPU
+                    "num_thread": 6,           # Mas hilos para CPU
+                    "repeat_penalty": 1.1,     # Evitar bucles de texto
+                    "stop": ["```", "\n\n\n"]  # Cortar generacion innecesaria
                 }
             })
             response.raise_for_status()

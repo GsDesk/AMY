@@ -185,7 +185,10 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                 {isTutor && message.source && message.source !== 'system' && (
                     <div className="msg-meta">
                         <span className={`source-badge ${isError ? 'badge-error' : 'badge-default'}`}>
-                            {isError ? 'Error' : message.source === 'groq-llama3' ? 'Groq/Llama3' : 'Mistral'}
+                            {isError ? 'Error'
+                                : message.source === 'gemini' ? 'Gemini 2.0 Flash'
+                                : message.source === 'groq-llama3' ? 'Groq/Llama3'
+                                : 'Mistral'}
                         </span>
                         {message.topic && message.topic !== 'Error' && (
                             <span className="topic-badge">{message.topic}</span>

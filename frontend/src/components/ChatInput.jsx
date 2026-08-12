@@ -6,13 +6,19 @@ const MODEL_OPTIONS = [
         key: 'auto',
         label: 'Automatico (Recomendado)',
         badge: 'Auto',
-        desc: 'Usa Groq ultrarapido y cambia a Ollama local si se agotan los tokens'
+        desc: 'Usa Gemini ultrarapido, luego Groq, luego Ollama local si es necesario'
+    },
+    {
+        key: 'gemini',
+        label: 'Google Gemini 2.0 Flash (Nube)',
+        badge: 'Gemini',
+        desc: 'Motor ultrarapido de Google (~0.5-1s). Requiere GEMINI_API_KEY.'
     },
     {
         key: 'groq',
         label: 'Groq Llama 3.3 70B (Nube)',
         badge: 'Groq',
-        desc: 'Respuestas rapidas procesadas en la nube'
+        desc: 'Respuestas rapidas procesadas en la nube Groq'
     },
     {
         key: 'ollama',
