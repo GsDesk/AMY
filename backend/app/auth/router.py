@@ -118,77 +118,142 @@ async def me(current_user: dict = Depends(get_current_user)):
     return UserOut(**current_user)
 
 
+class MicrosoftLoginRequest(BaseModel):
+    accessToken: str
+
+
 @router.get("/config")
 async def get_auth_config():
     """Retorna la configuracion publica para la autenticacion."""
-    return {"googleClientId": settings.GOOGLE_CLIENT_ID}
+    return {
+        "googleClientId": settings.GOOGLE_CLIENT_ID,
+        "azureClientId": settings.AZURE_CLIENT_ID,
+        "azureTenantId": settings.AZURE_TENANT_ID,
+    }
 
 
-@router.post("/google-login", response_model=AuthResponse)
-async def google_login(body: GoogleLoginRequest):
-    """Inicia sesion o registra a un usuario mediante Google OAuth."""
-    from google.oauth2 import id_token
-    from google.auth.transport import requests as google_requests
+@router.post("/microsoft-login", response_model=AuthResponse)
+async def microsoft_login(body: MicrosoftLoginRequest):
+    """
+    Inicia sesion o registra un usuario institucional de la UPEC mediante Microsoft 365 OAuth 2.0.
+    Discrimina automáticamente entre Docentes (rol 'admin') y Estudiantes (rol 'estudiante').
+    """
+    import httpx
 
+    access_token = body.accessToken.strip()
+    if not access_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El token de acceso de Microsoft no puede estar vacío."
+        )
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # 1. Obtener perfil del usuario desde Microsoft Graph API
     try:
-        idinfo = id_token.verify_oauth2_token(
-            body.credential,
-            google_requests.Request(),
-            settings.GOOGLE_CLIENT_ID
-        )
-
-        email = idinfo.get("email")
-        nombre = idinfo.get("name", "Usuario de Google")
-
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El token de Google no contiene un correo valido."
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            me_resp = await client.get(
+                "https://graph.microsoft.com/v1.0/me?$select=id,displayName,mail,userPrincipalName,jobTitle,department",
+                headers=headers
             )
-            
-        email_clean = email.strip().lower()
+            if me_resp.status_code != 200:
+                logger.warning("Fallo al consultar Microsoft Graph API: %d - %s", me_resp.status_code, me_resp.text)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="No se pudo verificar la identidad con Microsoft 365. El token expiró o es inválido."
+                )
+            user_data = me_resp.json()
 
-    except ValueError as e:
-        logger.warning("Fallo la verificacion del token de Google: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token de Google invalido: {str(e)}"
-        )
+            # 2. Consultar grupos a los que pertenece en Entra ID
+            groups_list = []
+            try:
+                groups_resp = await client.get("https://graph.microsoft.com/v1.0/me/memberOf", headers=headers)
+                if groups_resp.status_code == 200:
+                    groups_list = groups_resp.json().get("value", [])
+            except Exception as ge:
+                logger.warning("No se pudieron consultar los grupos de Microsoft: %s", ge)
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Error inesperado verificando token de Google: %s", e)
+        logger.error("Error al conectar con Microsoft Graph API: %s", e)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno al verificar la identidad con Google."
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Error al comunicarse con los servicios de autenticación de Microsoft."
         )
 
+    # 3. Extraer datos principales
+    email = (user_data.get("mail") or user_data.get("userPrincipalName") or "").strip().lower()
+    nombre = user_data.get("displayName") or email.split("@")[0]
+    job_title = (user_data.get("jobTitle") or "").lower()
+    department = (user_data.get("department") or "").lower()
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La cuenta de Microsoft no tiene un correo electrónico configurado."
+        )
+
+    # 4. Validación de Dominio Institucional (@upec.edu.ec)
+    if not email.endswith("@upec.edu.ec"):
+        logger.warning("Intento de login institucional denegado para correo no UPEC: %s", email)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido: Solo se permiten cuentas institucionales de la UPEC (@upec.edu.ec)."
+        )
+
+    # 5. Evaluación Automática de Rol (Docentes -> admin, Estudiantes -> estudiante)
+    is_docente = False
+
+    # Verificar jobTitle o department
+    for term in ("docente", "profesor", "catedratico", "profesora"):
+        if term in job_title or term in department:
+            is_docente = True
+            break
+
+    # Verificar grupos de Microsoft Entra ID
+    if not is_docente:
+        for g in groups_list:
+            g_name = (g.get("displayName") or "").lower()
+            if any(term in g_name for term in ("docentes", "profesores", "docente", "profesor")):
+                is_docente = True
+                break
+
+    evaluated_role = "admin" if is_docente else "estudiante"
+
+    # 6. Persistencia en PostgreSQL
     row = await db.fetchrow(
         "SELECT id, email, nombre, rol FROM usuarios WHERE email = $1",
-        email_clean
+        email
     )
 
     if not row:
-        total_users = await db.fetchval("SELECT COUNT(*) FROM usuarios") or 0
-        assigned_role = "admin" if total_users == 0 else "estudiante"
         user_id = str(uuid.uuid4())
         await db.execute(
             """INSERT INTO usuarios (id, email, password_hash, nombre, rol)
                VALUES ($1, $2, NULL, $3, $4)""",
             user_id,
-            email_clean,
+            email,
             nombre,
-            assigned_role,
+            evaluated_role
         )
-        logger.info("Nuevo usuario registrado via Google: %s (rol=%s)", email_clean, assigned_role)
-        row = {"id": user_id, "email": email_clean, "nombre": nombre, "rol": assigned_role}
+        logger.info("Nuevo usuario UPEC registrado vía Microsoft: %s (rol=%s)", email, evaluated_role)
+        final_role = evaluated_role
     else:
-        logger.info("Usuario existente inicio sesion via Google: %s", email_clean)
+        user_id = str(row["id"])
+        # Preservar rol admin existente o actualizar si fue promovido a docente
+        existing_role = row.get("rol", "estudiante")
+        final_role = "admin" if (existing_role == "admin" or is_docente) else "estudiante"
+        if final_role != existing_role:
+            await db.execute("UPDATE usuarios SET rol = $1 WHERE id = $2", final_role, user_id)
+        logger.info("Usuario UPEC inició sesión vía Microsoft: %s (rol=%s)", email, final_role)
 
-    user_id = str(row["id"])
-    user_role = row.get("rol", "estudiante")
-    token = create_access_token({"sub": user_id, "rol": user_role})
+    # 7. Generar Token JWT de AMY
+    jwt_token = create_access_token({"sub": user_id, "rol": final_role})
+
     return AuthResponse(
-        token=token,
-        user=UserOut(id=user_id, email=row["email"], nombre=row["nombre"], rol=user_role)
+        token=jwt_token,
+        user=UserOut(id=user_id, email=email, nombre=nombre, rol=final_role)
     )
 
 

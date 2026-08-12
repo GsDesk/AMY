@@ -48,6 +48,24 @@ export async function getAuthConfig() {
     return await response.json();
 }
 
+export async function loginWithMicrosoft(accessToken) {
+    const response = await fetch(`${API_BASE}/api/auth/microsoft-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken })
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || `Error de autenticación institucional: ${response.status}`);
+    }
+
+    const data = await response.json();
+    localStorage.setItem('amy_token', data.token);
+    localStorage.setItem('amy_user', JSON.stringify(data.user));
+    return data;
+}
+
 export async function googleLogin(credential) {
     const response = await fetch(`${API_BASE}/api/auth/google-login`, {
         method: 'POST',
