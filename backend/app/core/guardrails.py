@@ -58,13 +58,54 @@ DIRECTRICES OBLIGATORIAS DE PERSONALIDAD Y ENRUTAMIENTO DE INTENCIONES:
 5. MÉTODO SOCRÁTICO:
    - En explicaciones técnicas, no des siempre la solución servida de inmediato: haz preguntas guía que estimulen el razonamiento lógico del estudiante.
 
+6. MOTOR DINAMICO DE DIAGRAMAS E-R (MUY IMPORTANTE - OBLIGATORIO):
+   Cuando el estudiante pregunte sobre COMO SE RELACIONAN dos o mas tablas, como disenar un esquema, pida un diagrama E-R, o pregunte por relaciones entre entidades especificas (ej: "Usuarios y Roles", "Facturas y Detalle", "Clientes y Pedidos", "Estudiantes y Cursos", "Productos e Inventario", etc.):
+
+   a) Identifica dinamicamente TODAS las entidades/tablas mencionadas o implicadas.
+   b) Determina la cardinalidad correcta (1:1, 1:N, N:M).
+   c) Deduce las columnas esenciales con sus tipos de dato, claves primarias (PK) y foraneas (FK).
+   d) Genera el bloque Mermaid erDiagram valido para ESA consulta especifica. NUNCA uses un ejemplo hardcodeado.
+   e) En tu respuesta JSON incluye el campo adicional "live_example" con la siguiente estructura EXACTA:
+
+   "live_example": {
+     "type": "er_diagram",
+     "title": "Relacion entre TablaA y TablaB",
+     "cardinality": "1:N",
+     "description": "Descripcion breve de la regla de negocio",
+     "mermaid_code": "erDiagram\n  TABLA_A ||--o{ TABLA_B : relaciona\n  TABLA_A {\n    int id_a PK\n    string nombre\n  }\n  TABLA_B {\n    int id_b PK\n    int id_a FK\n    string descripcion\n  }",
+     "tables": [
+       {
+         "name": "NombreTablaA",
+         "columns": [
+           {"name": "id", "type": "INT", "isPk": true},
+           {"name": "nombre", "type": "VARCHAR(100)"}
+         ]
+       },
+       {
+         "name": "NombreTablaB",
+         "columns": [
+           {"name": "id", "type": "INT", "isPk": true},
+           {"name": "id_tabla_a", "type": "INT", "isFk": true, "references": "NombreTablaA(id)"},
+           {"name": "descripcion", "type": "TEXT"}
+         ]
+       }
+     ]
+   }
+
+   REGLAS del mermaid_code:
+   - 1:1: TABLA_A ||--|| TABLA_B : "relacion"
+   - 1:N: TABLA_A ||--o{ TABLA_B : "relacion"
+   - N:M: usa tabla intermedia con dos relaciones ||--o{
+
 FORMATO DE RESPUESTA JSON OBLIGATORIO:
-Debes responder ÚNICAMENTE con un objeto JSON válido con esta estructura:
+Debes responder UNICAMENTE con un objeto JSON valido con esta estructura:
 {
-    "analysis": "Breve diagnóstico interno de la intención o error del estudiante",
-    "feedback": "Respuesta pedagógica formateada en Markdown impecable",
-    "topic": "SQL | Normalización | Modelo E-R | Álgebra Relacional | Diseño de BD | Transacciones | Índices | Fundamentos | Saludos | General | Fuera de Alcance"
+    "analysis": "Breve diagnostico interno de la intencion o error del estudiante",
+    "feedback": "Respuesta pedagogica formateada en Markdown impecable",
+    "topic": "SQL | Normalizacion | Modelo E-R | Algebra Relacional | Diseno de BD | Transacciones | Indices | Fundamentos | Saludos | General | Fuera de Alcance",
+    "live_example": null
 }
+Cuando detectes una intencion de diagrama E-R, reemplaza "live_example": null por el objeto completo descrito arriba.
 """
 
 
@@ -198,9 +239,18 @@ def validate_response(response_text: str) -> dict:
                     result["topic"] = inner.get("topic", result.get("topic", "General"))
             except:
                 pass
-    result.setdefault("analysis", "Sin análisis disponible.")
-    result.setdefault("feedback", "¿Podrías darme más detalles sobre tu duda?")
+    result.setdefault("analysis", "Sin analisis disponible.")
+    result.setdefault("feedback", "¿Podrias darme mas detalles sobre tu duda?")
     result.setdefault("topic", "General")
+
+    # Normalizar live_example si el LLM lo incluyó (diagrama E-R dinámico)
+    live_example = result.get("live_example")
+    if live_example and isinstance(live_example, dict):
+        # Validar que tenga la estructura mínima esperada
+        if not live_example.get("type") or not live_example.get("mermaid_code"):
+            result["live_example"] = None
+    else:
+        result["live_example"] = None
 
     # Validar que el topic sea de la lista permitida
     if result["topic"] not in ALLOWED_TOPICS:

@@ -141,11 +141,18 @@ class TutorBrain:
                 for f in context_fragments
             ] if rag_context_used else []
 
-            # 5. Detección de ejemplo interactivo
+            # 5. Ejemplo interactivo — prioridad al diagrama dinámico del LLM
             topic = result.get("topic", "")
-            live_example = detect_example(student_query, topic)
-            if live_example:
-                result["live_example"] = live_example
+            llm_live_example = result.get("live_example")  # ya extraído por validate_response
+
+            if llm_live_example:
+                # El LLM generó un diagrama E-R dinámico — usarlo directamente
+                logger.info("Diagrama E-R dinamico recibido del LLM (type=%s)", llm_live_example.get("type"))
+            else:
+                # Fallback: detección estática por palabras clave (ejemplos hardcodeados)
+                static_example = detect_example(student_query, topic)
+                if static_example:
+                    result["live_example"] = static_example
 
             return result
 

@@ -227,6 +227,41 @@
     margin-top: 0.5rem;
 }
 
+/* ── ER Diagram Reopen Button ────────────────────────────────────────────── */
+
+.er-reopen-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 7px;
+    color: #d4d4d8;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.er-reopen-btn:hover {
+    background: #27272a;
+    border-color: #52525b;
+    color: #f4f4f5;
+}
+
+.er-btn-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    color: #a1a1aa;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+}
+
 /* ── Sources Panel — Glassmorphism ────────────────────────────────────────── */
 
 .sources-panel-wrapper {

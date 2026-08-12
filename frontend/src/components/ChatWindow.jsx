@@ -45,6 +45,13 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         sendMessage(text);
     }, [sendMessage]);
 
+    // Cuando el usuario pulsa "Ver Diagrama E-R" en un mensaje anterior
+    const handleOpenDiagram = useCallback((example) => {
+        if (onExampleReceived && example) {
+            onExampleReceived(example);
+        }
+    }, [onExampleReceived]);
+
     // Extraer las fuentes RAG del último mensaje del tutor
     const lastTutorMsg = [...messages].reverse().find(m => m.sender === 'tutor' && m.ragSources && m.ragSources.length > 0);
     const currentSources = lastTutorMsg ? lastTutorMsg.ragSources : [];
@@ -81,6 +88,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                         key={msg.id}
                         message={msg}
                         onExplainCode={handleExplainAndFocus}
+                        onOpenDiagram={handleOpenDiagram}
                     />
                 ))}
 

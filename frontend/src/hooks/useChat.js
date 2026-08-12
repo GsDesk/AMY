@@ -81,6 +81,7 @@ export function useChat() {
                 ragUsed: response.rag_context_used || false,
                 ragSources: response.rag_sources || [],
                 hasExample: !!response.live_example,
+                liveExample: response.live_example || null,
                 modelSwitched: response.model_switched || false,
                 switchReason: response.switch_reason || null,
                 timestamp: new Date()

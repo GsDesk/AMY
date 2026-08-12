@@ -118,9 +118,11 @@ function SourcesPanel({ sources }) {
 }
 
 // ── Componente principal: ChatMessage ─────────────────────────────────────────
-export default function ChatMessage({ message, onExplainCode }) {
+export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
     const isTutor = message.sender === 'tutor';
     const isError = message.source === 'error';
+    const erDiagram = isTutor && message.liveExample && message.liveExample.type === 'er_diagram'
+        ? message.liveExample : null;
 
     return (
         <div className={`chat-message ${isTutor ? 'tutor-msg' : 'user-msg'} ${isError ? 'error-msg' : ''}`}>
@@ -191,16 +193,36 @@ export default function ChatMessage({ message, onExplainCode }) {
                         {message.ragUsed && (
                             <span className="rag-badge">RAG</span>
                         )}
-                        {message.hasExample && (
+                        {message.hasExample && !erDiagram && (
                             <span className="example-badge">Panel Abierto</span>
                         )}
                     </div>
                 )}
 
+                {/* Boton para reabrir diagrama E-R dinamico */}
+                {erDiagram && onOpenDiagram && (
+                    <button
+                        className="er-reopen-btn"
+                        onClick={() => onOpenDiagram(message.liveExample)}
+                        title="Abrir panel de diagrama E-R"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                            <path d="M14 17.5h7M17.5 14v7"/>
+                        </svg>
+                        Ver Diagrama E-R
+                        {erDiagram.cardinality && (
+                            <span className="er-btn-badge">{erDiagram.cardinality}</span>
+                        )}
+                    </button>
+                )}
+
                 {isTutor && message.modelSwitched && (
                     <div className="model-switch-alert">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                        <span>{message.switchReason || "Se conmutó automáticamente de modelo por límite de tokens."}</span>
+                        <span>{message.switchReason || "Se conmuto automaticamente de modelo por limite de tokens."}</span>
                     </div>
                 )}
 
