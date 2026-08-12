@@ -12,7 +12,7 @@ from app.integrations.ollama_client import ollama_client
 
 logger = logging.getLogger(__name__)
 
-# Palabras clave esenciales del dominio de Bases de Datos
+# Palabras clave esenciales del dominio de Bases de Datos y Sílabos UPEC
 DB_DOMAIN_KEYWORDS = [
     "sql", "base de datos", "database", "sgbd", "dbms", "tabla", "table",
     "normalización", "1nf", "2nf", "3nf", "bcnf", "entidad", "relación",
@@ -21,13 +21,15 @@ DB_DOMAIN_KEYWORDS = [
     "álgebra relacional", "proyección", "selección", "join", "er", "e-r",
     "ddl", "dml", "select", "insert", "update", "delete", "create table",
     "vista", "view", "trigger", "procedimiento almacenado", "postgresql",
-    "mysql", "oracle", "esquema", "schema", "dependencia funcional"
+    "mysql", "oracle", "esquema", "schema", "dependencia funcional",
+    "sílabo", "silabo", "plan analítico", "plan analitico", "programa analítico",
+    "planificación micro-curricular", "fundamentos de base de datos", "upec"
 ]
 
 # Temas explícitamente prohibidos para evitar contaminación del RAG
 PROHIBITED_TOPICS = [
     "receta", "cocina", "deportes", "fútbol", "política", "noticias",
-    "criptomonedas", "bitcoin", "horóscopo", "farándula", "videojuegos",
+    "criptomeneras", "bitcoin", "horóscopo", "farándula", "videojuegos",
     "apuestas", "medicina", "moda", "chisme"
 ]
 
@@ -54,13 +56,14 @@ async def validate_document_dmz(contenido: str, categoria: str = "") -> dict:
 
     text_lower = clean_text.lower()
 
-    # Verificar temas explícitamente prohibidos
+    # Verificar temas explícitamente prohibidos utilizando límites de palabra (\b) para evitar falsos positivos como MODALIDAD
     for topic in PROHIBITED_TOPICS:
-        if topic in text_lower:
+        pattern = r'\b' + re.escape(topic) + r'\b'
+        if re.search(pattern, text_lower):
             logger.warning("DMZ Ingesta: Documento rechazado por contener tema prohibido: %s", topic)
             return {
                 "is_valid": False,
-                "reason": f"Zona Militarizada: El documento contiene referencias a '{topic}', tema ajeno a Bases de Datos.",
+                "reason": f"Zona Militarizada: El documento contiene referencias explícitas a '{topic}', tema ajeno a Bases de Datos.",
                 "category": "Rechazado por Dominio"
             }
 

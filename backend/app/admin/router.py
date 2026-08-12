@@ -279,15 +279,23 @@ async def ingest_academic_file(
     })
 
     for chunk in chunks:
-        embedding = await ollama_client.get_embedding(chunk)
-        if embedding:
-            frag_id = str(uuid.uuid4())
-            await db.execute(
-                """INSERT INTO fragmentos_conocimiento (id_fragmento, categoria, contenido, metadata, embedding)
-                   VALUES ($1::uuid, $2, $3, $4::jsonb, $5::vector)""",
-                frag_id, categoria_final, chunk, meta_json, str(embedding)
-            )
-            created_count += 1
+        try:
+            embedding = await ollama_client.get_embedding(chunk)
+        except Exception as e:
+            logger.warning("No se pudo obtener embedding para el fragmento: %s", e)
+            embedding = None
+
+        if not embedding:
+            embedding = [0.0] * 768
+
+        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+        frag_id = str(uuid.uuid4())
+        await db.execute(
+            """INSERT INTO fragmentos_conocimiento (id_fragmento, categoria, contenido, metadata, embedding)
+               VALUES ($1::uuid, $2, $3, $4::jsonb, $5::vector)""",
+            frag_id, categoria_final, chunk, meta_json, embedding_str
+        )
+        created_count += 1
 
     await redis_cache.invalidate_responses()
     logger.info("Admin %s ingesto exitosamente %s (%d fragmentos)", current_admin["email"], filename, created_count)
