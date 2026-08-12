@@ -21,6 +21,10 @@ class ChatRequest(BaseModel):
         default=None,
         description="ID de conversacion para persistir el mensaje (requiere autenticacion)."
     )
+    model_preference: str = Field(
+        default="auto",
+        description="Motor de IA preferido: 'auto' (default), 'groq' o 'ollama'."
+    )
 
 
 class IngestRequest(BaseModel):
