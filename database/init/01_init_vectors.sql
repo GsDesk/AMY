@@ -41,6 +41,16 @@ CREATE TABLE IF NOT EXISTS mensajes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Tabla: auditoria_dmz (Registro de Auditoría de Ingesta RAG)
+CREATE TABLE IF NOT EXISTS auditoria_dmz (
+    id VARCHAR(100) PRIMARY KEY,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    evento VARCHAR(250) NOT NULL,
+    categoria VARCHAR(100) NOT NULL,
+    estado VARCHAR(50) NOT NULL CHECK (estado IN ('APROBADO', 'RECHAZADO')),
+    motivo TEXT
+);
+
 -- ────────────────────────────────────────────────────────────
 -- Tabla principal: fragmentos_conocimiento
 

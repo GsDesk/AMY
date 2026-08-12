@@ -269,6 +269,52 @@ export async function deleteKnowledgeFragment(fragmentId) {
     return await response.json();
 }
 
+export async function getAdminAnalytics() {
+    const response = await fetch(`${API_BASE}/api/admin/analytics`, {
+        headers: authHeaders()
+    });
+    if (!response.ok) {
+        throw new Error(`Error al obtener analíticas RAG: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function getDmzLogs() {
+    const response = await fetch(`${API_BASE}/api/admin/dmz-logs`, {
+        headers: authHeaders()
+    });
+    if (!response.ok) {
+        throw new Error(`Error al obtener registros DMZ: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export async function ingestAcademicFile(file, categoria, fuente = '', autor = '') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('categoria', categoria);
+    if (fuente) formData.append('fuente', fuente);
+    if (autor) formData.append('autor', autor);
+
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE}/api/admin/ingest-file`, {
+        method: 'POST',
+        headers,
+        body: formData
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.detail || `Error al ingestar archivo (${response.status})`);
+    }
+
+    return data;
+}
+
 export async function ingestKnowledge(contenido, categoria, metadata = {}) {
     const response = await fetch(`${API_BASE}/api/rag/ingest`, {
         method: 'POST',
@@ -279,7 +325,6 @@ export async function ingestKnowledge(contenido, categoria, metadata = {}) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        // Manejar respuesta de la Zona Militarizada (422)
         throw new Error(data.detail || `Error de la Zona Militarizada (${response.status})`);
     }
 

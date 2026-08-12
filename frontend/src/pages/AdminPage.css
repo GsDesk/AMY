@@ -1,5 +1,5 @@
 /* ============================================================
-   AMY — Admin Panel Styling (Tailark Pro Dashboard Aesthetics)
+   AMY — Admin Panel Styling (Monochromatic Strict Mode & Zero Emojis)
    ============================================================ */
 
 :root {
@@ -24,7 +24,6 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Transición suave entre módulos del slider */
 .module-fade-in {
     animation: moduleFadeIn 0.25s ease-out forwards;
 }
@@ -45,7 +44,6 @@
     flex-shrink: 0;
 }
 
-/* Brand Selector Header */
 .tailark-brand {
     display: flex;
     align-items: center;
@@ -55,7 +53,6 @@
     background: #141417;
     border: 1px solid var(--tailark-border);
     margin-bottom: 1.5rem;
-    cursor: pointer;
 }
 
 .tailark-logo-mark {
@@ -87,11 +84,6 @@
     color: var(--tailark-text-dim);
 }
 
-.tailark-brand-chev {
-    color: var(--tailark-text-dim);
-}
-
-/* Navigation Links */
 .tailark-nav {
     display: flex;
     flex-direction: column;
@@ -138,7 +130,6 @@
     color: #ffffff;
 }
 
-/* Projects Section */
 .tailark-projects-section {
     margin-top: 2rem;
     padding-top: 1.2rem;
@@ -185,7 +176,7 @@
     border-radius: 50%;
 }
 
-.dot-blue { background-color: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+.dot-blue { background-color: #38bdf8; }
 .dot-gray { background-color: #52525b; }
 
 .tailark-sidebar-footer {
@@ -205,7 +196,6 @@
     max-width: 1280px;
 }
 
-/* Top Controls Filter Bar */
 .tailark-topbar {
     display: flex;
     justify-content: flex-start;
@@ -250,7 +240,6 @@
     color: var(--tailark-text-dim);
 }
 
-/* Section Header */
 .tailark-section-header {
     margin-bottom: 1.5rem;
 }
@@ -278,9 +267,7 @@
 }
 
 @media (max-width: 1100px) {
-    .tailark-cards-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+    .tailark-cards-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .tailark-card {
@@ -322,15 +309,9 @@
 }
 
 .badge-green {
-    background: rgba(34, 197, 94, 0.12);
+    background: rgba(34, 197, 94, 0.1);
     color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.25);
-}
-
-.badge-red {
-    background: rgba(239, 68, 68, 0.12);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .tailark-card-value {
@@ -461,95 +442,84 @@
     transition: width 0.6s ease;
 }
 
-/* ── AI INSIGHTS SECTION ───────────────────────────────────────────── */
-.tailark-insights-container {
-    margin-bottom: 2.5rem;
-}
-
-.tailark-insights-header {
-    margin-bottom: 1.2rem;
-}
-
-.tailark-insights-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-}
-
-.tailark-insights-subtitle {
-    font-size: 0.82rem;
-    color: var(--tailark-text-muted);
-    margin-top: 0.2rem;
-}
-
-.tailark-insights-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-}
-
-@media (max-width: 900px) {
-    .tailark-insights-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.tailark-insight-card {
-    background-color: var(--tailark-card-bg);
-    border: 1px solid var(--tailark-border);
+/* ── DRAG & DROP DROPZONE ───────────────────────────────────────────── */
+.file-dropzone {
+    border: 2px dashed #27272a;
     border-radius: 12px;
-    padding: 1.35rem 1.5rem;
+    padding: 2.5rem 1.5rem;
+    background: #09090b;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.file-dropzone:hover, .file-dropzone.dragging {
+    border-color: #38bdf8;
+    background: #101015;
+}
+
+.file-dropzone.has-file {
+    border-style: solid;
+    border-color: #38bdf8;
+    background: #0e1217;
+}
+
+.dropzone-placeholder {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 1.2rem;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.tailark-insight-content {
+.drop-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #f4f4f5;
+}
+
+.drop-sub {
+    font-size: 0.8rem;
+    color: #71717a;
+}
+
+.selected-file-info {
     display: flex;
-    gap: 0.85rem;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 450px;
+    justify-content: space-between;
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column;
     align-items: flex-start;
 }
 
-.tailark-insight-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: #18181b;
-    border: 1px solid var(--tailark-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.tailark-insight-text {
-    font-size: 0.86rem;
-    line-height: 1.55;
-    color: var(--tailark-text-muted);
-}
-
-.tailark-insight-text strong {
+.file-name {
+    font-size: 0.9rem;
+    font-weight: 600;
     color: #ffffff;
 }
 
-.tailark-btn-details {
-    background: transparent;
-    border: none;
-    color: #a1a1aa;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
-    text-align: left;
-    transition: color 0.15s ease;
-    align-self: flex-start;
+.file-size {
+    font-size: 0.78rem;
+    color: #71717a;
 }
 
-.tailark-btn-details:hover {
+.btn-clear-file {
+    background: #18181b;
+    border: 1px solid #27272a;
     color: #38bdf8;
-    text-decoration: underline;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
 }
 
 /* ── TAB PANELS & TABLES ────────────────────────────────────────────── */
@@ -606,12 +576,6 @@
 
 .tailark-input:focus {
     border-color: #38bdf8;
-}
-
-.tailark-textarea {
-    min-height: 120px;
-    resize: vertical;
-    line-height: 1.5;
 }
 
 .tailark-form-row {
@@ -763,28 +727,4 @@
     border-radius: 6px;
     font-size: 0.78rem;
     cursor: pointer;
-}
-
-/* Modal */
-.tailark-modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-}
-
-.tailark-modal {
-    background: #141417;
-    border: 1px solid var(--tailark-border);
-    border-radius: 14px;
-    padding: 2rem;
-    max-width: 480px;
-    width: 90%;
 }
