@@ -24,6 +24,16 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Transición suave entre módulos del slider */
+.module-fade-in {
+    animation: moduleFadeIn 0.25s ease-out forwards;
+}
+
+@keyframes moduleFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── LEFT SIDEBAR ────────────────────────────────────────────────────── */
 .tailark-sidebar {
     width: 240px;
@@ -374,6 +384,81 @@
     font-size: 0.75rem;
     color: var(--tailark-text-dim);
     font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── MÓDULO ANALYTICS ──────────────────────────────────────────────── */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.2rem;
+    margin-bottom: 1.8rem;
+}
+
+@media (max-width: 1000px) {
+    .analytics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.analytics-card {
+    background: #141417;
+    border: 1px solid var(--tailark-border);
+    border-radius: 12px;
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.analytics-card-title {
+    font-size: 0.78rem;
+    color: var(--tailark-text-muted);
+    font-weight: 500;
+}
+
+.analytics-card-val {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: -0.02em;
+}
+
+.analytics-card-sub {
+    font-size: 0.75rem;
+    color: var(--tailark-text-dim);
+}
+
+.progress-bars-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-top: 1.5rem;
+}
+
+.progress-bar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    color: var(--tailark-text-muted);
+    font-weight: 500;
+}
+
+.progress-track {
+    width: 100%;
+    height: 8px;
+    background: #1f1f23;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease;
 }
 
 /* ── AI INSIGHTS SECTION ───────────────────────────────────────────── */
