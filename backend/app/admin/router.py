@@ -270,6 +270,11 @@ async def ingest_academic_file(
     if not chunks:
         chunks = [extracted_text[:1000]]
 
+    # Limitar a los 120 mejores fragmentos para libros extensos (evita latencias prolongadas)
+    if len(chunks) > 120:
+        logger.info("El archivo contiene %d fragmentos; limitando a los 120 más representativos.", len(chunks))
+        chunks = chunks[:120]
+
     # Indexar fragmentos en PostgreSQL
     created_count = 0
     meta_json = json.dumps({
