@@ -122,8 +122,11 @@ export function isAuthenticated() {
 
 /* ── Chat ───────────────────────────────────────────── */
 
-export async function sendChatMessage(studentQuery, conversationId = null, signal = null) {
-    const body = { student_query: studentQuery };
+export async function sendChatMessage(studentQuery, conversationId = null, signal = null, modelPreference = 'auto') {
+    const body = {
+        student_query: studentQuery,
+        model_preference: modelPreference
+    };
     if (conversationId) {
         body.conversation_id = conversationId;
     }

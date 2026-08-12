@@ -70,6 +70,14 @@ class ChatResponse(BaseModel):
         default=None,
         description="Ejemplo interactivo de relacion entre tablas (si aplica)."
     )
+    model_switched: bool = Field(
+        default=False,
+        description="Indica si se realizo un cambio automatico por limite de tokens."
+    )
+    switch_reason: Optional[str] = Field(
+        default=None,
+        description="Motivo de la conmutacion de modelo."
+    )
 
 
 class IngestResponse(BaseModel):

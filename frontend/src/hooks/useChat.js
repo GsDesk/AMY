@@ -37,6 +37,8 @@ export function useChat() {
         }
     }, []);
 
+    const [selectedModel, setSelectedModel] = useState('auto'); // 'auto' | 'groq' | 'ollama'
+
     const sendMessage = useCallback(async (text) => {
         if (!text.trim() || isLoading) return;
 
@@ -67,7 +69,7 @@ export function useChat() {
                 setCurrentConversationId(convId);
             }
 
-            const response = await sendChatMessage(text.trim(), convId, controller.signal);
+            const response = await sendChatMessage(text.trim(), convId, controller.signal, selectedModel);
 
             const tutorMsg = {
                 id: `tutor-${Date.now()}`,
@@ -79,6 +81,8 @@ export function useChat() {
                 ragUsed: response.rag_context_used || false,
                 ragSources: response.rag_sources || [],
                 hasExample: !!response.live_example,
+                modelSwitched: response.model_switched || false,
+                switchReason: response.switch_reason || null,
                 timestamp: new Date()
             };
 
@@ -155,6 +159,8 @@ export function useChat() {
         messagesEndRef,
         lastExample,
         currentConversationId,
-        loadConversation
+        loadConversation,
+        selectedModel,
+        setSelectedModel
     };
 }

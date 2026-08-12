@@ -12,6 +12,7 @@
     padding: 0.3rem 0.4rem 0.3rem 1rem;
     transition: border-color 0.2s;
     gap: 0.4rem;
+    position: relative;
 }
 
 .input-wrapper:focus-within {
@@ -30,7 +31,7 @@
     font-family: 'Outfit', sans-serif;
     font-size: 0.9rem;
     resize: none;
-    padding: 0.5rem 0;
+    padding: 0.5rem 8rem 0.5rem 0;
     outline: none;
     max-height: 150px;
     line-height: 1.5;
@@ -40,9 +41,103 @@
     color: var(--text-muted);
 }
 
+.input-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    position: absolute;
+    right: 0.6rem;
+    bottom: 0.4rem;
+}
+
+.model-selector-wrapper {
+    position: relative;
+}
+
+.model-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    padding: 0.35rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.74rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.model-toggle-btn:hover {
+    background: #27272a;
+    color: #ffffff;
+    border-color: #38bdf8;
+}
+
+.model-dropdown-menu {
+    position: absolute;
+    bottom: 125%;
+    right: 0;
+    width: 290px;
+    background: #141417;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    z-index: 100;
+}
+
+.menu-header {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0.6rem;
+}
+
+.menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+
+.menu-item:hover {
+    background: #1f1f23;
+}
+
+.menu-item.active {
+    background: #27272a;
+    border-left: 3px solid #38bdf8;
+}
+
+.item-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #f4f4f5;
+}
+
+.item-desc {
+    font-size: 0.72rem;
+    color: #a1a1aa;
+    line-height: 1.3;
+}
+
 .send-btn {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 8px;
     border: none;
     background: var(--btn-bg);

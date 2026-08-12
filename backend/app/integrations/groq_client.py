@@ -1,30 +1,68 @@
-"""AMY Cliente Groq"""
-import httpx, logging
+"""
+AMY — Cliente Groq API (Ultrarrápido Llama 3.3 70B)
+"""
+
+import logging
+import httpx
 from app.config import settings
+
 logger = logging.getLogger(__name__)
+
+
 class GroqClient:
     def __init__(self):
-        self.api_key = settings.GROQ_API_KEY
-        self.model = settings.GROQ_MODEL
+        self.model = settings.GROQ_MODEL or "llama-3.3-70b-versatile"
         self.base_url = "https://api.groq.com/openai/v1"
-        self.client = httpx.AsyncClient(base_url=self.base_url, headers={"Authorization": f"Bearer {self.api_key}"}, timeout=httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0))
+
     async def generate(self, prompt: str, system: str = "") -> str:
-        try:
-            messages = []
-            if system: messages.append({"role": "system", "content": system})
-            messages.append({"role": "user", "content": prompt})
-            response = await self.client.post("/chat/completions", json={"model": self.model, "messages": messages, "temperature": 0.7, "max_tokens": 1024})
+        api_key = settings.GROQ_API_KEY.strip() if settings.GROQ_API_KEY else ""
+        if not api_key:
+            raise ValueError("No se ha configurado GROQ_API_KEY.")
+
+        headers = {"Authorization": f"Bearer {api_key}"}
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        async with httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=httpx.Timeout(connect=8.0, read=45.0, write=8.0, pool=8.0)
+        ) as client:
+            response = await client.post(
+                "/chat/completions",
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": 0.3,
+                    "max_tokens": 700
+                }
+            )
+
+            if response.status_code in (429, 400, 401, 403):
+                logger.warning("Groq API retornó %d (límite de tokens/cuota): %s", response.status_code, response.text)
+                raise RuntimeError(f"Límite de tokens o cuota alcanzado en Groq ({response.status_code}).")
+
             response.raise_for_status()
             result = response.json()["choices"][0]["message"]["content"]
-            logger.info(f"Groq: {len(result)} chars")
+            logger.info("Groq respondio exitosamente (%d caracteres)", len(result))
             return result
-        except Exception as e:
-            logger.error(f"Error Groq: {e}")
-            raise
+
     async def is_healthy(self) -> bool:
+        api_key = settings.GROQ_API_KEY.strip() if settings.GROQ_API_KEY else ""
+        if not api_key:
+            return False
         try:
-            r = await self.client.get("/models")
-            return r.status_code == 200
-        except: return False
-    async def close(self): await self.client.aclose()
+            async with httpx.AsyncClient(
+                base_url=self.base_url,
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=5.0
+            ) as client:
+                r = await client.get("/models")
+                return r.status_code == 200
+        except Exception:
+            return False
+
+
 groq_client = GroqClient()

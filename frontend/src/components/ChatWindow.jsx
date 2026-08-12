@@ -15,7 +15,9 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         messagesEndRef,
         lastExample,
         currentConversationId,
-        loadConversation
+        loadConversation,
+        selectedModel,
+        setSelectedModel
     } = useChat();
 
     // Cuando llega un conversationId externo (del sidebar), cargar esa conversación
@@ -98,7 +100,12 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                 <div ref={messagesEndRef} />
             </div>
 
-            <ChatInput onSend={sendMessage} disabled={isLoading} />
+            <ChatInput
+                onSend={sendMessage}
+                disabled={isLoading}
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+            />
         </main>
     );
 }

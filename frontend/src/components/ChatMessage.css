@@ -214,6 +214,19 @@
     color: #fbbf24;
 }
 
+.model-switch-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.76rem;
+    color: #38bdf8;
+    margin-top: 0.5rem;
+}
+
 /* ── Sources Panel — Glassmorphism ────────────────────────────────────────── */
 
 .sources-panel-wrapper {

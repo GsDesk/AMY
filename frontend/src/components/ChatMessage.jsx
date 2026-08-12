@@ -197,6 +197,13 @@ export default function ChatMessage({ message, onExplainCode }) {
                     </div>
                 )}
 
+                {isTutor && message.modelSwitched && (
+                    <div className="model-switch-alert">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        <span>{message.switchReason || "Se conmutó automáticamente de modelo por límite de tokens."}</span>
+                    </div>
+                )}
+
                 {/* Panel de fuentes RAG (glassmorphism) */}
                 {isTutor && message.ragSources && message.ragSources.length > 0 && (
                     <SourcesPanel sources={message.ragSources} />

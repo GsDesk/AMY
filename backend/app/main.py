@@ -221,7 +221,11 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
                         role = "user" if r["sender"] == "user" else "assistant"
                         chat_history.append({"role": role, "content": r["content"]})
 
-        result = await brain.think(request_body.student_query, chat_history=chat_history)
+        result = await brain.think(
+            request_body.student_query,
+            chat_history=chat_history,
+            model_preference=request_body.model_preference
+        )
         if result.get("source") == "error":
             raise HTTPException(status_code=503, detail=result)
 
