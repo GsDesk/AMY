@@ -16,7 +16,7 @@ from app.database.connection import db
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/conversations", tags=["chat"])
+router = APIRouter(tags=["chat"])
 
 
 # ── Schemas ──────────────────────────────────────────────────
@@ -54,8 +54,8 @@ class MessageOut(BaseModel):
 # ── Endpoints ────────────────────────────────────────────────
 
 
-@router.get("", response_model=list[ConversationOut])
-@router.get("/", response_model=list[ConversationOut])
+@router.get("/api/conversations", response_model=list[ConversationOut])
+@router.get("/api/conversations/", response_model=list[ConversationOut], include_in_schema=False)
 async def list_conversations(current_user: dict = Depends(get_current_user)):
     """Lista las conversaciones del usuario ordenadas por actividad reciente."""
     rows = await db.fetch(
@@ -80,8 +80,8 @@ async def list_conversations(current_user: dict = Depends(get_current_user)):
     ]
 
 
-@router.post("", response_model=ConversationCreated)
-@router.post("/", response_model=ConversationCreated, status_code=status.HTTP_201_CREATED)
+@router.post("/api/conversations", response_model=ConversationCreated, status_code=status.HTTP_201_CREATED)
+@router.post("/api/conversations/", response_model=ConversationCreated, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_conversation(
     body: CreateConversationRequest = CreateConversationRequest(),
     current_user: dict = Depends(get_current_user),
@@ -105,7 +105,7 @@ async def create_conversation(
     return ConversationCreated(id=conv_id, titulo=titulo, created_at=str(now))
 
 
-@router.get("/{conversation_id}/messages", response_model=list[MessageOut])
+@router.get("/api/conversations/{conversation_id}/messages", response_model=list[MessageOut])
 async def get_messages(
     conversation_id: str,
     current_user: dict = Depends(get_current_user),
@@ -148,7 +148,7 @@ async def get_messages(
     ]
 
 
-@router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/api/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_conversation(
     conversation_id: str,
     current_user: dict = Depends(get_current_user),

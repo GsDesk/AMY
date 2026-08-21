@@ -94,7 +94,6 @@ app = FastAPI(
     description="API de tutoria inteligente con RAG y Ollama/Mistral",
     version="1.0.0",
     lifespan=lifespan,
-    redirect_slashes=False
 )
 
 # ── Configurar slowapi en la app ──────────────────────────────────

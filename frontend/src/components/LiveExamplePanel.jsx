@@ -1,7 +1,45 @@
-﻿import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './LiveExamplePanel.css';
+
+/* ── Generador y Sanitizador de Código Mermaid erDiagram ────────── */
+function generateCleanMermaid(tables, relationships, rawCode) {
+    if (tables && tables.length > 0) {
+        const lines = ['erDiagram'];
+        if (relationships && relationships.length > 0) {
+            for (const r of relationships) {
+                const card = r.type === '1:1' ? '||--||' : r.type === 'N:M' ? '}o--o{' : '||--o{';
+                const from = r.fromTable || tables[0]?.name;
+                const to = r.toTable || tables[1]?.name;
+                if (from && to) {
+                    lines.push(`    ${from} ${card} ${to} : "relaciona"`);
+                }
+            }
+        } else if (tables.length > 1) {
+            for (let i = 0; i < tables.length - 1; i++) {
+                lines.push(`    ${tables[i].name} ||--o{ ${tables[i + 1].name} : "relaciona"`);
+            }
+        }
+        for (const t of tables) {
+            lines.push(`    ${t.name} {`);
+            for (const c of t.columns) {
+                const cleanType = String(c.type || 'varchar').toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '') || 'varchar';
+                const constr = c.isPk ? 'PK' : c.isFk ? 'FK' : '';
+                lines.push(`        ${cleanType} ${c.name}${constr ? ' ' + constr : ''}`);
+            }
+            lines.push(`    }`);
+        }
+        return lines.join('\n');
+    }
+    if (rawCode) {
+        return rawCode
+            .replace(/\r/g, '')
+            .replace(/}\s*([A-Za-z0-9_]+)\s*{/g, '}\n$1 {')
+            .replace(/(\w+)\s*\((.*?)\)/g, '$1');
+    }
+    return '';
+}
 
 /* ── Normalizador de Datos E-R ─────────────────────────────────── */
 function normalizeExample(example) {
@@ -44,14 +82,16 @@ function normalizeExample(example) {
         };
     });
 
+    const relationships = example.relationships || [];
+
     return {
         _isErDiagram: example.type === 'er_diagram' || tables.length > 0,
         title: example.title || (tables.length > 0 ? `Esquema: ${tables.map(t => t.name).join(' — ')}` : 'Diagrama Entidad-Relación'),
         description: example.description || 'Modelo relacional interactivo con entidades, atributos y cardinalidades.',
         cardinality: example.cardinality || '1:N',
-        mermaid_code: example.mermaid_code || '',
+        mermaid_code: generateCleanMermaid(tables, relationships, example.mermaid_code),
         tables,
-        relationships: example.relationships || [],
+        relationships,
         sql: example.sql || null
     };
 }
