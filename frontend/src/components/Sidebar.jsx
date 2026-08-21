@@ -41,6 +41,10 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
             }
         });
         fetchConversations();
+
+        const handleUpdate = () => fetchConversations();
+        window.addEventListener('amy_conv_updated', handleUpdate);
+        return () => window.removeEventListener('amy_conv_updated', handleUpdate);
     }, [fetchConversations, activeConversationId, userCacheKey]);
 
 

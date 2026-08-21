@@ -143,15 +143,32 @@ async def _save_chat_messages(
     """Persiste el mensaje del estudiante y la respuesta del tutor en la BD."""
     now = datetime.now(timezone.utc)
 
-    # Verificar que la conversacion pertenece al usuario
+    # Verificar si la conversacion existe y pertenece al usuario
     owner = await db.fetchval(
         "SELECT usuario_id FROM conversaciones WHERE id = $1", conversation_id
     )
-    if owner is None or str(owner) != user_id:
+    if owner is None:
+        # Crear la conversación automáticamente si aún no estaba en BD
+        first_words = student_query.strip()[:60] or "Nueva conversación"
+        try:
+            await db.execute(
+                """INSERT INTO conversaciones (id, usuario_id, titulo, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5)
+                   ON CONFLICT (id) DO NOTHING""",
+                conversation_id,
+                user_id,
+                first_words,
+                now,
+                now,
+            )
+        except Exception as e:
+            logger.error("Error creando conversacion automatica: %s", e)
+    elif str(owner) != user_id:
         logger.warning(
-            "Intento de guardar mensaje en conversacion ajena: conv=%s user=%s",
+            "Intento de guardar mensaje en conversacion ajena: conv=%s user=%s owner=%s",
             conversation_id,
             user_id,
+            owner,
         )
         return
 
@@ -305,6 +322,18 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
             history_context = str([m["content"] for m in chat_history]) if chat_history else ""
             cached = await redis_cache.get_cached_response(request_body.student_query, context=history_context)
             if cached:
+                if request_body.conversation_id:
+                    user_id = await _get_optional_user_id(request)
+                    if user_id:
+                        try:
+                            await _save_chat_messages(
+                                request_body.conversation_id,
+                                user_id,
+                                request_body.student_query,
+                                cached,
+                            )
+                        except Exception as e:
+                            logger.error("Error al guardar mensaje en cache stream: %s", e)
                 yield f"data: {json.dumps({'type': 'result', 'data': cached})}\n\n"
                 return
 
@@ -335,7 +364,6 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                         yield f"data: {json.dumps({'type': 'token', 'text': token})}\n\n"
                     # Enviar resultado final (metadata)
                     from app.core.guardrails import validate_response
-                    from app.core.examples import detect_example
                     result = validate_response(full_text)
                     result["source"] = "gemini"
                     result["rag_context_used"] = len(context_fragments) > 0
@@ -367,6 +395,21 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                 chat_history=chat_history,
                 model_preference=request_body.model_preference
             )
+
+            # Persistir mensaje en la base de datos si hay conversación
+            if request_body.conversation_id:
+                user_id = await _get_optional_user_id(request)
+                if user_id:
+                    try:
+                        await _save_chat_messages(
+                            request_body.conversation_id,
+                            user_id,
+                            request_body.student_query,
+                            result,
+                        )
+                    except Exception as e:
+                        logger.error("Error al guardar mensaje en fallback stream: %s", e)
+
             yield f"data: {json.dumps({'type': 'result', 'data': result})}\n\n"
 
         except Exception as e:

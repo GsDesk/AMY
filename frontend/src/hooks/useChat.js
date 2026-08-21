@@ -238,25 +238,46 @@ export function useChat() {
                 console.error('Fallback error:', fallbackErr);
             }
 
-            setMessages(prev => prev.map(m =>
-                m.id === tutorId ? {
-                    ...m,
-                    text: 'Ocurrió un pequeño inconveniente de conexión. Por favor, vuelve a intentar tu pregunta.',
-                    source: 'error',
-                    topic: 'Error',
-                    streaming: false
-                } : m
-            ));
+            setMessages(prev => {
+                const finalMsgs = prev.map(m =>
+                    m.id === tutorId ? {
+                        ...m,
+                        text: 'Ocurrió un pequeño inconveniente de conexión. Por favor, vuelve a intentar tu pregunta.',
+                        source: 'error',
+                        topic: 'Error',
+                        streaming: false
+                    } : m
+                );
+                if (currentConversationId) {
+                    try {
+                        localStorage.setItem(`amy_msgs_cache_${currentConversationId}`, JSON.stringify(finalMsgs));
+                    } catch {}
+                }
+                return finalMsgs;
+            });
         } finally {
             abortControllerRef.current = null;
             setIsLoading(false);
+            window.dispatchEvent(new CustomEvent('amy_conv_updated'));
         }
 
     }, [isLoading, currentConversationId, selectedModel, stopGeneration]);
 
     const loadConversation = useCallback(async (id) => {
+        if (!id) return;
         stopGeneration();
         setIsLoading(true);
+
+        // 1. Cargar inmediatamente de caché local si existe para evitar pantallas vacías
+        try {
+            const cachedMsgs = localStorage.getItem(`amy_msgs_cache_${id}`);
+            if (cachedMsgs) {
+                const parsed = JSON.parse(cachedMsgs);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setMessages(parsed);
+                }
+            }
+        } catch {}
 
         const controller = new AbortController();
         abortControllerRef.current = controller;
@@ -291,10 +312,15 @@ export function useChat() {
                 };
             });
 
-            setMessages([WELCOME_MESSAGE, ...loaded]);
-
+            const allMsgs = [WELCOME_MESSAGE, ...loaded];
+            setMessages(allMsgs);
             setCurrentConversationId(id);
             setLastExample(null);
+
+            // Actualizar caché local
+            try {
+                localStorage.setItem(`amy_msgs_cache_${id}`, JSON.stringify(allMsgs));
+            } catch {}
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Error cargando conversacion:', error);
