@@ -152,30 +152,21 @@ _INJECTION_PATTERNS = [
     re.compile(r"IMPORTANT:?\s+From\s+now\s+on", re.IGNORECASE),
 ]
 
-_MAX_FRAGMENT_CHARS = 1000  # Longitud máxima por fragmento en el contexto
+_EMOJI_PATTERN = re.compile(
+    r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf\u2b50\u2b55\u200d\ufe0f]",
+    flags=re.UNICODE,
+)
 
 
 def sanitize_rag_context(fragments: list[dict]) -> list[dict]:
     """
     Limpia y escapa el contexto recuperado del RAG antes de incluirlo
-    en el prompt del LLM, mitigando ataques de Prompt Injection.
-
-    Acciones realizadas por fragmento:
-    1. Elimina patrones conocidos de Prompt Injection (tokens de rol,
-       comandos de anulación, separadores de turno).
-    2. Trunca el contenido a _MAX_FRAGMENT_CHARS caracteres.
-    3. Registra en el log si se detectó y sanitizó contenido sospechoso.
-
-    Args:
-        fragments: Lista de dicts con campo 'contenido' del retriever.
-
-    Returns:
-        Lista de dicts con 'contenido' sanitizado.
+    en el prompt del LLM, mitigando ataques de Prompt Injection y eliminando emojis.
     """
     sanitized = []
     for frag in fragments:
         original = frag.get("contenido", "")
-        cleaned = original
+        cleaned = _EMOJI_PATTERN.sub("", original)
         was_modified = False
 
         for pattern in _INJECTION_PATTERNS:
@@ -484,6 +475,14 @@ def validate_response(response_text: str, student_query: str = "") -> dict:
 
     if result["topic"] not in ALLOWED_TOPICS:
         result["topic"] = "General"
+
+    # Eliminación estricta de cualquier residuo de emoji
+    if isinstance(result.get("feedback"), str):
+        result["feedback"] = _EMOJI_PATTERN.sub("", result["feedback"]).strip()
+    if isinstance(result.get("analysis"), str):
+        result["analysis"] = _EMOJI_PATTERN.sub("", result["analysis"]).strip()
+    if isinstance(result.get("topic"), str):
+        result["topic"] = _EMOJI_PATTERN.sub("", result["topic"]).strip()
 
     return result
 

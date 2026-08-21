@@ -261,8 +261,15 @@ def chunk_text(
     return chunks
 
 
+_EMOJI_PATTERN = re.compile(
+    r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf\u2b50\u2b55\u200d\ufe0f]",
+    flags=re.UNICODE,
+)
+
+
 def clean_text(text: str) -> str:
-    """Limpia un texto removiendo espacios excesivos y caracteres especiales."""
+    """Limpia un texto removiendo emojis, espacios excesivos y caracteres de control."""
+    text = _EMOJI_PATTERN.sub("", text)
     text = re.sub(r'\r\n', '\n', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     text = re.sub(r' {2,}', ' ', text)
