@@ -1,424 +1,853 @@
-/* -- Live Example Panel ---------------------------------- */
-.live-panel {
+﻿/* ============================================================
+   AMY — E-R Workbench / Tablero Interactivo E-R (Zero Emojis & Zero Gradients)
+   ============================================================ */
+
+.er-workbench-panel {
     height: 100vh;
-    overflow-y: auto;
+    height: 100dvh;
     position: relative;
     width: 780px;
+    min-width: 340px;
     display: flex;
     flex-direction: column;
-    border-left: 1px solid var(--border-primary);
-    border-radius: 0;
-    overflow-y: auto;
-    animation: panel-slide-in 0.3s ease-out;
+    background: #09090b;
+    border-left: 1px solid #27272a;
+    color: #f4f4f5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    z-index: 100;
+    overflow: hidden;
+    animation: erPanelSlideIn 0.25s ease-out;
 }
 
-@keyframes panel-slide-in {
+@keyframes erPanelSlideIn {
     from { transform: translateX(100%); opacity: 0; }
     to   { transform: translateX(0);    opacity: 1; }
 }
 
-.live-header {
-    padding: 1.2rem;
-    border-bottom: 1px solid var(--border-primary);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.8rem;
-    flex-shrink: 0;
-}
-
-.live-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.3rem;
-}
-
-.live-desc {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    line-height: 1.5;
-}
-
-.close-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0.3rem;
-    border-radius: 4px;
-    display: flex;
-    transition: color 0.15s;
-    flex-shrink: 0;
-}
-
-.close-btn:hover {
-    color: var(--text-primary);
-}
-
-/* -- Header layout with cardinality badge ---------------- */
-.live-header-top {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.3rem;
-    flex-wrap: wrap;
-}
-
-.cardinality-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #a1a1aa;
-    padding: 0.15rem 0.55rem;
-    border-radius: 5px;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-}
-
-/* -- Mermaid Diagram output ------------------------------ */
-.mermaid-wrapper {
-    flex: 1;
-    overflow: auto;
-    padding: 0.5rem 0;
-    min-height: 300px;
-}
-
-.mermaid-output {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-}
-
-.mermaid-output svg {
-    max-width: 100%;
-    height: auto;
-}
-
-.mermaid-loading {
-    color: #71717a;
-    font-size: 0.82rem;
-    text-align: center;
-    padding: 2rem;
-}
-
-.mermaid-error {
-    color: #f87171;
-    font-size: 0.8rem;
-    background: rgba(248, 113, 113, 0.07);
-    border: 1px solid rgba(248, 113, 113, 0.2);
-    border-radius: 8px;
-    padding: 0.8rem 1rem;
-    margin: 0.5rem 0;
-}
-
-/* -- Body ------------------------------------------------ */
-.live-body {
-    padding: 1.2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-/* -- Tables ---------------------------------------------- */
-.tables-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-}
-
-.tables-container.three-tables {
-    gap: 0.6rem;
-}
-
-.table-card {
-    border: 1px solid var(--border-primary);
-    border-radius: 10px;
-    overflow: hidden;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.4s ease-out;
-}
-
-.table-card.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.table-name {
-    padding: 0.5rem 0.8rem;
-    background: var(--bg-elevated);
-    border-bottom: 1px solid var(--border-primary);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: 0.5px;
-}
-
-.table-columns {
-    display: flex;
-    flex-direction: column;
-}
-
-.table-col {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.8rem;
-    font-size: 0.73rem;
-    border-bottom: 1px solid var(--border-primary);
-}
-
-.table-col:last-child {
-    border-bottom: none;
-}
-
-.col-name {
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--text-primary);
-    min-width: 100px;
-}
-
-.col-type {
-    color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.68rem;
-}
-
-.col-constraint {
-    margin-left: auto;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.62rem;
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
-.constraint-pk {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text-primary);
-    border: 1px solid var(--border-secondary);
-}
-
-.constraint-fk {
-    background: rgba(74, 222, 128, 0.08);
-    color: var(--success);
-    border: 1px solid rgba(74, 222, 128, 0.15);
-}
-
-.has-constraint .col-name {
-    font-weight: 500;
-}
-
-/* -- Relationships --------------------------------------- */
-.relationships {
-    opacity: 0;
-    transform: translateY(8px);
-    transition: all 0.4s ease-out;
-}
-
-.relationships.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.rel-label, .sql-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 0.5rem;
-}
-
-.rel-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.6rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 6px;
-    margin-bottom: 0.4rem;
-    flex-wrap: wrap;
-}
-
-.rel-from, .rel-to {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-}
-
-.rel-arrow {
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-}
-
-.rel-type {
-    margin-left: auto;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.65rem;
-    padding: 1px 5px;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-muted);
-    border: 1px solid var(--border-primary);
-}
-
-/* -- SQL Section ----------------------------------------- */
-.sql-section {
-    opacity: 0;
-    transform: translateY(8px);
-    transition: all 0.4s ease-out;
-}
-
-.sql-section.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* -- Responsive ------------------------------------------ */
-@media (max-width: 1200px) {
-    .live-panel {
-    height: 100vh;
-    overflow-y: auto;
-    position: relative;
-        width: 650px;
-    }
-}
-
-@media (max-width: 900px) {
-    .live-panel {
-    height: 100vh;
-    overflow-y: auto;
-    position: relative;
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 100%;
-        height: 100vh;
-        z-index: 100;
-        background: var(--panel-bg);
-    }
-}
-
-/* Canvas arrastrable */
-.diagram-canvas {
-    position: relative;
-    height: calc(100vh - 320px);
-    background: #0a0a0a;
-    border: 1px solid #1e1e1e;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    overflow: hidden;
-}
-
-.table-card.draggable {
-    cursor: grab;
-    user-select: none;
-    width: 200px;
-}
-
-.table-card.is-dragging {
-    cursor: grabbing;
-    opacity: 0.9;
-    z-index: 100;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-}
-
-.drag-handle {
-    margin-right: 6px;
-    opacity: 0.4;
-    font-size: 0.9rem;
-}
-
-/* SQL header con botón copiar */
-.sql-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.copy-btn {
-    background: #1e1e1e;
-    color: #aaa;
-    border: 1px solid #2a2a2a;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.copy-btn:hover {
-    background: #2a2a2a;
-    color: #fff;
-}
-
-.copy-btn.copied {
-    background: #1a3a1a;
-    color: #4caf50;
-    border-color: #4caf50;
-}
-
-.resize-handle {
+/* ── Redimensionador Izquierdo ───────────────────────────────────────── */
+.er-panel-resizer {
     position: absolute;
     left: 0;
     top: 0;
-    width: 5px;
-    height: 100%;
+    bottom: 0;
+    width: 6px;
     cursor: ew-resize;
     background: transparent;
     z-index: 200;
-}
-.resize-handle:hover {
-    background: #4a9eff44;
+    transition: background 0.15s ease;
 }
 
-.live-tabs {
+.er-panel-resizer:hover {
+    background: #38bdf8;
+}
+
+/* ── Cabecera del Panel ──────────────────────────────────────────────── */
+.er-panel-header {
+    padding: 1.1rem 1.4rem;
+    background: #141417;
+    border-bottom: 1px solid #27272a;
     display: flex;
-    gap: 4px;
-    padding: 8px 12px 0;
-    border-bottom: 1px solid #1e1e1e;
-    background: #0d0d0d;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-shrink: 0;
 }
-.live-tab {
-    background: transparent;
-    border: none;
-    color: #666;
-    padding: 6px 14px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    border-radius: 4px 4px 0 0;
-}
-.live-tab:hover { color: #aaa; }
-.live-tab.active { color: #4a9eff; border-bottom-color: #4a9eff; }
 
-.zoom-controls {
+.er-panel-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.er-panel-title-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-left: auto;
-    padding: 0 8px;
+    gap: 0.6rem;
 }
-.zoom-controls button {
-    background: #1e1e1e;
-    border: 1px solid #2a2a2a;
-    color: #aaa;
-    width: 24px;
-    height: 24px;
+
+.er-panel-kicker {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #71717a;
+}
+
+.er-cardinality-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    background: #1e293b;
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 0.15rem 0.5rem;
     border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    line-height: 1;
 }
-.zoom-controls button:hover { background: #2a2a2a; color: #fff; }
-.zoom-controls span { color: #666; font-size: 0.75rem; min-width: 35px; text-align: center; }
+
+.er-panel-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.er-panel-desc {
+    font-size: 0.78rem;
+    color: #a1a1aa;
+    margin: 0;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.er-icon-button {
+    background: transparent;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    cursor: pointer;
+    padding: 0.45rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.er-icon-button:hover {
+    background: #27272a;
+    color: #ffffff;
+}
+
+/* ── Pestañas y Barra de Herramientas ────────────────────────────────── */
+.er-panel-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 1.2rem;
+    background: #0e0e11;
+    border-bottom: 1px solid #27272a;
+    flex-shrink: 0;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.er-nav-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.er-nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #71717a;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.er-nav-tab:hover {
+    color: #f4f4f5;
+    background: #18181b;
+}
+
+.er-nav-tab.active {
+    color: #ffffff;
+    background: #18181b;
+    border-color: #27272a;
+}
+
+.er-nav-tab.active svg {
+    color: #38bdf8;
+}
+
+.er-toolbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: auto;
+}
+
+.er-tool-btn {
+    background: #141417;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    font-weight: 600;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 0.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    transition: all 0.15s ease;
+}
+
+.er-tool-btn:hover {
+    background: #27272a;
+    color: #ffffff;
+}
+
+.er-tool-action {
+    background: #18181b;
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+.er-tool-action:hover {
+    background: #0369a1;
+    color: #ffffff;
+}
+
+.er-zoom-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: #71717a;
+    min-width: 40px;
+    text-align: center;
+}
+
+/* ── Cuerpo del Panel y Lienzo Tablero ───────────────────────────────── */
+.er-panel-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    background: #09090b;
+}
+
+.er-canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    background-color: #09090b;
+    background-image: radial-gradient(#27272a 1px, transparent 1px);
+    background-size: 24px 24px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.er-mobile-entity-selector {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.8rem;
+    background: #141417;
+    border-bottom: 1px solid #27272a;
+    position: sticky;
+    top: 0;
+    z-index: 80;
+}
+
+.er-sel-label {
+    font-size: 0.76rem;
+    color: #71717a;
+    font-weight: 600;
+}
+
+.er-entity-dropdown {
+    flex: 1;
+    background: #09090b;
+    border: 1px solid #27272a;
+    color: #f4f4f5;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    outline: none;
+}
+
+.er-canvas-stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2200px;
+    height: 1800px;
+    cursor: default;
+}
+
+/* ── Capa de Conexiones SVG ──────────────────────────────────────────── */
+.er-connections-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.er-relation-group {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.er-rel-path-base {
+    fill: none;
+    stroke: #27272a;
+    stroke-width: 2.5px;
+    transition: stroke 0.2s ease;
+}
+
+.er-rel-path-highlight {
+    fill: none;
+    stroke: #38bdf8;
+    stroke-width: 2px;
+    stroke-dasharray: 6 4;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.er-rel-terminal {
+    fill: #38bdf8;
+    transition: r 0.2s ease;
+}
+
+.er-relation-group:hover .er-rel-path-highlight,
+.er-relation-group.is-active-rel .er-rel-path-highlight {
+    stroke-width: 3.5px;
+    stroke-dasharray: none;
+    opacity: 1;
+    stroke: #38bdf8;
+}
+
+.er-relation-group:hover .er-rel-path-base,
+.er-relation-group.is-active-rel .er-rel-path-base {
+    stroke: #0284c7;
+}
+
+.er-cardinality-rect {
+    fill: #141417;
+    stroke: #27272a;
+    stroke-width: 1.2px;
+    transition: all 0.2s ease;
+}
+
+.er-cardinality-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    fill: #a1a1aa;
+    transition: fill 0.2s ease;
+}
+
+.er-relation-group:hover .er-cardinality-rect,
+.er-relation-group.is-active-rel .er-cardinality-rect {
+    stroke: #38bdf8;
+    fill: #082f49;
+}
+
+.er-relation-group:hover .er-cardinality-text,
+.er-relation-group.is-active-rel .er-cardinality-text {
+    fill: #38bdf8;
+}
+
+/* ── Tarjeta de Entidad E-R ──────────────────────────────────────────── */
+.er-table-card {
+    position: absolute;
+    width: 270px;
+    background: #141417;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    user-select: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.er-table-card:hover {
+    border-color: #3f3f46;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75);
+}
+
+.er-table-card.is-selected,
+.er-table-card.is-highlighted {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px #38bdf8, 0 8px 30px rgba(0, 0, 0, 0.85);
+}
+
+.er-table-card.is-dragging {
+    opacity: 0.95;
+    cursor: grabbing;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9);
+}
+
+/* Header de la tarjeta */
+.er-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.75rem;
+    background: #18181b;
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+    border-bottom: 1px solid #27272a;
+    cursor: grab;
+}
+
+.er-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.er-drag-handle {
+    color: #52525b;
+    display: flex;
+    align-items: center;
+}
+
+.er-table-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+}
+
+.er-card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.er-col-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: #71717a;
+    background: #09090b;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    border: 1px solid #27272a;
+}
+
+.er-collapse-btn {
+    background: transparent;
+    border: none;
+    color: #71717a;
+    cursor: pointer;
+    padding: 0.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.er-collapse-btn:hover {
+    color: #ffffff;
+}
+
+/* Sub-barra de resumen PK/FK */
+.er-card-subbar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.75rem;
+    background: #0d0d10;
+    border-bottom: 1px solid #1f1f23;
+}
+
+.er-subbar-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 0.05rem 0.35rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.pk-tag {
+    background: #27272a;
+    color: #f4f4f5;
+    border: 1px solid #3f3f46;
+}
+
+.fk-tag {
+    background: #082f49;
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.er-subbar-mode {
+    margin-left: auto;
+    font-size: 0.62rem;
+    color: #52525b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Listado de Columnas */
+.er-columns-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.er-column-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.38rem 0.75rem;
+    border-bottom: 1px solid #1c1c20;
+    font-size: 0.76rem;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.er-column-row:last-child {
+    border-bottom: none;
+    border-bottom-left-radius: 9px;
+    border-bottom-right-radius: 9px;
+}
+
+.er-column-row:hover,
+.er-column-row.col-active-hl {
+    background: #1c1c22;
+}
+
+/* Puertos de anclaje (puntos circulares para relacionar) */
+.er-port-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 2px solid #141417;
+    z-index: 10;
+}
+
+.port-left {
+    left: -4px;
+}
+
+.port-right {
+    right: -4px;
+}
+
+.port-pk {
+    background: #ffffff;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+.port-fk {
+    background: #38bdf8;
+    box-shadow: 0 0 4px rgba(56, 189, 248, 0.6);
+}
+
+.er-col-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.er-col-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #e4e4e7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.is-pk-row .er-col-name {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.is-fk-row .er-col-name {
+    color: #38bdf8;
+}
+
+.er-col-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    color: #71717a;
+    white-space: nowrap;
+}
+
+.er-col-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.er-badge-constraint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.05rem 0.3rem;
+    border-radius: 3px;
+}
+
+.badge-pk {
+    background: #27272a;
+    color: #ffffff;
+    border: 1px solid #3f3f46;
+}
+
+.badge-fk {
+    background: #082f49;
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.er-ref-target {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: #38bdf8;
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Banner Informativo de Relación Activa ───────────────────────────── */
+.er-active-rel-banner {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #141417;
+    border: 1px solid #38bdf8;
+    border-radius: 20px;
+    padding: 0.45rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85);
+    z-index: 90;
+    max-width: 90%;
+    animation: erBannerPop 0.2s ease-out;
+}
+
+@keyframes erBannerPop {
+    from { transform: translate(-50%, 15px); opacity: 0; }
+    to   { transform: translate(-50%, 0);    opacity: 1; }
+}
+
+.er-rel-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+    color: #f4f4f5;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.er-rel-badge-pill {
+    background: #082f49;
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+}
+
+.er-rel-close {
+    background: transparent;
+    border: none;
+    color: #71717a;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 0.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.er-rel-close:hover {
+    color: #ffffff;
+}
+
+/* ── Vista Conceptual (Mermaid) ──────────────────────────────────────── */
+.er-conceptual-tab {
+    flex: 1;
+    overflow: auto;
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.mermaid-view-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.mermaid-svg-stage {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.mermaid-svg-stage svg {
+    max-width: 100%;
+    height: auto;
+    min-width: 320px;
+}
+
+.mermaid-loading-state {
+    color: #71717a;
+    font-size: 0.85rem;
+    padding: 3rem;
+    text-align: center;
+}
+
+.mermaid-error-box {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.8rem;
+}
+
+/* ── Vista Script SQL DDL ────────────────────────────────────────────── */
+.er-sql-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.2rem;
+    gap: 0.8rem;
+    overflow-y: auto;
+}
+
+.er-sql-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.er-sql-heading {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.er-copy-btn {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #f4f4f5;
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.er-copy-btn:hover {
+    background: #27272a;
+}
+
+.er-copy-btn.copied {
+    background: #064e3b;
+    border-color: #059669;
+    color: #34d399;
+}
+
+.er-sql-code-wrapper {
+    flex: 1;
+}
+
+.er-empty-state {
+    color: #71717a;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+/* ── RESPONSIVIDAD MÓVIL ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .er-workbench-panel {
+        position: fixed;
+        inset: 0;
+        width: 100vw !important;
+        height: 100dvh;
+        z-index: 200;
+        border-left: none;
+    }
+
+    .er-panel-resizer {
+        display: none;
+    }
+
+    .er-panel-header {
+        padding: 0.85rem 1rem;
+    }
+
+    .er-panel-nav {
+        padding: 0.4rem 0.8rem;
+    }
+
+    .er-mobile-entity-selector {
+        display: flex;
+    }
+
+    .er-table-card {
+        width: 250px;
+    }
+
+    .er-card-header {
+        padding: 0.5rem 0.7rem;
+    }
+
+    .er-column-row {
+        padding: 0.35rem 0.65rem;
+    }
+
+    .er-col-name {
+        font-size: 0.74rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .er-panel-title {
+        font-size: 0.95rem;
+    }
+
+    .er-nav-tab {
+        padding: 0.35rem 0.55rem;
+        font-size: 0.74rem;
+    }
+
+    .er-active-rel-banner {
+        width: 95%;
+        padding: 0.35rem 0.75rem;
+    }
+
+    .er-rel-text {
+        font-size: 0.72rem;
+    }
+}

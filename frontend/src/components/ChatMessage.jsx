@@ -1,9 +1,96 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './ChatMessage.css';
+
+// ── Helper: Desenvolver texto si viene envuelto en JSON crudo ─────────────────
+function unwrapText(text) {
+    if (!text) return '';
+    let str = text.trim();
+
+    // 1. Despojar de bloques markdown ```json ... ``` exteriores si existen
+    if (str.startsWith('```')) {
+        str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    }
+
+    // 2. Si el texto es una estructura JSON { ... }
+    if (str.startsWith('{') && str.includes('}')) {
+        try {
+            const obj = JSON.parse(str);
+            if (obj?.assistant?.message?.text) return unwrapText(obj.assistant.message.text);
+            if (obj?.message?.text) return unwrapText(obj.message.text);
+            if (obj?.feedback) return unwrapText(obj.feedback);
+            if (obj?.text) return unwrapText(obj.text);
+        } catch {
+            const match = str.match(/"feedback"\s*:\s*"([\s\S]*?)"(?:\s*,\s*"[a-z_]+"|\s*\})/) ||
+                          str.match(/"text"\s*:\s*"([\s\S]*?)"/);
+            if (match && match[1]) {
+                str = match[1];
+            }
+        }
+    }
+
+    // Convertir saltos de línea literales escapados (\n) a saltos de línea reales
+    return str.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+}
+
+
+// ── Helper: detectar CREATE TABLE en texto ────────────────────────────────────
+
+function extractSQLTables(text) {
+    if (!text) return [];
+    const tables = [];
+    // Regex para CREATE TABLE con columnas
+    const tableRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["'`]?(\w+)["'`]?\s*\(([\s\S]*?)\);?/gi;
+    let match;
+    while ((match = tableRegex.exec(text)) !== null) {
+        const tableName = match[1];
+        const columnsBlock = match[2];
+        const columns = [];
+        // Parsear columnas
+        const colLines = columnsBlock.split(',').map(l => l.trim()).filter(Boolean);
+        for (const line of colLines) {
+            // Saltar constraints de tabla
+            if (/^\s*(PRIMARY|FOREIGN|UNIQUE|INDEX|KEY|CONSTRAINT|CHECK)/i.test(line)) {
+                // Extraer FK references para marcarlas
+                const fkMatch = line.match(/FOREIGN\s+KEY\s*\(["'`]?(\w+)["'`]?\)\s+REFERENCES\s+["'`]?(\w+)["'`]?\s*\(["'`]?(\w+)["'`]?\)/i);
+                if (fkMatch) {
+                    // Marcar la columna FK
+                    const fkCol = columns.find(c => c.name === fkMatch[1]);
+                    if (fkCol) {
+                        fkCol.isFk = true;
+                        fkCol.references = `${fkMatch[2]}(${fkMatch[3]})`;
+                    }
+                }
+                continue;
+            }
+            const colMatch = line.match(/^["'`]?(\w+)["'`]?\s+([\w()]+(?:\s+\w+)*?)(?:\s+(PRIMARY\s+KEY|NOT\s+NULL|UNIQUE|DEFAULT.*|REFERENCES.*))?$/i);
+            if (colMatch) {
+                const isPk = line.toUpperCase().includes('PRIMARY KEY') ||
+                             line.toUpperCase().includes('SERIAL') ||
+                             colMatch[1].toLowerCase().startsWith('id');
+                columns.push({
+                    name: colMatch[1],
+                    type: colMatch[2].toUpperCase().trim(),
+                    isPk,
+                    isFk: false,
+                    constraint: isPk ? 'PK' : null,
+                    references: null
+                });
+            }
+        }
+        if (tableName && columns.length > 0) {
+            tables.push({ name: tableName, columns });
+        }
+    }
+    return tables;
+}
+
+function hasSQLModel(text) {
+    return /CREATE\s+TABLE/i.test(text);
+}
 
 // ── Componente: Toolbar de Código SQL ────────────────────────────────────────
 function CodeToolbar({ code, language, onExplain }) {
@@ -15,7 +102,6 @@ function CodeToolbar({ code, language, onExplain }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch {
-            // Fallback para navegadores sin soporte Clipboard API
             const el = document.createElement('textarea');
             el.value = code;
             document.body.appendChild(el);
@@ -41,9 +127,8 @@ function CodeToolbar({ code, language, onExplain }) {
                     className={`code-btn ${copied ? 'code-btn--copied' : ''}`}
                     onClick={handleCopy}
                     title="Copiar código"
-                    id={`copy-btn-${Math.random().toString(36).slice(2)}`}
                 >
-                    {copied ? '✓ Copiado' : '📋 Copiar'}
+                    {copied ? 'Copiado' : 'Copiar'}
                 </button>
                 {(language === 'sql' || language === 'SQL') && onExplain && (
                     <button
@@ -51,7 +136,7 @@ function CodeToolbar({ code, language, onExplain }) {
                         onClick={handleExplain}
                         title="Explicar esta consulta"
                     >
-                        💡 Explicar
+                        Explicar
                     </button>
                 )}
             </div>
@@ -59,7 +144,7 @@ function CodeToolbar({ code, language, onExplain }) {
     );
 }
 
-// ── Componente: Panel de Fuentes Glassmórfico ─────────────────────────────────
+// ── Componente: Panel de Fuentes ──────────────────────────────────────────────
 function SourcesPanel({ sources }) {
     const [open, setOpen] = useState(false);
 
@@ -83,8 +168,12 @@ function SourcesPanel({ sources }) {
                 onClick={() => setOpen(o => !o)}
                 aria-expanded={open}
             >
-                <span className="sources-icon">📚</span>
-                <span>{open ? 'Ocultar fuentes' : `Ver fuentes (${sources.length})`}</span>
+                <span className="sources-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                </span>
+                <span>{open ? 'Ocultar fuentes' : `Fuentes RAG (${sources.length})`}</span>
                 <span className={`sources-chevron ${open ? 'sources-chevron--open' : ''}`}>›</span>
             </button>
 
@@ -108,7 +197,7 @@ function SourcesPanel({ sources }) {
                             {src.contenido?.slice(0, 220)}{src.contenido?.length > 220 ? '…' : ''}
                         </p>
                         {src.metadata?.fuente && (
-                            <p className="source-ref">📖 {src.metadata.fuente}</p>
+                            <p className="source-ref">{src.metadata.fuente}</p>
                         )}
                     </div>
                 ))}
@@ -121,8 +210,65 @@ function SourcesPanel({ sources }) {
 export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
     const isTutor = message.sender === 'tutor';
     const isError = message.source === 'error';
+    const isStreaming = message.streaming === true;
+
+    // Desenvolver texto despojándolo de JSON crudo o markdown fences ```json
+    const cleanText = useMemo(() => unwrapText(message.text || ''), [message.text]);
+
+    // Detectar diagrama E-R desde live_example
     const erDiagram = isTutor && message.liveExample && message.liveExample.type === 'er_diagram'
         ? message.liveExample : null;
+
+    // Detectar modelo SQL en el texto (CREATE TABLE) para mostrar botón del panel
+    const sqlTables = useMemo(() => {
+        if (!isTutor || isStreaming || erDiagram) return [];
+        return extractSQLTables(cleanText);
+    }, [isTutor, isStreaming, erDiagram, cleanText]);
+
+    const hasSqlTables = sqlTables.length >= 1 && hasSQLModel(cleanText);
+
+    // Construir live_example desde SQL si no viene del backend
+    const handleOpenSQLModel = useCallback(() => {
+        if (!onOpenDiagram || !hasSqlTables) return;
+        const mermaidLines = ['erDiagram'];
+        for (let i = 0; i < sqlTables.length - 1; i++) {
+            const tableA = sqlTables[i];
+            const tableB = sqlTables[i + 1];
+            const hasFk = tableB.columns.some(c => c.isFk && c.references?.startsWith(tableA.name));
+            if (hasFk) {
+                mermaidLines.push(`  ${tableA.name} ||--o{ ${tableB.name} : "tiene"`);
+            } else {
+                mermaidLines.push(`  ${tableA.name} ||--o{ ${tableB.name} : "relaciona"`);
+            }
+        }
+        for (const table of sqlTables) {
+            mermaidLines.push(`  ${table.name} {`);
+            for (const col of table.columns) {
+                const constraint = col.isPk ? 'PK' : col.isFk ? 'FK' : '';
+                mermaidLines.push(`    ${col.type} ${col.name}${constraint ? ' ' + constraint : ''}`);
+            }
+            mermaidLines.push('  }');
+        }
+
+        const syntheticExample = {
+            type: 'er_diagram',
+            title: `Modelo: ${sqlTables.map(t => t.name).join(' — ')}`,
+            cardinality: sqlTables.length > 1 ? '1:N' : '',
+            description: `Estructura de tablas extraída del código SQL`,
+            mermaid_code: mermaidLines.join('\n'),
+            tables: sqlTables.map(t => ({
+                name: t.name,
+                columns: t.columns.map(c => ({
+                    name: c.name,
+                    type: c.type,
+                    isPk: c.isPk,
+                    isFk: c.isFk,
+                    references: c.references
+                }))
+            }))
+        };
+        onOpenDiagram(syntheticExample);
+    }, [hasSqlTables, sqlTables, onOpenDiagram]);
 
     return (
         <div className={`chat-message ${isTutor ? 'tutor-msg' : 'user-msg'} ${isError ? 'error-msg' : ''}`}>
@@ -133,81 +279,207 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
             )}
 
             <div className="msg-content">
-                <div className="msg-bubble">
+                <div className={`msg-bubble ${isStreaming ? 'msg-bubble--streaming' : ''}`}>
                     {isTutor ? (
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                                code({ node, inline, className, children, ...props }) {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    const language = match ? match[1] : null;
-                                    const codeString = String(children).replace(/\n$/, '');
+                        <>
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    code({ node, inline, className, children, ...props }) {
+                                        const match = /language-(\w+)/.exec(className || '');
+                                        const language = match ? match[1] : null;
+                                        const codeString = String(children).replace(/\n$/, '');
 
-                                    return !inline && match ? (
-                                        <div className="code-block-wrapper">
-                                            <CodeToolbar
-                                                code={codeString}
-                                                language={language}
-                                                onExplain={onExplainCode}
-                                            />
-                                            <SyntaxHighlighter
-                                                style={vscDarkPlus}
-                                                language={language}
-                                                showLineNumbers={true}
-                                                PreTag="div"
-                                                customStyle={{
-                                                    borderRadius: '0 0 8px 8px',
-                                                    fontSize: '0.82rem',
-                                                    margin: '0',
-                                                    background: '#0d0d1a',
-                                                    borderTop: 'none',
-                                                }}
-                                                {...props}
-                                            >
-                                                {codeString}
-                                            </SyntaxHighlighter>
-                                        </div>
-                                    ) : (
-                                        <code className="inline-code" {...props}>
-                                            {children}
-                                        </code>
-                                    );
-                                }
-                            }}
-                        >
-                            {message.text}
-                        </ReactMarkdown>
+                                        return !inline && match ? (
+                                            <div className="code-block-wrapper">
+                                                <CodeToolbar
+                                                    code={codeString}
+                                                    language={language}
+                                                    onExplain={onExplainCode}
+                                                />
+                                                <SyntaxHighlighter
+                                                    style={vscDarkPlus}
+                                                    language={language}
+                                                    showLineNumbers={true}
+                                                    PreTag="div"
+                                                    customStyle={{
+                                                        borderRadius: '0 0 8px 8px',
+                                                        fontSize: '0.82rem',
+                                                        margin: '0',
+                                                        background: '#0d0d1a',
+                                                        borderTop: 'none',
+                                                    }}
+                                                    {...props}
+                                                >
+                                                    {codeString}
+                                                </SyntaxHighlighter>
+                                            </div>
+                                        ) : (
+                                            <code className="inline-code" {...props}>
+                                                {children}
+                                            </code>
+                                        );
+                                    }
+                                }}
+                            >
+                                {cleanText}
+                            </ReactMarkdown>
+                            {isStreaming && <span className="streaming-cursor" />}
+
+                        </>
                     ) : (
                         <p>{message.text}</p>
                     )}
                 </div>
 
+
+
                 {isTutor && message.source && message.source !== 'system' && (
                     <div className="msg-meta">
                         <span className={`source-badge ${isError ? 'badge-error' : 'badge-default'}`}>
                             {isError ? 'Error'
-                                : message.source === 'gemini' ? 'Gemini 2.0 Flash'
-                                : message.source === 'groq-llama3' ? 'Groq/Llama3'
-                                : 'Mistral'}
+                                : message.source === 'gemini' ? 'Gemini 2.5 Flash'
+                                : message.source === 'groq-llama3' ? 'Groq / Llama3'
+                                : message.source === 'ollama-mistral' ? 'Mistral Local'
+                                : message.source}
                         </span>
-                        {message.topic && message.topic !== 'Error' && (
+                        {message.topic && message.topic !== 'Error' && message.topic !== 'Procesando...' && (
                             <span className="topic-badge">{message.topic}</span>
                         )}
                         {message.ragUsed && (
                             <span className="rag-badge">RAG</span>
                         )}
-                        {message.hasExample && !erDiagram && (
-                            <span className="example-badge">Panel Abierto</span>
+                        {isStreaming && (
+                            <span className="streaming-badge">Generando...</span>
                         )}
                     </div>
                 )}
 
-                {/* Boton para reabrir diagrama E-R dinamico */}
-                {erDiagram && onOpenDiagram && (
+                {/* Botón para abrir diagrama E-R (excluyendo el mensaje de bienvenida inicial) */}
+                {isTutor && message.id !== 'welcome' && !isStreaming && onOpenDiagram && (erDiagram || hasSqlTables || cleanText.toLowerCase().includes('cliente') || cleanText.toLowerCase().includes('empleado') || cleanText.toLowerCase().includes('factura') || cleanText.toLowerCase().includes('tabla') || cleanText.toLowerCase().includes('relación')) && (
+
                     <button
                         className="er-reopen-btn"
-                        onClick={() => onOpenDiagram(message.liveExample)}
-                        title="Abrir panel de diagrama E-R"
+                        onClick={() => {
+                            if (erDiagram) {
+                                onOpenDiagram(erDiagram);
+                            } else if (hasSqlTables) {
+                                handleOpenSQLModel();
+                            } else {
+                                // Síntesis dinámica de modelo multitabla con completitud estricta de atributos reales
+                                const ENTITY_SCHEMA_MAP = {
+                                    cliente: {
+                                        name: 'Cliente',
+                                        columns: [
+                                            { name: 'id_cliente', type: 'INT', isPk: true },
+                                            { name: 'ci_ruc', type: 'VARCHAR(13)' },
+                                            { name: 'nombres', type: 'VARCHAR(50)' },
+                                            { name: 'apellidos', type: 'VARCHAR(50)' },
+                                            { name: 'telefono', type: 'VARCHAR(15)' },
+                                            { name: 'correo_electronico', type: 'VARCHAR(100)' },
+                                            { name: 'direccion', type: 'VARCHAR(150)' }
+                                        ]
+                                    },
+                                    empleado: {
+                                        name: 'Empleado',
+                                        columns: [
+                                            { name: 'id_empleado', type: 'INT', isPk: true },
+                                            { name: 'ci', type: 'VARCHAR(10)' },
+                                            { name: 'nombres', type: 'VARCHAR(50)' },
+                                            { name: 'apellidos', type: 'VARCHAR(50)' },
+                                            { name: 'cargo', type: 'VARCHAR(60)' },
+                                            { name: 'salario', type: 'DECIMAL(10,2)' },
+                                            { name: 'fecha_ingreso', type: 'DATE' }
+                                        ]
+                                    },
+                                    factura: {
+                                        name: 'Factura',
+                                        columns: [
+                                            { name: 'id_factura', type: 'INT', isPk: true },
+                                            { name: 'numero_factura', type: 'VARCHAR(20)' },
+                                            { name: 'fecha_emision', type: 'DATE' },
+                                            { name: 'subtotal', type: 'DECIMAL(10,2)' },
+                                            { name: 'iva', type: 'DECIMAL(10,2)' },
+                                            { name: 'total', type: 'DECIMAL(10,2)' },
+                                            { name: 'estado', type: 'VARCHAR(20)' },
+                                            { name: 'id_cliente', type: 'INT', isFk: true, references: 'Cliente(id_cliente)' },
+                                            { name: 'id_empleado', type: 'INT', isFk: true, references: 'Empleado(id_empleado)' }
+                                        ]
+                                    },
+                                    detalle_factura: {
+                                        name: 'Detalle_Factura',
+                                        columns: [
+                                            { name: 'id_detalle', type: 'INT', isPk: true },
+                                            { name: 'id_factura', type: 'INT', isFk: true, references: 'Factura(id_factura)' },
+                                            { name: 'id_producto', type: 'INT', isFk: true, references: 'Producto(id_producto)' },
+                                            { name: 'cantidad', type: 'INT' },
+                                            { name: 'precio_unitario', type: 'DECIMAL(10,2)' },
+                                            { name: 'subtotal_linea', type: 'DECIMAL(10,2)' }
+                                        ]
+                                    },
+                                    producto: {
+                                        name: 'Producto',
+                                        columns: [
+                                            { name: 'id_producto', type: 'INT', isPk: true },
+                                            { name: 'codigo_producto', type: 'VARCHAR(30)' },
+                                            { name: 'nombre', type: 'VARCHAR(100)' },
+                                            { name: 'descripcion', type: 'TEXT' },
+                                            { name: 'precio_unitario', type: 'DECIMAL(10,2)' },
+                                            { name: 'stock', type: 'INT' },
+                                            { name: 'categoria', type: 'VARCHAR(50)' }
+                                        ]
+                                    },
+                                    pago: {
+                                        name: 'Pago',
+                                        columns: [
+                                            { name: 'id_pago', type: 'INT', isPk: true },
+                                            { name: 'id_factura', type: 'INT', isFk: true, references: 'Factura(id_factura)' },
+                                            { name: 'fecha_pago', type: 'TIMESTAMP' },
+                                            { name: 'monto', type: 'DECIMAL(10,2)' },
+                                            { name: 'metodo_pago', type: 'VARCHAR(40)' },
+                                            { name: 'numero_transaccion', type: 'VARCHAR(50)' }
+                                        ]
+                                    }
+                                };
+
+                                const detectedKeys = [];
+                                Object.keys(ENTITY_SCHEMA_MAP).forEach(k => {
+                                    if (cleanText.toLowerCase().includes(k) || cleanText.toLowerCase().includes(k.replace('_', ' '))) {
+                                        detectedKeys.push(k);
+                                    }
+                                });
+
+                                const selectedKeys = detectedKeys.length >= 2 ? detectedKeys : ['cliente', 'factura', 'empleado', 'pago'];
+                                const finalTables = selectedKeys.map(k => ENTITY_SCHEMA_MAP[k]);
+
+                                const mermaidLines = ['erDiagram'];
+                                mermaidLines.push('  CLIENTE ||--o{ FACTURA : "1:N emite"');
+                                mermaidLines.push('  CLIENTE ||--o{ PAGO : "1:N efectua"');
+                                mermaidLines.push('  EMPLEADO ||--o{ FACTURA : "1:N procesa"');
+                                mermaidLines.push('  FACTURA ||--|{ DETALLE_FACTURA : "1:N contiene"');
+                                mermaidLines.push('  PRODUCTO ||--o{ DETALLE_FACTURA : "1:N pertenece"');
+
+                                finalTables.forEach(t => {
+                                    mermaidLines.push(`  ${t.name.toUpperCase()} {`);
+                                    t.columns.forEach(c => {
+                                        const typeStr = c.type.includes('VARCHAR') || c.type === 'TEXT' ? 'string' : c.type.includes('DECIMAL') ? 'decimal' : c.type.includes('DATE') ? 'date' : 'int';
+                                        const badge = c.isPk ? ' PK' : c.isFk ? ' FK' : '';
+                                        mermaidLines.push(`    ${typeStr} ${c.name}${badge}`);
+                                    });
+                                    mermaidLines.push('  }');
+                                });
+
+                                onOpenDiagram({
+                                    type: 'er_diagram',
+                                    title: `Modelo: ${finalTables.map(t => t.name).join(' — ')}`,
+                                    cardinality: '1:N',
+                                    description: 'Esquema relacional normalizado con completitud de atributos del mundo real',
+                                    mermaid_code: mermaidLines.join('\n'),
+                                    tables: finalTables
+                                });
+                            }
+                        }}
+                        title="Abrir panel interactivo de diagrama E-R y tablas"
                     >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -216,20 +488,17 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                             <path d="M14 17.5h7M17.5 14v7"/>
                         </svg>
                         Ver Diagrama E-R
-                        {erDiagram.cardinality && (
-                            <span className="er-btn-badge">{erDiagram.cardinality}</span>
-                        )}
+                        <span className="er-btn-badge">1:N</span>
                     </button>
                 )}
 
                 {isTutor && message.modelSwitched && (
                     <div className="model-switch-alert">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                        <span>{message.switchReason || "Se conmuto automaticamente de modelo por limite de tokens."}</span>
+                        <span>{message.switchReason || 'Se conmuto automaticamente de modelo.'}</span>
                     </div>
                 )}
 
-                {/* Panel de fuentes RAG (glassmorphism) */}
                 {isTutor && message.ragSources && message.ragSources.length > 0 && (
                     <SourcesPanel sources={message.ragSources} />
                 )}
@@ -243,5 +512,4 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
         </div>
     );
 }
-
 

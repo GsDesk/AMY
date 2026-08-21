@@ -5,7 +5,7 @@ import WorkflowSourceVisualizer from './WorkflowSourceVisualizer';
 import { useChat } from '../hooks/useChat';
 import './ChatWindow.css';
 
-export default function ChatWindow({ conversationId, onExampleReceived, onConversationCreated }) {
+export default function ChatWindow({ conversationId, onExampleReceived, onConversationCreated, isPanelOpen, onTogglePanel, onToggleSidebar }) {
     const {
         messages,
         isLoading,
@@ -59,11 +59,37 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
     return (
         <main className="chat-window panel">
             <div className="chat-header">
+                {/* Botón hamburger — solo visible en móvil via CSS */}
+                <button
+                    className="menu-toggle-btn icon-btn"
+                    onClick={onToggleSidebar}
+                    title="Abrir menú"
+                    aria-label="Abrir menú lateral"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
                 <h2>Sesión Educativa</h2>
 
                 {/* CONTENEDOR DERECHO (Extremo derecho del header) */}
                 <div className="header-right-controls">
                     <WorkflowSourceVisualizer isLoading={isLoading} sources={currentSources} />
+
+                    <button
+                        className={`icon-btn ${isPanelOpen ? 'active' : ''}`}
+                        onClick={onTogglePanel}
+                        title={isPanelOpen ? "Ocultar panel de diagramas" : "Mostrar panel de diagramas"}
+                        id="toggle-panel-btn"
+                        style={{ border: isPanelOpen ? '1px solid #38bdf8' : '1px solid transparent', background: isPanelOpen ? '#0369a133' : 'transparent' }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="7" height="18" rx="1"/>
+                            <rect x="14" y="3" width="7" height="18" rx="1"/>
+                        </svg>
+                    </button>
 
                     {isLoading && (
                         <button
@@ -71,7 +97,9 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                             onClick={stopGeneration}
                             title="Detener generación de respuesta"
                         >
-                            <span className="stop-icon">⏹</span>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            </svg>
                             <span>Detener</span>
                         </button>
                     )}
@@ -81,6 +109,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                     </button>
                 </div>
             </div>
+
 
             <div className="chat-messages" id="chat-messages">
                 {messages.map(msg => (

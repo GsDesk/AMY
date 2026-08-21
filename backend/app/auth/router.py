@@ -126,10 +126,11 @@ class MicrosoftLoginRequest(BaseModel):
 async def get_auth_config():
     """Retorna la configuracion publica para la autenticacion."""
     return {
-        "googleClientId": settings.GOOGLE_CLIENT_ID,
-        "azureClientId": settings.AZURE_CLIENT_ID,
-        "azureTenantId": settings.AZURE_TENANT_ID,
+        "googleClientId": getattr(settings, "GOOGLE_CLIENT_ID", ""),
+        "azureClientId": getattr(settings, "AZURE_CLIENT_ID", ""),
+        "azureTenantId": getattr(settings, "AZURE_TENANT_ID", ""),
     }
+
 
 
 @router.post("/microsoft-login", response_model=AuthResponse)

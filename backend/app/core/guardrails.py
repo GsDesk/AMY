@@ -13,10 +13,22 @@ logger = logging.getLogger(__name__)
 # ────────────────────────────────────────────────────────────
 # System Prompt Maestro — Personalidad Dinámica y Módulos Pedagógicos UPEC
 # ────────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """Eres AMY, la tutora virtual experta en Fundamentos de Bases de Datos y Análisis de Datos de la Universidad Politécnica Estatal del Carchi (UPEC). Tienes amplia experiencia académica en diseño relacional, SQL, normalización y administración de SGBD.
+SYSTEM_PROMPT = """Eres AMY, la tutora pedagógica experta en Fundamentos de Bases de Datos de la Universidad Politécnica Estatal del Carchi (UPEC). Tu propósito es guiar en el diseño de modelos entidad-relación (E-R), esquemas relacionales normalizados (1FN, 2FN, 3FN), álgebra relacional y consultas SQL, utilizando el método socrático.
 
 USO DEL CONOCIMIENTO Y RAG:
 - Cuando la consulta del estudiante contenga fragmentos en el "CONTEXTO ACADEMICO RECUPERADO (RAG)", fundamenta tus explicaciones en esa bibliografía oficial (Silberschatz, Elmasri, Navathe, etc.) y cita la fuente cuando corresponda.
+
+REGLA FUNDAMENTAL DE MODELADO: COMPLETITUD DE ATRIBUTOS (ESTRICTO)
+Queda estrictamente prohibido generar tablas con atributos comodín, sintéticos o abreviados (por ejemplo: `nombre_descripcion`, `campo_1`, `detalle_general`, `datos`).
+Cada entidad debe reflejar fielmente los atributos estándar del mundo real con sus tipos de datos SQL apropiados:
+1. Claves Primarias (PK): Nombradas explícitamente (`id_cliente`, `id_factura`, `codigo_producto`).
+2. Atributos de Negocio Realistas:
+   - Personas/Clientes/Empleados: Desglosar siempre en `ci` / `ci_ruc` (identificación), `nombres`, `apellidos`, `telefono`, `correo_electronico`, `direccion`.
+   - Documentos Transaccionales (Factura, Pedido): `numero_documento`/`numero_factura`, `fecha_emision`, `subtotal`, `iva`, `total`, `estado`.
+   - Detalles/Líneas (Intermedias N:M): `cantidad`, `precio_unitario`, `descuento`, `subtotal_linea`.
+   - Productos/Servicios: `codigo_producto`, `nombre`, `descripcion`, `precio_unitario`, `stock`, `categoria`.
+   - Pagos: `fecha_pago`, `monto`, `metodo_pago`, `numero_transaccion`.
+3. Claves Foráneas (FK): Deben indicar explícitamente la tabla y campo referenciado (`id_cliente INT -> Cliente(id_cliente)`).
 
 DIRECTRICES OBLIGATORIAS DE PERSONALIDAD Y ENRUTAMIENTO DE INTENCIONES:
 
@@ -33,69 +45,60 @@ DIRECTRICES OBLIGATORIAS DE PERSONALIDAD Y ENRUTAMIENTO DE INTENCIONES:
    - Redirige cordialmente la conversación hacia temas académicos de BD.
 
 4. MÓDULOS PEDAGÓGICOS ESPECIALIZADOS (Aplica según la consulta del usuario):
-
-   a) PLANIFICADOR DE HABILIDADES (Para guías de estudio desde cero):
-      - Analiza el nivel actual del estudiante, diseña un plan semanal paso a paso con ejercicios diarios y puntos de control semanales.
-
-   b) ENTRENAMIENTO EN FUNDAMENTOS SQL (SELECT, WHERE, ORDER BY, LIMIT):
-      - Muestra ejemplos claros con tablas realistas inventadas (ej. Clientes/Pedidos), señala el error común de sintaxis y plantea una pequeña tarea. Corrige las respuestas del estudiante línea por línea.
-
-   c) DECODIFICADOR DE JOINS (INNER, LEFT, RIGHT, FULL):
-      - Explica combinaciones con 2 tablas pequeñas visuales. Muestra el resultado exacto, caso de uso de negocio y plantea 3 preguntas progresivas. ESPERA la respuesta del estudiante antes de revelar soluciones.
-
-   d) TALLER DE AGREGACIONES (GROUP BY, HAVING, COUNT, SUM, AVG):
-      - Guía el análisis completo en 4 pasos: Pregunta de Negocio -> Consulta SQL -> Resultado -> Insight. Asigna preguntas combinadas y sugiere formas de escribir código más limpio.
-
-   e) PROYECTO CON DATOS REALES (Limpieza y Mentoría):
-      - Proporciona datasets desordenados con un objetivo claro. Guía en la limpieza/exploración, critica constructivamente el enfoque del estudiante y enseña a redactar un resumen ejecutivo para gerencia.
-
-   f) TRADUCTOR DE INSIGHTS PARA GERENCIA:
-      - Transforma resultados de consultas SQL en una narrativa clara identificando los 3 hallazgos clave, su causa probable y acción sugerida, en lenguaje no técnico con recomendación de gráficos.
-
-   g) REVISOR Y AUDITOR DE CONSULTAS (Code Reviewer):
-      - Al recibir una consulta SQL del estudiante, evalúa Corrección, Legibilidad y Rendimiento. Califica la consulta del 1 al 10 y señala la mejora prioritaria.
+   a) PLANIFICADOR DE HABILIDADES: Diseña un plan semanal paso a paso con ejercicios y puntos de control.
+   b) ENTRENAMIENTO EN FUNDAMENTOS SQL: Muestra ejemplos claros con tablas realistas (Clientes/Facturas/Productos), señala errores comunes y plantea tareas socráticas.
+   c) DECODIFICADOR DE JOINS: Explica combinaciones con 2 tablas realistas, muestra casos de uso y plantea preguntas progresivas.
+   d) TALLER DE AGREGACIONES: Guía el análisis: Pregunta de Negocio -> Consulta SQL -> Resultado -> Insight.
+   e) PROYECTO CON DATOS REALES: Guía en normalización, limpieza y diseño relacional 3FN.
+   f) TRADUCTOR DE INSIGHTS: Transforma resultados SQL en narrativa clara ejecutiva.
+   g) REVISOR Y AUDITOR DE CONSULTAS: Evalúa corrección, legibilidad y rendimiento (1 al 10).
 
 5. MÉTODO SOCRÁTICO:
    - En explicaciones técnicas, no des siempre la solución servida de inmediato: haz preguntas guía que estimulen el razonamiento lógico del estudiante.
 
-6. MOTOR DINAMICO DE DIAGRAMAS E-R (MUY IMPORTANTE - OBLIGATORIO):
-   Cuando el estudiante pregunte sobre COMO SE RELACIONAN dos o mas tablas, como disenar un esquema, pida un diagrama E-R, o pregunte por relaciones entre entidades especificas (ej: "Usuarios y Roles", "Facturas y Detalle", "Clientes y Pedidos", "Estudiantes y Cursos", "Productos e Inventario", etc.):
-
-   a) Identifica dinamicamente TODAS las entidades/tablas mencionadas o implicadas.
+6. MOTOR DINÁMICO DE DIAGRAMAS E-R (OBLIGATORIO):
+   Cuando el estudiante pregunte sobre relaciones entre tablas, diseño de esquemas, pida un diagrama E-R o consulte por entidades:
+   a) Identifica dinámicamente TODAS las entidades mencionadas o implicadas.
    b) Determina la cardinalidad correcta (1:1, 1:N, N:M).
-   c) Deduce las columnas esenciales con sus tipos de dato, claves primarias (PK) y foraneas (FK).
-   d) Genera el bloque Mermaid erDiagram valido para ESA consulta especifica. NUNCA uses un ejemplo hardcodeado.
-   e) En tu respuesta JSON incluye el campo adicional "live_example" con la siguiente estructura EXACTA:
+   c) Asigna atributos completos del mundo real con tipos SQL, PKs y FKs explícitas.
+   d) Genera el bloque Mermaid erDiagram válido.
+   e) En tu respuesta JSON incluye el campo "live_example" con la estructura:
 
    "live_example": {
      "type": "er_diagram",
-     "title": "Relacion entre TablaA y TablaB",
+     "title": "Modelo: Cliente — Factura — Detalle_Factura — Producto",
      "cardinality": "1:N",
-     "description": "Descripcion breve de la regla de negocio",
-     "mermaid_code": "erDiagram\n  TABLA_A ||--o{ TABLA_B : relaciona\n  TABLA_A {\n    int id_a PK\n    string nombre\n  }\n  TABLA_B {\n    int id_b PK\n    int id_a FK\n    string descripcion\n  }",
+     "description": "Esquema relacional normalizado con completitud de atributos del mundo real",
+     "mermaid_code": "erDiagram\n  CLIENTE ||--o{ FACTURA : \"1:N emite\"\n  EMPLEADO ||--o{ FACTURA : \"1:N procesa\"\n  FACTURA ||--|{ DETALLE_FACTURA : \"1:N contiene\"\n  PRODUCTO ||--o{ DETALLE_FACTURA : \"1:N pertenece\"\n  CLIENTE {\n    int id_cliente PK\n    string ci_ruc\n    string nombres\n    string apellidos\n    string telefono\n    string correo_electronico\n    string direccion\n  }\n  FACTURA {\n    int id_factura PK\n    string numero_factura\n    date fecha_emision\n    decimal subtotal\n    decimal iva\n    decimal total\n    int id_cliente FK\n    int id_empleado FK\n  }\n  DETALLE_FACTURA {\n    int id_detalle PK\n    int id_factura FK\n    int id_producto FK\n    int cantidad\n    decimal precio_unitario\n    decimal subtotal_linea\n  }\n  PRODUCTO {\n    int id_producto PK\n    string codigo_producto\n    string nombre\n    decimal precio_unitario\n    int stock\n  }",
      "tables": [
        {
-         "name": "NombreTablaA",
+         "name": "Cliente",
          "columns": [
-           {"name": "id", "type": "INT", "isPk": true},
-           {"name": "nombre", "type": "VARCHAR(100)"}
+           {"name": "id_cliente", "type": "INT", "isPk": true},
+           {"name": "ci_ruc", "type": "VARCHAR(13)"},
+           {"name": "nombres", "type": "VARCHAR(50)"},
+           {"name": "apellidos", "type": "VARCHAR(50)"},
+           {"name": "telefono", "type": "VARCHAR(15)"},
+           {"name": "correo_electronico", "type": "VARCHAR(100)"},
+           {"name": "direccion", "type": "VARCHAR(150)"}
          ]
        },
        {
-         "name": "NombreTablaB",
+         "name": "Factura",
          "columns": [
-           {"name": "id", "type": "INT", "isPk": true},
-           {"name": "id_tabla_a", "type": "INT", "isFk": true, "references": "NombreTablaA(id)"},
-           {"name": "descripcion", "type": "TEXT"}
+           {"name": "id_factura", "type": "INT", "isPk": true},
+           {"name": "numero_factura", "type": "VARCHAR(20)"},
+           {"name": "fecha_emision", "type": "DATE"},
+           {"name": "subtotal", "type": "DECIMAL(10,2)"},
+           {"name": "iva", "type": "DECIMAL(10,2)"},
+           {"name": "total", "type": "DECIMAL(10,2)"},
+           {"name": "estado", "type": "VARCHAR(20)"},
+           {"name": "id_cliente", "type": "INT", "isFk": true, "references": "Cliente(id_cliente)"},
+           {"name": "id_empleado", "type": "INT", "isFk": true, "references": "Empleado(id_empleado)"}
          ]
        }
      ]
    }
-
-   REGLAS del mermaid_code:
-   - 1:1: TABLA_A ||--|| TABLA_B : "relacion"
-   - 1:N: TABLA_A ||--o{ TABLA_B : "relacion"
-   - N:M: usa tabla intermedia con dos relaciones ||--o{
 
 FORMATO DE RESPUESTA JSON OBLIGATORIO:
 Debes responder UNICAMENTE con un objeto JSON valido con esta estructura:
@@ -105,8 +108,7 @@ Debes responder UNICAMENTE con un objeto JSON valido con esta estructura:
     "topic": "SQL | Normalizacion | Modelo E-R | Algebra Relacional | Diseno de BD | Transacciones | Indices | Fundamentos | Saludos | General | Fuera de Alcance",
     "live_example": null
 }
-Cuando detectes una intencion de diagrama E-R, reemplaza "live_example": null por el objeto completo descrito arriba.
-"""
+Cuando detectes una intencion de diagrama E-R, incluye en "live_example" el objeto estructurado."""
 
 
 # ────────────────────────────────────────────────────────────
@@ -192,7 +194,7 @@ def sanitize_rag_context(fragments: list[dict]) -> list[dict]:
 
         if was_modified:
             logger.warning(
-                "⚠️ Fragmento RAG sanitizado (id=%s). Posible intento de Prompt Injection detectado.",
+                "Fragmento RAG sanitizado (id=%s). Posible intento de Prompt Injection detectado.",
                 frag.get("id_fragmento", "desconocido"),
             )
 
@@ -200,63 +202,291 @@ def sanitize_rag_context(fragments: list[dict]) -> list[dict]:
 
     return sanitized
 
-def validate_response(response_text: str) -> dict:
+def _generate_dynamic_er(user_query: str, text_content: str) -> dict | None:
     """
-    Valida y parsea la respuesta del modelo.
+    Genera un diagrama E-R dinámico (live_example) para CUALQUIER conjunto de tablas
+    o entidades solicitadas por el usuario en su consulta o explicadas en la respuesta.
     """
-    result = None
-    # 1. Extraer de bloque markdown 
-    match = re.search(r'```(?:json)?\s*(\{.*?\})```', response_text, re.DOTALL)
-    if match:
-        try:
-            result = json.loads(match.group(1).strip())
-        except: pass
-    # 2. Intentar parsear directamente
-    if not result:
-        try:
-            result = json.loads(response_text.strip())
-        except: pass
+    source_text = f"{user_query} {text_content}"
+    tables = []
 
-    # Si no se pudo parsear, construir respuesta de fallback
-    if not result or not isinstance(result, dict):
-        logger.warning("Respuesta del modelo no es JSON válido, aplicando fallback")
-        return {
-            "analysis": "La respuesta del modelo no cumplió el formato esperado.",
-            "feedback": response_text.strip() if response_text else "No pude procesar tu consulta. ¿Podrías reformularla?",
-            "topic": "General"
+    # 1. Detección por CREATE TABLE en el texto
+    table_matches = re.findall(
+        r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`\']?(\w+)["`\']?\s*\(([\s\S]*?)\);?',
+        source_text, re.IGNORECASE
+    )
+    if table_matches:
+        for tname, col_block in table_matches:
+            cols = []
+            lines = [l.strip() for l in col_block.split(',') if l.strip()]
+            for line in lines:
+                if re.match(r'^\s*(PRIMARY|FOREIGN|UNIQUE|INDEX|KEY|CONSTRAINT|CHECK)', line, re.I):
+                    continue
+                cm = re.match(r'^["`\']?(\w+)["`\']?\s+([\w()]+)', line, re.I)
+                if cm:
+                    cname, ctype = cm.group(1), cm.group(2).upper()
+                    ispk = 'PRIMARY KEY' in line.upper() or 'SERIAL' in line.upper() or cname.lower().startswith('id')
+                    cols.append({"name": cname, "type": ctype, "isPk": ispk})
+            if cols:
+                tables.append({"name": tname, "columns": cols})
+
+    # 2. Detección por entidades/tablas mencionadas explícitamente
+    if not tables:
+        stop_words = {
+            'una', 'las', 'los', 'del', 'con', 'para', 'tabla', 'tablas', 'entidad', 'entidades',
+            'como', 'este', 'ejercicio', 'diagrama', 'diseño', 'debe', 'tengo', 'hacer', 'necesito',
+            'modeles', 'modelar', 'modelo', 'relacionar', 'relacion', 'cardinalidad', 'debil',
+            'negocio', 'concreto', 'pertenece', 'mes', 'año', 'ano', 'excelente', 'analizar',
+            'rubros', 'aporte', 'iess', 'prestamo', 'frecuencia', 'temporal', 'periodo'
+        }
+        found_names = []
+        words = re.findall(r'\b[A-Za-z_]{3,}\b', user_query)
+        for w in words:
+            if w.lower() not in stop_words:
+                clean_n = w.capitalize()
+                if clean_n not in found_names and len(found_names) < 6:
+                    found_names.append(clean_n)
+
+        schema_dict = {
+            "cliente": [
+                {"name": "id_cliente", "type": "INT", "isPk": True},
+                {"name": "ci_ruc", "type": "VARCHAR(13)"},
+                {"name": "nombres", "type": "VARCHAR(50)"},
+                {"name": "apellidos", "type": "VARCHAR(50)"},
+                {"name": "telefono", "type": "VARCHAR(15)"},
+                {"name": "correo_electronico", "type": "VARCHAR(100)"},
+                {"name": "direccion", "type": "VARCHAR(150)"}
+            ],
+            "empleado": [
+                {"name": "id_empleado", "type": "INT", "isPk": True},
+                {"name": "ci", "type": "VARCHAR(10)"},
+                {"name": "nombres", "type": "VARCHAR(50)"},
+                {"name": "apellidos", "type": "VARCHAR(50)"},
+                {"name": "cargo", "type": "VARCHAR(60)"},
+                {"name": "salario", "type": "DECIMAL(10,2)"},
+                {"name": "fecha_ingreso", "type": "DATE"}
+            ],
+            "factura": [
+                {"name": "id_factura", "type": "INT", "isPk": True},
+                {"name": "numero_factura", "type": "VARCHAR(20)"},
+                {"name": "fecha_emision", "type": "DATE"},
+                {"name": "subtotal", "type": "DECIMAL(10,2)"},
+                {"name": "iva", "type": "DECIMAL(10,2)"},
+                {"name": "total", "type": "DECIMAL(10,2)"},
+                {"name": "estado", "type": "VARCHAR(20)"},
+                {"name": "id_cliente", "type": "INT", "isFk": True, "references": "Cliente(id_cliente)"},
+                {"name": "id_empleado", "type": "INT", "isFk": True, "references": "Empleado(id_empleado)"}
+            ],
+            "detalle_factura": [
+                {"name": "id_detalle", "type": "INT", "isPk": True},
+                {"name": "id_factura", "type": "INT", "isFk": True, "references": "Factura(id_factura)"},
+                {"name": "id_producto", "type": "INT", "isFk": True, "references": "Producto(id_producto)"},
+                {"name": "cantidad", "type": "INT"},
+                {"name": "precio_unitario", "type": "DECIMAL(10,2)"},
+                {"name": "subtotal_linea", "type": "DECIMAL(10,2)"}
+            ],
+            "producto": [
+                {"name": "id_producto", "type": "INT", "isPk": True},
+                {"name": "codigo_producto", "type": "VARCHAR(30)"},
+                {"name": "nombre", "type": "VARCHAR(100)"},
+                {"name": "descripcion", "type": "TEXT"},
+                {"name": "precio_unitario", "type": "DECIMAL(10,2)"},
+                {"name": "stock", "type": "INT"},
+                {"name": "categoria", "type": "VARCHAR(50)"}
+            ],
+            "pago": [
+                {"name": "id_pago", "type": "INT", "isPk": True},
+                {"name": "id_factura", "type": "INT", "isFk": True, "references": "Factura(id_factura)"},
+                {"name": "fecha_pago", "type": "TIMESTAMP"},
+                {"name": "monto", "type": "DECIMAL(10,2)"},
+                {"name": "metodo_pago", "type": "VARCHAR(40)"},
+                {"name": "numero_transaccion", "type": "VARCHAR(50)"}
+            ],
+            "estudiante": [
+                {"name": "id_estudiante", "type": "INT", "isPk": True},
+                {"name": "ci", "type": "VARCHAR(10)"},
+                {"name": "nombres", "type": "VARCHAR(50)"},
+                {"name": "apellidos", "type": "VARCHAR(50)"},
+                {"name": "correo_electronico", "type": "VARCHAR(100)"},
+                {"name": "carrera_universitaria", "type": "VARCHAR(100)"}
+            ],
+            "curso": [
+                {"name": "id_curso", "type": "INT", "isPk": True},
+                {"name": "codigo_curso", "type": "VARCHAR(20)"},
+                {"name": "nombre_materia", "type": "VARCHAR(100)"},
+                {"name": "creditos_academicos", "type": "INT"},
+                {"name": "edificio_aula", "type": "VARCHAR(50)"}
+            ],
+            "inscripcion": [
+                {"name": "id_inscripcion", "type": "INT", "isPk": True},
+                {"name": "id_estudiante", "type": "INT", "isFk": True, "references": "Estudiante(id_estudiante)"},
+                {"name": "id_curso", "type": "INT", "isFk": True, "references": "Curso(id_curso)"},
+                {"name": "fecha_inscripcion", "type": "DATE"},
+                {"name": "calificacion_final", "type": "DECIMAL(4,2)"}
+            ]
         }
 
-    # Garantizar campos requeridos
-    # Si el feedback contiene JSON anidado, limpiarlo
-    if isinstance(result.get("feedback"), str):
-        fb = result["feedback"]
-        if fb.strip().startswith("{"):
+        if len(found_names) >= 2:
+            for idx, name in enumerate(found_names):
+                key = name.lower().rstrip('s')
+                matched_cols = None
+                for k, cols in schema_dict.items():
+                    if k in key or key in k:
+                        matched_cols = cols
+                        break
+                if not matched_cols:
+                    matched_cols = [
+                        {"name": f"id_{name.lower()}", "type": "INT", "isPk": True},
+                        {"name": "codigo_identificador", "type": "VARCHAR(30)"},
+                        {"name": "nombre", "type": "VARCHAR(100)"},
+                        {"name": "descripcion_detallada", "type": "TEXT"},
+                        {"name": "fecha_registro", "type": "TIMESTAMP"},
+                        {"name": "estado_registro", "type": "VARCHAR(20)"}
+                    ]
+                    if idx > 0:
+                        matched_cols.append({
+                            "name": f"id_{found_names[0].lower()}",
+                            "type": "INT",
+                            "isFk": True,
+                            "references": f"{found_names[0]}(id_{found_names[0].lower()})"
+                        })
+                tables.append({"name": name, "columns": matched_cols})
+
+
+
+    if not tables or len(tables) < 2:
+        return None
+
+    # Generar código Mermaid erDiagram
+    mermaid_lines = ["erDiagram"]
+    for i in range(len(tables) - 1):
+        tA = tables[i]["name"]
+        tB = tables[i + 1]["name"]
+        mermaid_lines.append(f'  {tA} ||--o{{ {tB} : "relaciona"')
+    for t in tables:
+        mermaid_lines.append(f'  {t["name"]} {{')
+        for c in t["columns"]:
+            const = "PK" if c.get("isPk") else "FK" if c.get("isFk") else ""
+            mermaid_lines.append(f'    {c["type"]} {c["name"]}{" " + const if const else ""}')
+        mermaid_lines.append("  }")
+
+    return {
+        "type": "er_diagram",
+        "title": f"Modelo: {' — '.join(t['name'] for t in tables)}",
+        "cardinality": "1:N" if len(tables) > 1 else "1:1",
+        "description": f"Diagrama Entidad-Relación y esquema de tablas",
+        "mermaid_code": "\n".join(mermaid_lines),
+        "tables": tables
+    }
+
+
+def validate_response(response_text: str, student_query: str = "") -> dict:
+    """
+    Valida y parsea la respuesta del modelo.
+    Garantiza que feedback NUNCA contenga bloques de codigo JSON crudos.
+    """
+    if not response_text or not response_text.strip():
+        return {
+            "analysis": "Respuesta vacia del modelo.",
+            "feedback": "No pude procesar tu consulta. Intentalo de nuevo.",
+            "topic": "General",
+            "live_example": None
+        }
+
+    text = response_text.strip()
+
+    # 0. Despojar de bloques markdown ```json ... ``` exteriores
+    cleaned_text = text
+    if cleaned_text.startswith("```"):
+        cleaned_text = re.sub(r"^```(?:json)?\s*", "", cleaned_text, flags=re.IGNORECASE)
+        cleaned_text = re.sub(r"\s*```$", "", cleaned_text)
+        cleaned_text = cleaned_text.strip()
+
+    result = None
+
+    # 1. Parsear JSON directo
+    try:
+        result = json.loads(cleaned_text)
+    except Exception:
+        pass
+
+    # 2. Buscar bloque JSON { ... }
+    if not result:
+        first_b = cleaned_text.find('{')
+        last_b = cleaned_text.rfind('}')
+        if first_b != -1 and last_b != -1 and last_b > first_b:
+            candidate = cleaned_text[first_b:last_b + 1]
             try:
-                inner = json.loads(fb)
-                if "feedback" in inner:
-                    result["feedback"] = inner["feedback"]
-                    result["analysis"] = inner.get("analysis", result.get("analysis", ""))
-                    result["topic"] = inner.get("topic", result.get("topic", "General"))
-            except:
-                pass
+                result = json.loads(candidate)
+            except Exception:
+                try:
+                    fixed = re.sub(r'[\x00-\x1f\x7f]', ' ', candidate)
+                    result = json.loads(fixed)
+                except Exception:
+                    pass
+
+    # 3. Regex para extraer 'feedback' si JSON fallo
+    if not result:
+        m = re.search(r'"feedback"\s*:\s*"([\s\S]*?)"\s*,\s*"topic"', cleaned_text) or \
+            re.search(r'"feedback"\s*:\s*"([\s\S]*?)"\s*\}', cleaned_text)
+        if m:
+            result = {
+                "analysis": "Sintesis del tema.",
+                "feedback": m.group(1).replace('\\n', '\n').replace('\\"', '"'),
+                "topic": "General",
+                "live_example": None
+            }
+
+    # 4. Fallback final: limpiar caracteres JSON de texto libre
+    if not result or not isinstance(result, dict):
+        clean_text = re.sub(r'```(?:json)?', '', text)
+        clean_text = re.sub(r'^\s*\{\s*"analysis"[\s\S]*?"feedback"\s*:\s*"', '', clean_text)
+        clean_text = re.sub(r'"\s*,\s*"topic"[\s\S]*$', '', clean_text)
+        clean_text = clean_text.replace('```', '').strip()
+        result = {
+            "analysis": "Respuesta procesada.",
+            "feedback": clean_text if clean_text else text,
+            "topic": "General",
+            "live_example": None
+        }
+
     result.setdefault("analysis", "Sin analisis disponible.")
     result.setdefault("feedback", "¿Podrias darme mas detalles sobre tu duda?")
     result.setdefault("topic", "General")
+    result.setdefault("live_example", None)
 
-    # Normalizar live_example si el LLM lo incluyó (diagrama E-R dinámico)
+    # Limpiar agresivamente si feedback arranca con ```json o {
+    fb = str(result.get("feedback", ""))
+    if fb.strip().startswith("```json") or fb.strip().startswith("{"):
+        try:
+            fb_c = re.sub(r"^```(?:json)?\s*", "", fb.strip())
+            fb_c = re.sub(r"\s*```$", "", fb_c)
+            inner = json.loads(fb_c)
+            if isinstance(inner, dict) and "feedback" in inner:
+                result["feedback"] = inner["feedback"]
+                if "live_example" in inner and inner["live_example"]:
+                    result["live_example"] = inner["live_example"]
+        except Exception:
+            m = re.search(r'"feedback"\s*:\s*"([\s\S]*?)"', fb)
+            if m:
+                result["feedback"] = m.group(1).replace('\\n', '\n').replace('\\"', '"')
+
+    # Normalizar o generar dinámicamente live_example para CUALQUIER consulta de diagramas
     live_example = result.get("live_example")
-    if live_example and isinstance(live_example, dict):
-        # Validar que tenga la estructura mínima esperada
-        if not live_example.get("type") or not live_example.get("mermaid_code"):
-            result["live_example"] = None
+    if live_example and isinstance(live_example, dict) and live_example.get("mermaid_code"):
+        pass
     else:
-        result["live_example"] = None
+        dynamic_ex = _generate_dynamic_er(student_query, result.get("feedback", ""))
+        if dynamic_ex:
+            result["live_example"] = dynamic_ex
+        else:
+            result["live_example"] = None
 
-    # Validar que el topic sea de la lista permitida
     if result["topic"] not in ALLOWED_TOPICS:
         result["topic"] = "General"
 
     return result
+
 
 
 def is_db_related(query: str) -> bool:

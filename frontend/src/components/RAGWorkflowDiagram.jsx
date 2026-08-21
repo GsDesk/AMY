@@ -5,10 +5,10 @@ export default function RAGWorkflowDiagram({ stage = 'searching', progress = 50 
     const isDone = stage === 'done';
 
     const stageLabels = {
-        'searching': '🔍 Consultando documentos RAG...',
-        'guardrails': '🛡️ Verificando guardrails...',
-        'synthesizing': '⚡ Sintetizando respuesta...',
-        'done': '✓ Consulta a documentos completada'
+        'searching': 'Consultando documentos RAG...',
+        'guardrails': 'Verificando guardrails...',
+        'synthesizing': 'Sintetizando respuesta...',
+        'done': 'Consulta a documentos completada'
     };
 
     return (
@@ -17,7 +17,7 @@ export default function RAGWorkflowDiagram({ stage = 'searching', progress = 50 
             <div className="rag-workflow-header">
                 <div className="rag-workflow-status-label">
                     <span className={`rag-pulse-dot ${isDone ? 'done' : ''}`} />
-                    <span>{stageLabels[stage] || '🔍 Procesando consulta...'}</span>
+                    <span>{stageLabels[stage] || 'Procesando consulta...'}</span>
                 </div>
                 <span className="rag-workflow-pct">{progress}%</span>
             </div>

@@ -5,10 +5,10 @@ import './StatusIndicator.css';
 
 // Definición de etapas del pipeline RAG
 const PIPELINE_STAGES = [
-    { id: 'searching',    label: '🔍 Buscando contexto...',       progress: 25 },
-    { id: 'guardrails',   label: '🛡️ Analizando guardrails...',   progress: 55 },
-    { id: 'synthesizing', label: '⚡ Sintetizando respuesta...',   progress: 80 },
-    { id: 'done',         label: '✓ Respuesta generada',           progress: 100 },
+    { id: 'searching',    label: 'Buscando contexto...',       progress: 25 },
+    { id: 'guardrails',   label: 'Analizando guardrails...',   progress: 55 },
+    { id: 'synthesizing', label: 'Sintetizando respuesta...',   progress: 80 },
+    { id: 'done',         label: 'Respuesta generada',           progress: 100 },
 ];
 
 export default function StatusIndicator({ pipelineStage = null }) {

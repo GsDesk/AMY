@@ -9,6 +9,17 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Prompt simplificado para Ollama (CPU). Mucho mas corto que SYSTEM_PROMPT
+# para reducir tokens de entrada y acelerar la inferencia.
+OLLAMA_SYSTEM = (
+    'Eres AMY, tutora de Bases de Datos de la UPEC. '
+    'Responde SOLO con JSON valido sin markdown, con estas claves exactas: '
+    '{"analysis":"...","feedback":"Respuesta en Markdown","topic":"SQL|Modelo E-R|Normalizacion|Fundamentos|Saludos|General|Fuera de Alcance","live_example":null}. '
+    'Cuando el usuario pida un diagrama E-R o tablas, incluye en live_example: '
+    '{"type":"er_diagram","title":"...","cardinality":"1:N","description":"...","mermaid_code":"erDiagram\\n...","tables":[{"name":"...","columns":[{"name":"...","type":"INT","isPk":true}]}]}. '
+    'Responde SOLO en JSON, sin texto fuera del JSON.'
+)
+
 
 class OllamaClient:
     def __init__(self):
@@ -22,24 +33,29 @@ class OllamaClient:
     async def generate(self, prompt: str, system: str = "") -> str:
         try:
             logger.info(f"Enviando consulta a Ollama ({self.model})...")
+            # Usamos OLLAMA_SYSTEM (simplificado) en lugar del system externo
+            # para garantizar JSON valido y respuestas mas rapidas en CPU
             response = await self.client.post("/api/generate", json={
                 "model": self.model,
                 "prompt": prompt,
-                "system": system,
-                "format": "json",
+                "system": OLLAMA_SYSTEM,
                 "stream": False,
+                "format": "json",     # Forzar JSON valido desde Ollama
                 "options": {
-                    "temperature": 0.15,       # Temperatura muy baja para respuestas precisas y rapidas
+                    "temperature": 0.2,    # Muy baja para respuestas JSON precisas
                     "top_p": 0.80,
-                    "num_predict": 280,        # Tokens reducidos para mayor velocidad en CPU
-                    "num_thread": 6,           # Mas hilos para CPU
-                    "repeat_penalty": 1.1,     # Evitar bucles de texto
-                    "stop": ["```", "\n\n\n"]  # Cortar generacion innecesaria
+                    "num_predict": 500,    # Reducido: suficiente para respuestas pedagogicas
+                    "num_thread": 6,       # Hilos para CPU
+                    "repeat_penalty": 1.1  # Evitar bucles de texto
                 }
             })
             response.raise_for_status()
             result = response.json().get("response", "")
             logger.info(f"Respuesta recibida de Ollama ({len(result)} caracteres)")
+            # Validar que no sea cadena vacia o muy corta
+            if not result or len(result.strip()) < 10:
+                logger.warning("Ollama devolvio respuesta vacia o muy corta")
+                return ""
             return result
         except httpx.TimeoutException:
             logger.error("Timeout al comunicarse con Ollama")

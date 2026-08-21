@@ -4,37 +4,45 @@ import StatusIndicator from './StatusIndicator';
 import { getConversations, deleteConversation, getUser, logout } from '../services/api';
 import './Sidebar.css';
 
-const LOCAL_STORAGE_KEY = 'amy_conversations_cache';
+export default function Sidebar({ onSelectConversation, onNewConversation, activeConversationId, onClose }) {
+    const navigate = useNavigate();
+    const user = getUser();
+    const userCacheKey = user?.email ? `amy_conversations_cache_${user.email}` : 'amy_conversations_cache_guest';
 
-export default function Sidebar({ onSelectConversation, onNewConversation, activeConversationId }) {
-    // Inicializar estado con caché local para carga instantánea
+    // Inicializar estado con caché local del usuario activo para carga instantánea
     const [conversations, setConversations] = useState(() => {
         try {
-            const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+            const cached = localStorage.getItem(userCacheKey);
             return cached ? JSON.parse(cached) : [];
         } catch {
             return [];
         }
     });
 
-    const navigate = useNavigate();
-    const user = getUser();
-
-    // Obtener conversaciones desde la API de FastAPI y sincronizar con localStorage
+    // Obtener conversaciones desde la API de FastAPI y sincronizar con localStorage del usuario
     const fetchConversations = useCallback(async () => {
         try {
             const data = await getConversations();
             const list = data || [];
             setConversations(list);
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+            localStorage.setItem(userCacheKey, JSON.stringify(list));
         } catch (err) {
             console.error('Error cargando conversaciones desde API:', err);
         }
-    }, []);
+    }, [userCacheKey]);
 
     useEffect(() => {
+        setConversations(() => {
+            try {
+                const cached = localStorage.getItem(userCacheKey);
+                return cached ? JSON.parse(cached) : [];
+            } catch {
+                return [];
+            }
+        });
         fetchConversations();
-    }, [fetchConversations, activeConversationId]);
+    }, [fetchConversations, activeConversationId, userCacheKey]);
+
 
     const handleSelectConversation = (id) => {
         if (onSelectConversation) {
@@ -48,7 +56,7 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
             await deleteConversation(id);
             setConversations(prev => {
                 const updated = prev.filter(c => c.id !== id);
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+                localStorage.setItem(userCacheKey, JSON.stringify(updated));
                 return updated;
             });
             if (activeConversationId === id && onNewConversation) {
@@ -61,9 +69,9 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
 
     const handleLogout = () => {
         logout();
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
         navigate('/');
     };
+
 
     const handleNewConversation = () => {
         if (onNewConversation) {
@@ -80,6 +88,12 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
 
     return (
         <aside className="sidebar panel">
+            {/* Botón cerrar drawer — solo visible en móvil via CSS */}
+            {onClose && (
+                <button className="sidebar-close-btn" onClick={onClose} aria-label="Cerrar menú">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            )}
             <div className="brand">
                 <div className="amy-mark">A</div>
                 <h1>AMY</h1>
@@ -95,7 +109,7 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
                             className="admin-link-btn"
                             onClick={() => navigate('/admin')}
                         >
-                            <span className="admin-icon">🛡️</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                             <span>Panel Admin (DMZ)</span>
                         </button>
                     )}

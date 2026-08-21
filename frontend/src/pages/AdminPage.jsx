@@ -19,6 +19,7 @@ export default function AdminPage() {
     const [dmzLogs, setDmzLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [knowledge, setKnowledge] = useState({ items: [], total: 0 });
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
     // Filtros superiores
     const [selectedCategory, setSelectedCategory] = useState('all');
@@ -70,6 +71,11 @@ export default function AdminPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSelectNav = (nav) => {
+        setActiveNav(nav);
+        setMobileNavOpen(false);
     };
 
     // Manejo de Drag and Drop
@@ -163,25 +169,43 @@ export default function AdminPage() {
     );
 
     return (
-        <div className="tailark-layout">
+        <div className={`tailark-layout ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
+            {/* Overlay para cerrar sidebar en móvil */}
+            {mobileNavOpen && (
+                <div
+                    className="tailark-sidebar-overlay"
+                    onClick={() => setMobileNavOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
             {/* ── MENÚ LATERAL MONOCROMÁTICO (CERO EMOJIS) ──────────────────── */}
             <aside className="tailark-sidebar">
-                <div className="tailark-brand">
-                    <div className="tailark-logo-mark">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                        </svg>
+                <div className="tailark-sidebar-header-row">
+                    <div className="tailark-brand">
+                        <div className="tailark-logo-mark">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <div className="tailark-brand-text">
+                            <span className="tailark-brand-title">AMY DMZ Pro</span>
+                            <span className="tailark-brand-sub">Zona Militarizada UPEC</span>
+                        </div>
                     </div>
-                    <div className="tailark-brand-text">
-                        <span className="tailark-brand-title">AMY DMZ Pro</span>
-                        <span className="tailark-brand-sub">Zona Militarizada UPEC</span>
-                    </div>
+                    <button
+                        className="tailark-sidebar-close"
+                        onClick={() => setMobileNavOpen(false)}
+                        aria-label="Cerrar menú"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
                 </div>
 
                 <nav className="tailark-nav">
                     <button
                         className={`tailark-nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
-                        onClick={() => setActiveNav('dashboard')}
+                        onClick={() => handleSelectNav('dashboard')}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
                         <span>Dashboard</span>
@@ -189,7 +213,7 @@ export default function AdminPage() {
 
                     <button
                         className={`tailark-nav-item ${activeNav === 'analytics' ? 'active' : ''}`}
-                        onClick={() => setActiveNav('analytics')}
+                        onClick={() => handleSelectNav('analytics')}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
                         <span>Análisis RAG</span>
@@ -197,7 +221,7 @@ export default function AdminPage() {
 
                     <button
                         className={`tailark-nav-item ${activeNav === 'insights' ? 'active' : ''}`}
-                        onClick={() => setActiveNav('insights')}
+                        onClick={() => handleSelectNav('insights')}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83"/></svg>
                         <span>Diagnósticos de IA</span>
@@ -205,7 +229,7 @@ export default function AdminPage() {
 
                     <button
                         className={`tailark-nav-item ${activeNav === 'rag' ? 'active' : ''}`}
-                        onClick={() => setActiveNav('rag')}
+                        onClick={() => handleSelectNav('rag')}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         <span>Gestión RAG (DMZ)</span>
@@ -213,7 +237,7 @@ export default function AdminPage() {
 
                     <button
                         className={`tailark-nav-item ${activeNav === 'users' ? 'active' : ''}`}
-                        onClick={() => setActiveNav('users')}
+                        onClick={() => handleSelectNav('users')}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         <span>Usuarios & Roles</span>
@@ -248,6 +272,29 @@ export default function AdminPage() {
 
             {/* ── ÁREA PRINCIPAL ──────────────────────────────────────────────── */}
             <main className="tailark-main">
+                {/* Barra superior visible en móvil */}
+                <div className="tailark-mobile-header">
+                    <button
+                        className="tailark-mobile-menu-btn"
+                        onClick={() => setMobileNavOpen(true)}
+                        aria-label="Abrir menú de administración"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                    <div className="tailark-mobile-brand">
+                        <span className="tailark-brand-title">AMY DMZ Pro</span>
+                    </div>
+                    <Link to="/chat" className="tailark-mobile-back" title="Volver al chat">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </Link>
+                </div>
+
                 {/* Filtros Superiores */}
                 <div className="tailark-topbar">
                     <div className="tailark-filters">
@@ -455,34 +502,36 @@ export default function AdminPage() {
                             <p className="tailark-box-desc">Historial completo de intentos de ingesta evaluados en tiempo real.</p>
 
                             {dmzLogs.length > 0 ? (
-                                <table className="tailark-table" style={{ marginTop: '1rem' }}>
-                                    <thead>
-                                        <tr>
-                                            <th>Marca de Tiempo</th>
-                                            <th>Evento de Ingesta</th>
-                                            <th>Categoría</th>
-                                            <th>Estado DMZ</th>
-                                            <th>Motivo / Diagnóstico</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {dmzLogs.map((log) => (
-                                            <tr key={log.id}>
-                                                <td style={{ color: '#a1a1aa', fontSize: '0.8rem' }}>
-                                                    {log.timestamp ? new Date(log.timestamp).toLocaleString('es-EC') : 'N/A'}
-                                                </td>
-                                                <td style={{ fontWeight: '500' }}>{log.evento}</td>
-                                                <td><span className="tailark-badge-pill">{log.categoria}</span></td>
-                                                <td>
-                                                    <span className={`tailark-role-badge ${log.estado === 'APROBADO' ? 'admin' : 'estudiante'}`} style={log.estado === 'RECHAZADO' ? { color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' } : {}}>
-                                                        {log.estado}
-                                                    </span>
-                                                </td>
-                                                <td style={{ color: '#a1a1aa', fontSize: '0.82rem', maxWidth: '300px' }}>{log.motivo}</td>
+                                <div className="tailark-table-wrapper" style={{ marginTop: '1rem', border: '1px solid var(--tailark-border)' }}>
+                                    <table className="tailark-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Marca de Tiempo</th>
+                                                <th>Evento de Ingesta</th>
+                                                <th>Categoría</th>
+                                                <th>Estado DMZ</th>
+                                                <th>Motivo / Diagnóstico</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {dmzLogs.map((log) => (
+                                                <tr key={log.id}>
+                                                    <td style={{ color: '#a1a1aa', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                                        {log.timestamp ? new Date(log.timestamp).toLocaleString('es-EC') : 'N/A'}
+                                                    </td>
+                                                    <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>{log.evento}</td>
+                                                    <td><span className="tailark-badge-pill">{log.categoria}</span></td>
+                                                    <td>
+                                                        <span className={`tailark-role-badge ${log.estado === 'APROBADO' ? 'admin' : 'estudiante'}`} style={log.estado === 'RECHAZADO' ? { color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' } : {}}>
+                                                            {log.estado}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ color: '#a1a1aa', fontSize: '0.82rem', maxWidth: '300px' }}>{log.motivo}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             ) : (
                                 <div style={{ color: '#71717a', padding: '3rem 1rem', textAlign: 'center', fontSize: '0.88rem' }}>
                                     No hay registros de auditoría de ingesta en el sistema. Todos los intentos de ingesta de archivos se registrarán aquí en tiempo real.
@@ -653,14 +702,13 @@ export default function AdminPage() {
                         </div>
 
                         <div className="tailark-table-wrapper">
-                            <div className="tailark-table-header">
+                            <div className="tailark-table-header users-table-header">
                                 <h3>Usuarios Registrados ({filteredUsers.length})</h3>
 
                                 <input
                                     type="text"
-                                    className="tailark-input"
+                                    className="tailark-input users-search-input"
                                     placeholder="Buscar por nombre o correo..."
-                                    style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem', width: '240px' }}
                                     value={userSearchTerm}
                                     onChange={(e) => setUserSearchTerm(e.target.value)}
                                 />
@@ -679,17 +727,17 @@ export default function AdminPage() {
                                 <tbody>
                                     {filteredUsers.map((u) => (
                                         <tr key={u.id}>
-                                            <td style={{ fontWeight: '600' }}>{u.nombre}</td>
+                                            <td style={{ fontWeight: '600', whiteSpace: 'nowrap' }}>{u.nombre}</td>
                                             <td style={{ color: '#a1a1aa' }}>{u.email}</td>
                                             <td>
                                                 <span className={`tailark-role-badge ${u.rol}`}>
                                                     {u.rol === 'admin' ? 'Admin DMZ' : 'Estudiante'}
                                                 </span>
                                             </td>
-                                            <td style={{ fontSize: '0.8rem', color: '#71717a' }}>
+                                            <td style={{ fontSize: '0.8rem', color: '#71717a', whiteSpace: 'nowrap' }}>
                                                 {u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-EC') : 'N/A'}
                                             </td>
-                                            <td>
+                                            <td style={{ whiteSpace: 'nowrap' }}>
                                                 <button className="tailark-btn-role" onClick={() => handleToggleRole(u)}>
                                                     {u.rol === 'admin' ? 'Hacer Estudiante' : 'Promover a Admin'}
                                                 </button>

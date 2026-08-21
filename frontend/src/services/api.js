@@ -103,9 +103,9 @@ export async function register(email, password, nombre) {
 }
 
 export function logout() {
-    localStorage.removeItem('amy_token');
-    localStorage.removeItem('amy_user');
+    localStorage.clear();
 }
+
 
 export function getUser() {
     try {

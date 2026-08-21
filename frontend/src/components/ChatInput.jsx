@@ -10,10 +10,11 @@ const MODEL_OPTIONS = [
     },
     {
         key: 'gemini',
-        label: 'Google Gemini 2.0 Flash (Nube)',
+        label: 'Google Gemini 2.5 Flash (Nube)',
         badge: 'Gemini',
-        desc: 'Motor ultrarapido de Google (~0.5-1s). Requiere GEMINI_API_KEY.'
+        desc: 'Motor ultrarapido de Google con streaming en tiempo real. Requiere GEMINI_API_KEY.'
     },
+
     {
         key: 'groq',
         label: 'Groq Llama 3.3 70B (Nube)',

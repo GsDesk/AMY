@@ -11,11 +11,13 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request, Depends, status as http_status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+import asyncio
+
 
 from app.config import settings
 from app.database.connection import db
@@ -91,7 +93,8 @@ app = FastAPI(
     title="AMY -- Fundamentos de Base de Datos UPEC",
     description="API de tutoria inteligente con RAG y Ollama/Mistral",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 # ── Configurar slowapi en la app ──────────────────────────────────
@@ -100,11 +103,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://frontend:5173"],
+    allow_origins=["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ── Routers ──────────────────────────────────────────────────
 app.include_router(auth_router)
@@ -164,10 +169,23 @@ async def _save_chat_messages(
         now,
     )
 
-    # Respuesta del tutor
+    # Respuesta del tutor (asegurar feedback limpio sin envoltorios JSON)
     live_example_json = None
     if result.get("live_example"):
         live_example_json = json.dumps(result["live_example"])
+
+    feedback_clean = result.get("feedback", "")
+    if isinstance(feedback_clean, str) and feedback_clean.strip().startswith("{"):
+        try:
+            parsed = json.loads(feedback_clean.strip())
+            feedback_clean = (
+                parsed.get("assistant", {}).get("message", {}).get("text")
+                or parsed.get("message", {}).get("text")
+                or parsed.get("feedback")
+                or feedback_clean
+            )
+        except Exception:
+            pass
 
     await db.execute(
         """INSERT INTO mensajes (id, conversacion_id, sender, content, topic, source, rag_used, live_example, created_at)
@@ -175,7 +193,7 @@ async def _save_chat_messages(
         str(uuid.uuid4()),
         conversation_id,
         "tutor",
-        result.get("feedback", ""),
+        feedback_clean,
         result.get("topic"),
         result.get("source"),
         result.get("rag_context_used", False),
@@ -249,6 +267,122 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
     except Exception as e:
         logger.error("Error en /api/chat: %s", e)
         raise HTTPException(status_code=500, detail="Error interno del tutor.")
+
+
+@app.post("/api/chat/stream")
+@limiter.limit("30/minute")
+async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
+    """
+    Endpoint SSE: emite tokens del LLM en tiempo real.
+    El cliente recibe 'data: <token>\n\n' mientras Gemini genera la respuesta.
+    Fallback automatico a respuesta completa si el proveedor no soporta stream.
+    """
+    if not request_body.student_query.strip():
+        raise HTTPException(status_code=400, detail="La consulta no puede estar vacia.")
+
+    async def generate_sse():
+        try:
+            # Recuperar historial si existe
+            chat_history = None
+            if request_body.conversation_id:
+                user_id = await _get_optional_user_id(request)
+                if user_id:
+                    rows = await db.fetch(
+                        """SELECT sender, content FROM mensajes
+                           WHERE conversacion_id = $1
+                           ORDER BY created_at ASC LIMIT 8""",
+                        request_body.conversation_id
+                    )
+                    if rows:
+                        chat_history = [
+                            {"role": "user" if r["sender"] == "user" else "assistant", "content": r["content"]}
+                            for r in rows
+                        ]
+
+            # Verificar cache primero
+            from app.cache.redis_cache import redis_cache
+            from app.core.guardrails import SYSTEM_PROMPT
+            history_context = str([m["content"] for m in chat_history]) if chat_history else ""
+            cached = await redis_cache.get_cached_response(request_body.student_query, context=history_context)
+            if cached:
+                yield f"data: {json.dumps({'type': 'result', 'data': cached})}\n\n"
+                return
+
+            # Intentar Gemini streaming si esta disponible
+            from app.integrations.gemini_client import gemini_client
+            from app.core.prompts import build_rag_prompt
+            from app.rag.retriever import semantic_search
+            from app.core.guardrails import sanitize_rag_context
+            from datetime import datetime, timezone, timedelta
+
+            context_fragments = await semantic_search(request_body.student_query)
+            if context_fragments:
+                context_fragments = sanitize_rag_context(context_fragments)
+
+            enriched_prompt = build_rag_prompt(
+                request_body.student_query, context_fragments, chat_history=chat_history
+            )
+            ecuador = timezone(timedelta(hours=-5))
+            fecha_actual = datetime.now(ecuador).strftime('%A %d de %B del %Y, %H:%M')
+            system_ctx = SYSTEM_PROMPT + f' La fecha y hora actual en Ecuador es: {fecha_actual}.'
+
+            from app.config import settings as _s
+            if _s.GEMINI_API_KEY and _s.GEMINI_API_KEY.strip():
+                full_text = ""
+                try:
+                    async for token in gemini_client.stream(enriched_prompt, system_ctx):
+                        full_text += token
+                        yield f"data: {json.dumps({'type': 'token', 'text': token})}\n\n"
+                    # Enviar resultado final (metadata)
+                    from app.core.guardrails import validate_response
+                    from app.core.examples import detect_example
+                    result = validate_response(full_text)
+                    result["source"] = "gemini"
+                    result["rag_context_used"] = len(context_fragments) > 0
+                    result["rag_sources"] = []
+
+                    # Persistir mensaje en la base de datos si hay conversación
+                    if request_body.conversation_id:
+                        user_id = await _get_optional_user_id(request)
+                        if user_id:
+                            try:
+                                await _save_chat_messages(
+                                    request_body.conversation_id,
+                                    user_id,
+                                    request_body.student_query,
+                                    result,
+                                )
+                            except Exception as e:
+                                logger.error("Error al guardar mensaje en stream: %s", e)
+
+                    yield f"data: {json.dumps({'type': 'done', 'data': result})}\n\n"
+                    return
+
+                except Exception as e:
+                    logger.warning("Gemini stream fallo, cayendo a brain.think: %s", e)
+
+            # Fallback: usar brain.think() normal y enviar resultado completo
+            result = await brain.think(
+                request_body.student_query,
+                chat_history=chat_history,
+                model_preference=request_body.model_preference
+            )
+            yield f"data: {json.dumps({'type': 'result', 'data': result})}\n\n"
+
+        except Exception as e:
+            logger.error("Error en SSE stream: %s", e)
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        generate_sse(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
+    )
+
 
 
 @app.post("/api/rag/ingest", response_model=IngestResponse)

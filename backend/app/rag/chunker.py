@@ -206,16 +206,16 @@ def chunk_text(
         return []
 
     content_type = detect_content_type(text)
-    logger.info("📄 Tipo de contenido detectado: %s", content_type.value)
+    logger.info("Tipo de contenido detectado: %s", content_type.value)
 
     if content_type == ContentType.SQL:
         chunks = _extract_sql_blocks(text)
-        logger.info("📄 SQL fragmentado en %d bloques atómicos", len(chunks))
+        logger.info("SQL fragmentado en %d bloques atómicos", len(chunks))
         return chunks
 
     if content_type == ContentType.MERMAID:
         chunks = _extract_mermaid_blocks(text)
-        logger.info("📄 Mermaid fragmentado en %d bloques", len(chunks))
+        logger.info("Mermaid fragmentado en %d bloques", len(chunks))
         return chunks
 
     # ── Modo texto natural ────────────────────────────────────────────────────
@@ -257,7 +257,7 @@ def chunk_text(
         if final.strip():
             chunks.append(final)
 
-    logger.info("📄 Texto fragmentado en %d chunks (tamaño objetivo: %d palabras)", len(chunks), chunk_size)
+    logger.info("Texto fragmentado en %d chunks (tamano objetivo: %d palabras)", len(chunks), chunk_size)
     return chunks
 
 

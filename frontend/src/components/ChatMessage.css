@@ -1,7 +1,8 @@
 .chat-message {
     display: flex;
     gap: 0.7rem;
-    max-width: 80%;
+    max-width: 90%;
+    min-width: 0;
     animation: msg-appear 0.25s ease-out forwards;
 }
 
@@ -44,6 +45,10 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .msg-bubble {
@@ -51,7 +56,12 @@
     border-radius: 12px;
     line-height: 1.6;
     font-size: 0.9rem;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
+
 
 .tutor-msg .msg-bubble {
     background: var(--amy-msg-bg);
@@ -401,3 +411,98 @@
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     padding-top: 0.3rem;
 }
+
+@media (max-width: 768px) {
+    .chat-message {
+        max-width: 98%;
+        gap: 0.35rem;
+    }
+
+    .msg-bubble {
+        font-size: 0.86rem;
+        padding: 0.75rem 0.9rem;
+    }
+
+    .msg-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.72rem;
+        border-radius: 6px;
+    }
+
+    /* Scroll horizontal en código en móvil */
+    .msg-bubble pre {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sources-toggle-btn {
+        font-size: 0.68rem;
+        padding: 0.35rem 0.6rem;
+    }
+
+    .source-card {
+        padding: 0.5rem 0.7rem;
+    }
+
+    .source-excerpt {
+        font-size: 0.7rem;
+        line-height: 1.4;
+    }
+
+    .source-category-badge {
+        font-size: 0.6rem;
+    }
+
+    .er-reopen-btn {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.65rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Botones de código más grandes para toque */
+    .code-btn {
+        padding: 5px 12px;
+        font-size: 0.7rem;
+        min-height: 32px;
+    }
+
+    .code-toolbar {
+        padding: 0.35rem 0.6rem;
+    }
+
+    .msg-meta {
+        flex-wrap: wrap;
+        gap: 0.2rem;
+    }
+
+    .model-switch-alert {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-message {
+        max-width: 100%;
+        gap: 0.25rem;
+    }
+
+    .msg-bubble {
+        font-size: 0.82rem;
+        padding: 0.65rem 0.8rem;
+        border-radius: 10px;
+    }
+
+    .msg-avatar {
+        width: 26px;
+        height: 26px;
+        font-size: 0.68rem;
+    }
+
+    .source-badge, .topic-badge, .rag-badge {
+        font-size: 0.6rem;
+    }
+}
+

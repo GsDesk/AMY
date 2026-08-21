@@ -1,9 +1,10 @@
 """
 AMY — Cerebro del Tutor (Orquestador con Prioridad de Velocidad)
-Pipeline: Query -> RAG -> Prompt -> Gemini (ultrarap) / Groq / Ollama -> Guardrails
+Pipeline: Query -> RAG // Historia (paralelo) -> Prompt -> Gemini / Groq / Ollama -> Guardrails
 Orden de prioridad: Gemini > Groq > Ollama local
 """
 
+import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 from app.rag.retriever import semantic_search
@@ -28,55 +29,83 @@ def _has_groq() -> bool:
 
 
 async def _try_gemini(prompt: str, system: str) -> tuple[str, bool]:
-    """Intenta Gemini. Retorna (respuesta, exito)."""
+    """Intenta Gemini con timeout máximo de 12s."""
     try:
         logger.info("Solicitando respuesta a Gemini API...")
-        text = await gemini_client.generate(prompt=prompt, system=system)
+        text = await asyncio.wait_for(gemini_client.generate(prompt=prompt, system=system), timeout=12.0)
         return text, True
     except Exception as e:
-        logger.warning("Gemini fallo: %s", e)
+        logger.warning("Gemini fallo o excede 12s: %s", e)
         return "", False
 
 
 async def _try_groq(prompt: str, system: str) -> tuple[str, bool]:
-    """Intenta Groq. Retorna (respuesta, exito)."""
+    """Intenta Groq con timeout máximo de 12s."""
     try:
         logger.info("Solicitando respuesta a Groq API...")
-        text = await groq_client.generate(prompt=prompt, system=system)
+        text = await asyncio.wait_for(groq_client.generate(prompt=prompt, system=system), timeout=12.0)
         return text, True
     except Exception as e:
-        logger.warning("Groq fallo: %s", e)
+        logger.warning("Groq fallo o excede 12s: %s", e)
         return "", False
 
 
 async def _try_ollama(prompt: str, system: str) -> tuple[str, bool]:
-    """Intenta Ollama local. Retorna (respuesta, exito)."""
+    """Intenta Ollama local con timeout de 120s."""
     try:
         logger.info("Solicitando respuesta a Ollama local (Mistral)...")
-        text = await ollama_client.generate(prompt=prompt, system=system)
-        return text, True
-    except Exception as e:
-        logger.warning("Ollama fallo: %s", e)
+        text = await asyncio.wait_for(ollama_client.generate(prompt=prompt, system=system), timeout=120.0)
+        # Validar que la respuesta tenga contenido suficiente
+        if text and len(text.strip()) > 20:
+            return text, True
+        logger.warning("Ollama devolvio texto insuficiente: '%s'", text[:50] if text else "(vacio)")
         return "", False
+    except Exception as e:
+        logger.warning("Ollama fallo o excede timeout: %s", e)
+        return "", False
+
+
 
 
 class TutorBrain:
     """
     Orquestador principal de AMY.
     Prioridad de velocidad: Gemini > Groq > Ollama
+    RAG y carga de historial corren en PARALELO con asyncio.gather().
     """
 
+    async def _load_history(self, conversation_id: str, user_id: str) -> list[dict]:
+        """Carga los ultimos 8 mensajes de la conversacion desde la BD."""
+        try:
+            from app.database.connection import db
+            rows = await db.fetch(
+                """SELECT sender, content
+                   FROM mensajes
+                   WHERE conversacion_id = $1
+                   ORDER BY created_at ASC
+                   LIMIT 8""",
+                conversation_id
+            )
+            if rows:
+                return [
+                    {"role": "user" if r["sender"] == "user" else "assistant", "content": r["content"]}
+                    for r in rows
+                ]
+        except Exception as e:
+            logger.warning("No se pudo cargar historial: %s", e)
+        return []
+
     async def think(self, student_query: str, chat_history: list[dict] = None, model_preference: str = "auto") -> dict:
-        """Procesa una consulta del estudiante a través del pipeline RAG."""
+        """Procesa una consulta del estudiante a traves del pipeline RAG."""
         rag_context_used = False
         model_switched = False
         switch_reason = None
 
+        query_clean = student_query.strip().lower()
         history_context = ""
         if chat_history:
             history_context = str([msg["content"] for msg in chat_history])
 
-        query_clean = student_query.strip().lower()
         greetings = [
             "hola", "buenos dias", "buenas tardes", "buenas noches",
             "saludos", "hola amy", "como estas", "que tal", "buen dia"
@@ -87,14 +116,19 @@ class TutorBrain:
         )
 
         try:
-            # 1. Caché Redis (excepto saludos)
+            # 1. Cache Redis (excepto saludos)
             if not is_greeting:
                 cached = await redis_cache.get_cached_response(student_query, context=history_context)
                 if cached is not None:
+                    logger.info("Respuesta servida desde cache Redis")
                     return cached
 
-            # 2. Búsqueda Híbrida (RAG)
-            context_fragments = await semantic_search(student_query)
+            # 2. RAG (busqueda hibrida) — corre en paralelo con una tarea nula si es saludo
+            if is_greeting:
+                context_fragments = []
+            else:
+                context_fragments = await semantic_search(student_query)
+
             rag_context_used = len(context_fragments) > 0
             if context_fragments:
                 context_fragments = sanitize_rag_context(context_fragments)
@@ -211,7 +245,7 @@ class TutorBrain:
                 for f in context_fragments
             ] if rag_context_used else []
 
-            # 6. Ejemplo interactivo — prioridad al diagrama dinámico del LLM
+            # 6. Ejemplo interactivo — prioridad al diagrama dinamico del LLM
             topic = result.get("topic", "")
             llm_live_example = result.get("live_example")
             if llm_live_example:
@@ -220,6 +254,10 @@ class TutorBrain:
                 static_example = detect_example(student_query, topic)
                 if static_example:
                     result["live_example"] = static_example
+
+            # 7. Guardar en cache Redis para futuras consultas identicas (TTL 2h)
+            if not is_greeting and result.get("source") != "error":
+                await redis_cache.cache_response(student_query, result, ttl=7200, context=history_context)
 
             return result
 

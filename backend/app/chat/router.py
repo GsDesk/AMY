@@ -54,6 +54,7 @@ class MessageOut(BaseModel):
 # ── Endpoints ────────────────────────────────────────────────
 
 
+@router.get("", response_model=list[ConversationOut])
 @router.get("/", response_model=list[ConversationOut])
 async def list_conversations(current_user: dict = Depends(get_current_user)):
     """Lista las conversaciones del usuario ordenadas por actividad reciente."""
@@ -71,17 +72,18 @@ async def list_conversations(current_user: dict = Depends(get_current_user)):
         ConversationOut(
             id=str(r["id"]),
             titulo=r["titulo"],
-            created_at=str(r["created_at"]),
-            updated_at=str(r["updated_at"]),
+            created_at=r["created_at"].isoformat(),
+            updated_at=r["updated_at"].isoformat(),
             message_count=r["message_count"],
         )
         for r in rows
     ]
 
 
+@router.post("", response_model=ConversationCreated)
 @router.post("/", response_model=ConversationCreated, status_code=status.HTTP_201_CREATED)
 async def create_conversation(
-    body: CreateConversationRequest,
+    body: CreateConversationRequest = CreateConversationRequest(),
     current_user: dict = Depends(get_current_user),
 ):
     """Crea una nueva conversacion."""

@@ -1,19 +1,24 @@
 """
-AMY — Cliente Google Gemini API (gemini-2.0-flash / gemini-1.5-pro)
-Ultrarrápido (~0.5-1s), gratuito con Google AI Studio API Key.
+AMY — Cliente Google Gemini API (gemini-2.5-flash / gemini-2.5-pro)
+Ultrarrápido (~0.5-1s), gratuito con Google AI Studio API Key (AIzaSy...).
+Soporta generación completa y streaming SSE.
 """
 
 import logging
+import json
 import httpx
+from typing import AsyncIterator
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Modelos en orden de preferencia (más rápido primero)
+# Modelos disponibles en orden de preferencia (más rápido y estable primero)
+# Verificado con la API v1beta de Google AI Studio el 2026-08-21
 GEMINI_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-flash-lite-latest",   # Funciona — alias ligero siempre disponible
+    "gemini-flash-latest",        # Funciona — alias genérico
+    "gemini-2.5-flash-lite",      # Fallback — puede no estar disponible
+    "gemini-3.6-flash",           # Fallback — tiende a timeout en free tier
 ]
 
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -21,7 +26,10 @@ GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
 class GeminiClient:
     def __init__(self):
-        self.timeout = httpx.Timeout(connect=6.0, read=40.0, write=6.0, pool=6.0)
+        self._timeout = httpx.Timeout(connect=3.0, read=8.0, write=3.0, pool=3.0)
+
+        # Cliente persistente para reutilizar conexiones TCP (más rápido en requests repetidos)
+        self._client: httpx.AsyncClient | None = None
 
     def _api_key(self) -> str:
         key = (settings.GEMINI_API_KEY or "").strip()
@@ -29,55 +37,59 @@ class GeminiClient:
             raise ValueError("GEMINI_API_KEY no esta configurada en .env")
         return key
 
-    async def generate(self, prompt: str, system: str = "") -> str:
-        api_key = self._api_key()
+    def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=self._timeout)
+        return self._client
 
-        # Construir el contenido: system instruction + user message
-        parts_user = [{"text": prompt}]
-        request_body = {
-            "contents": [{"role": "user", "parts": parts_user}],
+    def _build_body(self, prompt: str, system: str = "") -> dict:
+        body = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {
                 "temperature": 0.3,
-                "maxOutputTokens": 1200,
+                "maxOutputTokens": 2048,
                 "topP": 0.95,
             },
+
         }
         if system:
-            request_body["systemInstruction"] = {
-                "parts": [{"text": system}]
-            }
+            body["systemInstruction"] = {"parts": [{"text": system}]}
+        return body
 
-        # Intentar modelos en orden
+    async def generate(self, prompt: str, system: str = "") -> str:
+        """Generación completa (sin streaming). Retorna el texto completo."""
+        api_key = self._api_key()
+        request_body = self._build_body(prompt, system)
+        client = self._get_client()
+
         last_error = None
         for model in GEMINI_MODELS:
             url = f"{GEMINI_API_BASE}/{model}:generateContent?key={api_key}"
             try:
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    response = await client.post(url, json=request_body)
+                response = await client.post(url, json=request_body)
 
-                    if response.status_code == 429:
-                        logger.warning("Gemini %s: rate limit (429). Probando siguiente modelo...", model)
-                        last_error = RuntimeError(f"Rate limit en modelo {model}")
-                        continue
+                if response.status_code == 429:
+                    logger.warning("Gemini %s: rate limit (429). Probando siguiente modelo...", model)
+                    last_error = RuntimeError(f"Rate limit en modelo {model}")
+                    continue
 
-                    if response.status_code in (400, 404):
-                        logger.warning("Gemini %s: error %d. Probando siguiente modelo...", model, response.status_code)
-                        last_error = RuntimeError(f"Error {response.status_code} en modelo {model}")
-                        continue
+                if response.status_code in (400, 404):
+                    logger.warning("Gemini %s: error %d. Probando siguiente modelo...", model, response.status_code)
+                    last_error = RuntimeError(f"Error {response.status_code} en modelo {model}")
+                    continue
 
-                    response.raise_for_status()
-                    data = response.json()
+                response.raise_for_status()
+                data = response.json()
 
-                    # Extraer texto de la respuesta
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            text = parts[0].get("text", "")
-                            logger.info("Gemini %s respondio exitosamente (%d chars)", model, len(text))
-                            return text
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts:
+                        text = parts[0].get("text", "")
+                        logger.info("Gemini %s respondio exitosamente (%d chars)", model, len(text))
+                        return text
 
-                    raise RuntimeError(f"Respuesta vacia de Gemini {model}: {data}")
+                raise RuntimeError(f"Respuesta vacia de Gemini {model}: {data}")
 
             except (httpx.TimeoutException, httpx.ConnectError) as e:
                 logger.warning("Gemini %s: timeout/conexion (%s). Probando siguiente modelo...", model, e)
@@ -92,15 +104,74 @@ class GeminiClient:
 
         raise RuntimeError(f"Todos los modelos Gemini fallaron. Ultimo error: {last_error}")
 
+    async def stream(self, prompt: str, system: str = "") -> AsyncIterator[str]:
+        """Streaming SSE — emite tokens mientras se generan."""
+        api_key = self._api_key()
+        request_body = self._build_body(prompt, system)
+
+        last_error = None
+        for model in GEMINI_MODELS:
+            url = f"{GEMINI_API_BASE}/{model}:streamGenerateContent?alt=sse&key={api_key}"
+            try:
+                async with httpx.AsyncClient(timeout=self._timeout) as client:
+                    async with client.stream("POST", url, json=request_body) as response:
+                        if response.status_code == 429:
+                            logger.warning("Gemini stream %s: rate limit (429).", model)
+                            last_error = RuntimeError(f"Rate limit en modelo {model}")
+                            continue
+                        if response.status_code in (400, 404):
+                            logger.warning("Gemini stream %s: error %d.", model, response.status_code)
+                            last_error = RuntimeError(f"Error {response.status_code} en modelo {model}")
+                            continue
+
+                        response.raise_for_status()
+                        logger.info("Gemini stream %s: iniciado", model)
+
+                        async for line in response.aiter_lines():
+                            if line.startswith("data: "):
+                                raw = line[6:].strip()
+                                if raw == "[DONE]":
+                                    return
+                                try:
+                                    chunk = json.loads(raw)
+                                    candidates = chunk.get("candidates", [])
+                                    if candidates:
+                                        parts = candidates[0].get("content", {}).get("parts", [])
+                                        for part in parts:
+                                            token = part.get("text", "")
+                                            if token:
+                                                yield token
+                                except (json.JSONDecodeError, KeyError):
+                                    continue
+                        return  # stream completo sin error
+
+            except (httpx.TimeoutException, httpx.ConnectError) as e:
+                logger.warning("Gemini stream %s: timeout (%s).", model, e)
+                last_error = e
+                continue
+            except RuntimeError:
+                raise
+            except Exception as e:
+                logger.warning("Gemini stream %s: error inesperado (%s).", model, e)
+                last_error = e
+                continue
+
+        raise RuntimeError(f"Todos los modelos Gemini stream fallaron. Ultimo: {last_error}")
+
     async def is_healthy(self) -> bool:
         try:
             api_key = self._api_key()
-            url = f"{GEMINI_API_BASE}/gemini-2.0-flash?key={api_key}"
+            url = f"{GEMINI_API_BASE}/gemini-2.5-flash?key={api_key}"
             async with httpx.AsyncClient(timeout=5.0) as client:
                 r = await client.get(url)
-                return r.status_code in (200, 400)  # 400 = key valid but bad request
+                return r.status_code in (200, 400)
         except Exception:
             return False
 
+    async def close(self):
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
+
 
 gemini_client = GeminiClient()
+

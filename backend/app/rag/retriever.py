@@ -50,7 +50,16 @@ async def hybrid_search(
         similarity_threshold = getattr(settings, "SIMILARITY_THRESHOLD", 0.55)
 
     try:
-        query_embedding = await ollama_client.get_embedding(query)
+        # Intentar obtener embedding desde caché Redis antes de llamar a Ollama
+        from app.cache.redis_cache import redis_cache
+        query_embedding = await redis_cache.get_cached_embedding(query)
+        if query_embedding:
+            logger.debug("Embedding cargado desde cache Redis para la consulta")
+        else:
+            query_embedding = await ollama_client.get_embedding(query)
+            if query_embedding:
+                await redis_cache.cache_embedding(query, query_embedding)
+
         if not query_embedding:
             logger.warning("Embedding vacío para la consulta")
             return []
@@ -144,13 +153,13 @@ async def hybrid_search(
 
         if results:
             logger.info(
-                "🔍 Búsqueda híbrida RRF: %d resultados (mejor rrf=%.4f, cosine=%.4f)",
+                "Busqueda hibrida RRF: %d resultados (mejor rrf=%.4f, cosine=%.4f)",
                 len(results),
                 results[0]["rrf_score"],
                 results[0]["similarity"],
             )
         else:
-            logger.info("🔍 Búsqueda híbrida RRF: 0 resultados sobre umbral %.2f", similarity_threshold)
+            logger.info("Busqueda hibrida RRF: 0 resultados sobre umbral %.2f", similarity_threshold)
 
         return results
 
@@ -214,7 +223,7 @@ async def _fallback_semantic_search(
                 "rrf_score": cosine_sim,
             })
 
-        logger.info("🔍 Fallback vectorial: %d resultados", len(results))
+        logger.info("Fallback vectorial: %d resultados", len(results))
         return results
     except Exception as e:
         logger.error("Error en fallback vectorial: %s", e)
