@@ -160,6 +160,8 @@ _EMOJI_PATTERN = re.compile(
     flags=re.UNICODE,
 )
 
+_MAX_FRAGMENT_CHARS = 1000  # Longitud máxima por fragmento en el contexto
+
 
 def sanitize_rag_context(fragments: list[dict]) -> list[dict]:
     """

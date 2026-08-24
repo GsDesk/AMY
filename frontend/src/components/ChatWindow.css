@@ -156,7 +156,7 @@
 .chat-animated-title {
     font-size: 2.2rem;
     font-weight: 700;
-    color: #f8fafc;
+    color: #ffffff;
     letter-spacing: -0.02em;
     min-height: 2.8rem;
     display: flex;
@@ -166,7 +166,7 @@
 }
 
 .typewriter-cursor {
-    color: #a78bfa;
+    color: #ffffff;
     font-weight: 300;
     animation: blinkCursor 0.8s infinite;
 }
@@ -187,11 +187,15 @@
 }
 
 .chat-empty-input-container .input-wrapper {
-    background: rgba(14, 14, 30, 0.95);
-    border: 1px solid rgba(139, 92, 246, 0.35);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(139, 92, 246, 0.15);
+    background: #141417;
+    border: 1px solid #27272a;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
     padding: 0.6rem 0.6rem 0.6rem 1.2rem;
-    border-radius: 16px;
+    border-radius: 12px;
+}
+
+.chat-empty-input-container .input-wrapper:focus-within {
+    border-color: #3f3f46;
 }
 
 .chat-suggestions-grid {
@@ -207,21 +211,20 @@
     align-items: center;
     gap: 0.45rem;
     padding: 0.45rem 0.9rem;
-    background: rgba(18, 18, 40, 0.7);
-    border: 1px solid rgba(139, 92, 246, 0.22);
+    background: #141417;
+    border: 1px solid #27272a;
     border-radius: 9999px;
-    color: #cbd5e1;
+    color: #e4e4e7;
     font-size: 0.78rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 
 .chat-suggestion-chip:hover {
-    background: rgba(139, 92, 246, 0.18);
-    border-color: rgba(139, 92, 246, 0.45);
+    background: #18181b;
+    border-color: #3f3f46;
     color: #ffffff;
-    box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
     transform: translateY(-1px);
 }
 
