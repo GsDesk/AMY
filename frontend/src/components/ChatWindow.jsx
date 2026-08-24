@@ -196,9 +196,11 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                                     <img src="/amy-logo.png" alt="AMY" className="msg-avatar-logo-img" />
                                 </div>
                                 <div className="msg-content">
-                                    <div className="msg-bubble typing-bubble">
-                                        <div className="astronaut-thinking-card">
-                                            <img src="/astronaut-walking.png" alt="AMY Pensando..." className="astronaut-walking-img" />
+                                    <div className="msg-bubble typing-bubble-round">
+                                        <div className="astronaut-thinking-bubble-round">
+                                            <div className="astronaut-avatar-orb">
+                                                <img src="/astronaut-walking.gif" alt="AMY Pensando..." className="astronaut-walking-media" />
+                                            </div>
                                             <div className="astronaut-thinking-text">
                                                 <span className="astronaut-thinking-title">AMY está pensando...</span>
                                                 <span className="astronaut-thinking-sub">Analizando esquemas y bases de datos</span>
