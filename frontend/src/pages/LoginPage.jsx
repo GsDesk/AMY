@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login, googleLogin, loginWithMicrosoft, getAuthConfig } from '../services/api';
+import { login, googleLogin, loginWithMicrosoft, getAuthConfig, forgotPassword, resetPassword } from '../services/api';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { PublicClientApplication } from '@azure/msal-browser';
 import './LoginPage.css';
 
+const DEFAULT_GOOGLE_CLIENT_ID = '622335356967-1ff87v5nvi4mh4egfpt12ngnochn32t5.apps.googleusercontent.com';
 let msalInstance = null;
 
 async function getMsal(azureClientId, azureTenantId) {
@@ -33,6 +34,22 @@ export default function LoginPage() {
     const [authConfig, setAuthConfig] = useState(null);
     const navigate = useNavigate();
 
+    // Estados para el Modal de Recuperación de Contraseña
+    const [showForgotModal, setShowForgotModal] = useState(false);
+    const [forgotStep, setForgotStep] = useState(1); // 1: Pedir correo, 2: Ingresar código + nueva contraseña
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [forgotCode, setForgotCode] = useState('');
+    const [forgotNewPassword, setForgotNewPassword] = useState('');
+    const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+    const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+    const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
+    const [forgotLoading, setForgotLoading] = useState(false);
+    const [forgotError, setForgotError] = useState('');
+    const [forgotSuccess, setForgotSuccess] = useState('');
+    const [devCodePreview, setDevCodePreview] = useState('');
+
+    const googleClientId = authConfig?.googleClientId || DEFAULT_GOOGLE_CLIENT_ID;
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('expired') === '1') {
@@ -60,7 +77,7 @@ export default function LoginPage() {
                 navigate('/chat');
             }
         } catch (err) {
-            console.error("Fallo la autenticación con Microsoft:", err);
+            console.error("Falló la autenticación con Microsoft:", err);
             setError(err.message || 'Error al autenticar con la cuenta institucional de la UPEC.');
         } finally {
             setLoading(false);
@@ -118,6 +135,73 @@ export default function LoginPage() {
         }
     };
 
+    // Manejo de Solicitud de Código de Recuperación (Paso 1)
+    const handleSendForgotCode = async (e) => {
+        e.preventDefault();
+        setForgotError('');
+        setForgotSuccess('');
+        const targetEmail = forgotEmail.trim().toLowerCase();
+
+        if (!targetEmail) {
+            setForgotError('Ingresa tu correo electrónico.');
+            return;
+        }
+
+        setForgotLoading(true);
+        try {
+            const res = await forgotPassword(targetEmail);
+            setForgotSuccess('Se ha enviado un código temporal de recuperación a tu correo.');
+            if (res.code_preview) {
+                setDevCodePreview(res.code_preview);
+            }
+            setForgotStep(2);
+        } catch (err) {
+            setForgotError(err.message || 'No se pudo enviar el código de recuperación.');
+        } finally {
+            setForgotLoading(false);
+        }
+    };
+
+    // Manejo de Restablecimiento de Contraseña (Paso 2)
+    const handleResetPasswordSubmit = async (e) => {
+        e.preventDefault();
+        setForgotError('');
+        setForgotSuccess('');
+
+        const targetEmail = forgotEmail.trim().toLowerCase();
+        const codeTrimmed = forgotCode.trim();
+
+        if (!codeTrimmed || codeTrimmed.length !== 6) {
+            setForgotError('Ingresa el código numérico de 6 dígitos.');
+            return;
+        }
+
+        if (!forgotNewPassword || forgotNewPassword.length < 6) {
+            setForgotError('La nueva contraseña debe tener al menos 6 caracteres.');
+            return;
+        }
+
+        if (forgotNewPassword !== forgotConfirmPassword) {
+            setForgotError('Las contraseñas no coinciden.');
+            return;
+        }
+
+        setForgotLoading(true);
+        try {
+            await resetPassword(targetEmail, codeTrimmed, forgotNewPassword);
+            setForgotSuccess('Tu contraseña ha sido restablecida exitosamente. Puedes iniciar sesión ahora.');
+            setTimeout(() => {
+                setShowForgotModal(false);
+                setEmail(targetEmail);
+                setPassword('');
+            }, 1800);
+        } catch (err) {
+            setForgotError(err.message || 'Error al restablecer la contraseña.');
+        } finally {
+            setForgotLoading(false);
+        }
+    };
+
     return (
         <div className="login-page-split">
             {/* Columna Izquierda: Formulario de Autenticación */}
@@ -150,8 +234,8 @@ export default function LoginPage() {
                             <span>Continuar con Microsoft (UPEC)</span>
                         </button>
 
-                        {authConfig?.googleClientId && (
-                            <GoogleOAuthProvider clientId={authConfig.googleClientId}>
+                        {googleClientId && (
+                            <GoogleOAuthProvider clientId={googleClientId}>
                                 <div className="google-sso-wrapper">
                                     <GoogleLogin
                                         onSuccess={handleGoogleSuccess}
@@ -186,7 +270,23 @@ export default function LoginPage() {
                         </div>
 
                         <div className="login-input-group">
-                            <label htmlFor="password">Contraseña</label>
+                            <div className="login-password-header">
+                                <label htmlFor="password">Contraseña</label>
+                                <button
+                                    type="button"
+                                    className="login-forgot-pwd-btn"
+                                    onClick={() => {
+                                        setShowForgotModal(true);
+                                        setForgotEmail(email.trim());
+                                        setForgotStep(1);
+                                        setForgotError('');
+                                        setForgotSuccess('');
+                                        setDevCodePreview('');
+                                    }}
+                                >
+                                    ¿Olvidaste tu contraseña?
+                                </button>
+                            </div>
                             <div className="password-input-wrapper">
                                 <input
                                     id="password"
@@ -241,6 +341,151 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Recuperación de Contraseña */}
+            {showForgotModal && (
+                <div className="forgot-modal-overlay" onClick={() => setShowForgotModal(false)}>
+                    <div className="forgot-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="forgot-modal-header">
+                            <div className="forgot-modal-badge">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                <span>Recuperación Segura</span>
+                            </div>
+                            <button className="forgot-modal-close" onClick={() => setShowForgotModal(false)}>✕</button>
+                        </div>
+
+                        <h3 className="forgot-modal-title">
+                            {forgotStep === 1 ? 'Recuperar Contraseña' : 'Crear Nueva Contraseña'}
+                        </h3>
+                        <p className="forgot-modal-desc">
+                            {forgotStep === 1
+                                ? 'Ingresa tu correo registrado para recibir un código temporal de recuperación de 6 dígitos.'
+                                : `Ingresa el código de 6 dígitos enviado a ${forgotEmail} y define tu nueva contraseña.`}
+                        </p>
+
+                        {/* Banner con código de desarrollo */}
+                        {devCodePreview && (
+                            <div className="forgot-dev-code-box">
+                                <span className="dev-code-label">Código de recuperación:</span>
+                                <span className="dev-code-value">{devCodePreview}</span>
+                            </div>
+                        )}
+
+                        {forgotError && <div className="login-error-alert">{forgotError}</div>}
+                        {forgotSuccess && <div className="forgot-success-alert">{forgotSuccess}</div>}
+
+                        {forgotStep === 1 ? (
+                            <form onSubmit={handleSendForgotCode} className="forgot-modal-form">
+                                <div className="login-input-group">
+                                    <label>Correo Electrónico</label>
+                                    <input
+                                        type="email"
+                                        value={forgotEmail}
+                                        onChange={(e) => setForgotEmail(e.target.value)}
+                                        placeholder="tu.correo@upec.edu.ec"
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="forgot-actions-row">
+                                    <button
+                                        type="button"
+                                        className="btn-forgot-cancel"
+                                        onClick={() => setShowForgotModal(false)}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="btn-forgot-submit"
+                                        disabled={forgotLoading}
+                                    >
+                                        {forgotLoading ? 'Enviando código...' : 'Enviar Código'}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleResetPasswordSubmit} className="forgot-modal-form">
+                                <div className="login-input-group">
+                                    <label>Código de 6 Dígitos</label>
+                                    <input
+                                        type="text"
+                                        maxLength={6}
+                                        value={forgotCode}
+                                        onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))}
+                                        placeholder="123456"
+                                        className="forgot-code-input"
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div className="login-input-group">
+                                    <label>Nueva Contraseña</label>
+                                    <div className="password-input-wrapper">
+                                        <input
+                                            type={showForgotNewPassword ? "text" : "password"}
+                                            value={forgotNewPassword}
+                                            onChange={(e) => setForgotNewPassword(e.target.value)}
+                                            placeholder="Mínimo 6 caracteres"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="toggle-password-btn"
+                                            onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                                            tabIndex="-1"
+                                        >
+                                            {showForgotNewPassword ? 'Ocultar' : 'Ver'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="login-input-group">
+                                    <label>Confirmar Nueva Contraseña</label>
+                                    <div className="password-input-wrapper">
+                                        <input
+                                            type={showForgotConfirmPassword ? "text" : "password"}
+                                            value={forgotConfirmPassword}
+                                            onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                                            placeholder="Repite tu contraseña"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="toggle-password-btn"
+                                            onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
+                                            tabIndex="-1"
+                                        >
+                                            {showForgotConfirmPassword ? 'Ocultar' : 'Ver'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="forgot-actions-row">
+                                    <button
+                                        type="button"
+                                        className="btn-forgot-cancel"
+                                        onClick={() => setForgotStep(1)}
+                                    >
+                                        Atrás
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="btn-forgot-submit"
+                                        disabled={forgotLoading}
+                                    >
+                                        {forgotLoading ? 'Restableciendo...' : 'Restablecer Contraseña'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Columna Derecha: Showcase Visual & Testimonial Académico */}
             <div className="login-showcase-pane">

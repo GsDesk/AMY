@@ -78,6 +78,14 @@ class Database:
                 );
             """)
 
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS codigos_recuperacion (
+                    email VARCHAR(150) PRIMARY KEY,
+                    codigo VARCHAR(10) NOT NULL,
+                    expira_en TIMESTAMP WITH TIME ZONE NOT NULL
+                );
+            """)
+
             # Quitar restriccion NOT NULL en password_hash para soportar OAuth
             await conn.execute("ALTER TABLE usuarios ALTER COLUMN password_hash DROP NOT NULL;")
             # Migración idempotente para asegurar columna rol en tablas existentes

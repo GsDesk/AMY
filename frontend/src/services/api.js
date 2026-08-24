@@ -152,6 +152,42 @@ export async function register(email, password, nombre) {
     return data;
 }
 
+export async function forgotPassword(email) {
+    const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
+        },
+        body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || `Error al solicitar código: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
+export async function resetPassword(email, code, newPassword) {
+    const response = await fetch(`${API_BASE}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
+        },
+        body: JSON.stringify({ email, code, new_password: newPassword })
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || `Error al restablecer contraseña: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
 export function saveAccountSession(user, token) {
     if (!user || !user.email) return;
     try {

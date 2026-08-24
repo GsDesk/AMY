@@ -5,6 +5,7 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { PublicClientApplication } from '@azure/msal-browser';
 import './RegisterPage.css';
 
+const DEFAULT_GOOGLE_CLIENT_ID = '622335356967-1ff87v5nvi4mh4egfpt12ngnochn32t5.apps.googleusercontent.com';
 let msalInstance = null;
 
 async function getMsal(azureClientId, azureTenantId) {
@@ -35,6 +36,8 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [authConfig, setAuthConfig] = useState(null);
     const navigate = useNavigate();
+
+    const googleClientId = authConfig?.googleClientId || DEFAULT_GOOGLE_CLIENT_ID;
 
     useEffect(() => {
         getAuthConfig()
@@ -268,8 +271,8 @@ export default function RegisterPage() {
                                 <span>Continuar con Microsoft (UPEC)</span>
                             </button>
 
-                            {authConfig?.googleClientId && (
-                                <GoogleOAuthProvider clientId={authConfig.googleClientId}>
+                            {googleClientId && (
+                                <GoogleOAuthProvider clientId={googleClientId}>
                                     <div className="google-sso-container">
                                         <GoogleLogin
                                             onSuccess={handleGoogleSuccess}

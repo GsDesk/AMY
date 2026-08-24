@@ -32,6 +32,16 @@ class GoogleLoginRequest(BaseModel):
     credential: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    code: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=6)
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -256,5 +266,166 @@ async def microsoft_login(body: MicrosoftLoginRequest):
         token=jwt_token,
         user=UserOut(id=user_id, email=email, nombre=nombre, rol=final_role)
     )
+
+
+@router.post("/google-login", response_model=AuthResponse)
+async def google_login(body: GoogleLoginRequest):
+    """Inicia sesión o registra un usuario mediante Google OAuth 2.0 (ID Token)."""
+    import base64
+    import json
+
+    credential = body.credential.strip()
+    if not credential:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La credencial de Google no puede estar vacía."
+        )
+
+    try:
+        parts = credential.split(".")
+        if len(parts) != 3:
+            raise ValueError("Token JWT malformado.")
+
+        padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
+        payload_bytes = base64.urlsafe_b64decode(padded)
+        payload = json.loads(payload_bytes.decode("utf-8"))
+    except Exception as e:
+        logger.error("Error decodificando token de Google: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se pudo procesar el token de autenticación de Google."
+        )
+
+    email = (payload.get("email") or "").strip().lower()
+    nombre = payload.get("name") or payload.get("given_name") or (email.split("@")[0] if email else "Usuario Google")
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La cuenta de Google no contiene un correo electrónico verificado."
+        )
+
+    row = await db.fetchrow(
+        "SELECT id, email, nombre, rol FROM usuarios WHERE email = $1",
+        email
+    )
+
+    if not row:
+        total_users = await db.fetchval("SELECT COUNT(*) FROM usuarios") or 0
+        assigned_role = "admin" if total_users == 0 else "estudiante"
+        user_id = str(uuid.uuid4())
+
+        await db.execute(
+            """INSERT INTO usuarios (id, email, password_hash, nombre, rol)
+               VALUES ($1, $2, NULL, $3, $4)""",
+            user_id,
+            email,
+            nombre,
+            assigned_role
+        )
+        final_role = assigned_role
+        logger.info("Nuevo usuario registrado vía Google: %s (rol=%s)", email, final_role)
+    else:
+        user_id = str(row["id"])
+        final_role = row.get("rol", "estudiante")
+        logger.info("Usuario inició sesión vía Google: %s (rol=%s)", email, final_role)
+
+    jwt_token = create_access_token({"sub": user_id, "rol": final_role})
+    return AuthResponse(
+        token=jwt_token,
+        user=UserOut(id=user_id, email=email, nombre=nombre, rol=final_role)
+    )
+
+
+@router.post("/forgot-password")
+async def forgot_password(body: ForgotPasswordRequest):
+    """Genera un código temporal de recuperación de contraseña de 6 dígitos."""
+    import random
+
+    email = body.email.strip().lower()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debes ingresar un correo electrónico."
+        )
+
+    row = await db.fetchrow("SELECT id, email, nombre FROM usuarios WHERE email = $1", email)
+    if not row:
+        # Por seguridad no filtrar si existe o no, pero responder amigablemente
+        return {
+            "success": True,
+            "message": "Si tu correo está registrado, recibirás un código de recuperación."
+        }
+
+    # Generar código numérico de 6 dígitos
+    code = f"{random.randint(100000, 999999)}"
+
+    # Guardar en PostgreSQL en tabla codigos_recuperacion con expiración de 15 min
+    await db.execute(
+        """INSERT INTO codigos_recuperacion (email, codigo, expira_en)
+           VALUES ($1, $2, NOW() + INTERVAL '15 minutes')
+           ON CONFLICT (email) DO UPDATE
+           SET codigo = $2, expira_en = NOW() + INTERVAL '15 minutes'""",
+        email,
+        code
+    )
+
+    logger.info("Código de recuperación generado para %s: %s", email, code)
+    return {
+        "success": True,
+        "message": "Código de recuperación generado exitosamente.",
+        "code_preview": code
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(body: ResetPasswordRequest):
+    """Valida el código de recuperación de 6 dígitos y actualiza la contraseña."""
+    email = body.email.strip().lower()
+    code = body.code.strip()
+    new_password = body.new_password
+
+    if not email or not code or not new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Todos los campos son obligatorios."
+        )
+
+    # Verificar código y tiempo de expiración
+    row = await db.fetchrow(
+        """SELECT codigo FROM codigos_recuperacion
+           WHERE email = $1 AND codigo = $2 AND expira_en > NOW()""",
+        email,
+        code
+    )
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El código de recuperación es incorrecto o ha expirado. Solicita un nuevo código."
+        )
+
+    # Actualizar contraseña del usuario
+    hashed = hash_password(new_password)
+    updated = await db.execute(
+        "UPDATE usuarios SET password_hash = $1 WHERE email = $2",
+        hashed,
+        email
+    )
+
+    if updated == "UPDATE 0":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado."
+        )
+
+    # Eliminar código usado
+    await db.execute("DELETE FROM codigos_recuperacion WHERE email = $1", email)
+
+    logger.info("Contraseña restablecida exitosamente para: %s", email)
+    return {
+        "success": True,
+        "message": "Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión."
+    }
 
 
