@@ -256,20 +256,28 @@ export default function RegisterPage() {
 
                         {/* Botones SSO */}
                         <div className="register-sso-group">
-                            <button
-                                type="button"
-                                className="sso-pill-btn"
-                                onClick={handleMicrosoftLogin}
-                                disabled={loading}
-                            >
-                                <svg className="sso-icon" viewBox="0 0 23 23" fill="none">
-                                    <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
-                                    <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
-                                    <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
-                                    <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
-                                </svg>
-                                <span>Continuar con Microsoft (UPEC)</span>
-                            </button>
+                            <div className="sso-item-wrapper">
+                                <button
+                                    type="button"
+                                    className="sso-pill-btn"
+                                    onClick={handleMicrosoftLogin}
+                                    disabled={loading}
+                                >
+                                    <svg className="sso-icon" viewBox="0 0 23 23" fill="none">
+                                        <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
+                                        <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
+                                        <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
+                                        <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
+                                    </svg>
+                                    <span>Continuar con Microsoft (UPEC)</span>
+                                </button>
+                                <div className="sso-note-caption">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                                    </svg>
+                                    <span>Solo para docentes y administradores con acceso</span>
+                                </div>
+                            </div>
 
                             {googleClientId && (
                                 <GoogleOAuthProvider clientId={googleClientId}>
