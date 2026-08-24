@@ -174,7 +174,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
-    max-height: 220px;
+    max-height: 280px;
     overflow-y: auto;
 }
 
@@ -258,20 +258,6 @@
 }
 
 /* ── Info sections ────────────────────────────────── */
-.info-box {
-    background: #141417;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 0.8rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    font-size: 0.78rem;
-    color: #a1a1aa;
-}
-
-.info-box strong { color: #ffffff; }
-
 .instructions {
     background: #141417;
     border: 1px solid #27272a;
@@ -317,35 +303,46 @@
     margin-top: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.5rem;
 }
 
-.sidebar-footer p {
-    padding: 0.6rem;
-    background: #141417;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    font-size: 0.72rem;
-    color: #71717a;
-    text-align: center;
-    line-height: 1.5;
+.footer-actions-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    width: 100%;
 }
 
+.switch-account-btn,
 .logout-btn {
     width: 100%;
-    font-size: 0.78rem;
-    padding: 0.45rem;
-    background: #18181b;
+    font-size: 0.74rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    padding: 0.45rem 0.35rem;
+    background: #141417;
     border: 1px solid #27272a;
-    color: #ffffff;
+    color: #e4e4e7;
     border-radius: 6px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
     transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.switch-account-btn:hover,
+.logout-btn:hover {
+    background: #18181b;
+    border-color: #3f3f46;
+    color: #ffffff;
 }
 
 .logout-btn:hover {
-    background: #27272a;
-    border-color: #3f3f46;
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
 }
 
 /* ── RESPONSIVE: Sidebar como drawer en móvil ─────── */

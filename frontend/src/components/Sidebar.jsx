@@ -87,7 +87,21 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         const d = new Date(dateStr);
-        return d.toLocaleDateString('es-EC', { day: '2-digit', month: 'short' });
+        const now = new Date();
+        const diffMs = now - d;
+        const diffSecs = Math.floor(diffMs / 1000);
+        const diffMins = Math.floor(diffSecs / 60);
+        const diffHours = Math.floor(diffMins / 60);
+
+        if (diffSecs < 60) {
+            return 'Hace un momento';
+        } else if (diffMins < 60) {
+            return `Hace ${diffMins} min`;
+        } else if (diffHours < 24) {
+            return `Hace ${diffHours} h`;
+        } else {
+            return d.toLocaleDateString('es-EC', { day: '2-digit', month: 'short' });
+        }
     };
 
     return (
@@ -157,12 +171,6 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
                 </ul>
             </div>
 
-            <div className="info-box">
-                <p><strong>Materia:</strong> Fundamentos de Bases de Datos</p>
-                <p><strong>Universidad:</strong> UPEC</p>
-                <p><strong>Motor IA:</strong> Mistral (Local)</p>
-            </div>
-
             <div className="instructions">
                 <h3>Temas disponibles:</h3>
                 <ul>
@@ -176,8 +184,25 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
             </div>
 
             <div className="sidebar-footer">
-                <p>Método Socrático: te guiaré con preguntas, no con respuestas directas.</p>
-                <button className="btn logout-btn" onClick={handleLogout}>Cerrar sesión</button>
+                <div className="footer-actions-group">
+                    <button className="btn switch-account-btn" onClick={() => navigate('/login')} title="Cambiar de cuenta">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="8.5" cy="7" r="4"/>
+                            <line x1="20" y1="8" x2="20" y2="14"/>
+                            <line x1="23" y1="11" x2="17" y2="11"/>
+                        </svg>
+                        <span>Cambiar cuenta</span>
+                    </button>
+                    <button className="btn logout-btn" onClick={handleLogout} title="Cerrar sesión">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        <span>Cerrar sesión</span>
+                    </button>
+                </div>
             </div>
         </aside>
     );

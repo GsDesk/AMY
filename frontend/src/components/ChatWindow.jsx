@@ -122,13 +122,14 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                     <button
                         className={`icon-btn ${isPanelOpen ? 'active' : ''}`}
                         onClick={onTogglePanel}
-                        title={isPanelOpen ? "Ocultar panel de diagramas" : "Mostrar panel de diagramas"}
+                        title={isPanelOpen ? "Ocultar Tablero E-R y Esquema BDD" : "Abrir Tablero E-R y Esquema BDD"}
                         id="toggle-panel-btn"
                         style={{ border: isPanelOpen ? '1px solid #38bdf8' : '1px solid transparent', background: isPanelOpen ? '#0369a133' : 'transparent' }}
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="3" width="7" height="18" rx="1"/>
-                            <rect x="14" y="3" width="7" height="18" rx="1"/>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
                         </svg>
                     </button>
 
