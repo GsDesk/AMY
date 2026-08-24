@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import mermaid from 'mermaid';
 import './LiveExamplePanel.css';
 
 /* ── Generador y Sanitizador de Código Mermaid erDiagram ────────── */
@@ -107,7 +108,7 @@ function MermaidDiagram({ code }) {
         setError(null);
         setSvg(null);
 
-        import('mermaid').then(({ default: mermaid }) => {
+        try {
             mermaid.initialize({
                 startOnLoad: false,
                 theme: 'dark',
@@ -124,14 +125,16 @@ function MermaidDiagram({ code }) {
                 }
             });
             const id = `mermaid-er-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-            mermaid.render(id, code).then(({ svg: rendered }) => {
-                if (isMounted) setSvg(rendered);
-            }).catch(err => {
-                if (isMounted) setError('No se pudo renderizar el diagrama Mermaid: ' + err.message);
-            });
-        }).catch(err => {
-            if (isMounted) setError('Libreria Mermaid no disponible: ' + err.message);
-        });
+            mermaid.render(id, code)
+                .then(({ svg: rendered }) => {
+                    if (isMounted) setSvg(rendered);
+                })
+                .catch(err => {
+                    if (isMounted) setError('No se pudo renderizar el diagrama Mermaid: ' + err.message);
+                });
+        } catch (err) {
+            if (isMounted) setError('Librería Mermaid no disponible: ' + err.message);
+        }
 
         return () => { isMounted = false; };
     }, [code]);
@@ -409,10 +412,131 @@ const NORMALIZATION_DATA = {
     }
 };
 
-/* ── Subcomponente: Vista de Normalización Pedagógica ─────────── */
-function NormalizationView() {
-    const [phase, setPhase] = useState('all');
+/* ── Esquemas Completos de Normalización para Tablero E-R, Conceptual y SQL ── */
+const NORMALIZATION_SCHEMAS = {
+    '0fn': {
+        title: '0FN — Tabla No Normalizada (Sin Normalizar)',
+        cardinality: '0FN',
+        description: 'Tabla única desnormalizada con anomalías de redundancia y atributos no atómicos.',
+        tables: [
+            {
+                name: 'Reporte_Matriculas_General',
+                columns: [
+                    { name: 'Nombre_Estudiante', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'Numero_identificacion', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'Sexo', type: 'VARCHAR(15)', isPk: false },
+                    { name: 'Docente', type: 'VARCHAR(80)', isPk: false },
+                    { name: 'Materias', type: 'VARCHAR(100)', isPk: false }
+                ]
+            }
+        ],
+        relationships: []
+    },
+    '1fn': {
+        title: '1FN — Primera Forma Normal (Valores Atómicos)',
+        cardinality: '1FN',
+        description: 'Todos los atributos son atómicos e indivisibles, con clave primaria única Id_Estudiante.',
+        tables: [
+            {
+                name: 'Estudiante_1FN',
+                columns: [
+                    { name: 'Id_Estudiante', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'Nombre_Est', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'P_Apellido', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'S_Apellido', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'T_Identificacion', type: 'VARCHAR(10)', isPk: false }
+                ]
+            }
+        ],
+        relationships: []
+    },
+    '2fn': {
+        title: '2FN — Segunda Forma Normal (Eliminación de Dep. Parciales)',
+        cardinality: '2FN',
+        description: 'Separación en entidades Estudiante y Docente para evitar dependencias funcionales parciales.',
+        tables: [
+            {
+                name: 'ESTUDIANTE',
+                columns: [
+                    { name: 'Id_Estudiante', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'Nombre_Est', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'P_Apellido', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'S_Apellido', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'T_Identificacion', type: 'VARCHAR(10)', isPk: false }
+                ]
+            },
+            {
+                name: 'DOCENTE',
+                columns: [
+                    { name: 'Id_Docente', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'Nombre_Docent', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'P_Apellido', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'S_Apellido', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'Materias', type: 'VARCHAR(60)', isPk: false }
+                ]
+            },
+            {
+                name: 'DOCENTE_POR_ESTUDIANTE',
+                columns: [
+                    { name: 'Id_Docente', type: 'INT', isPk: false, isFk: true, references: 'DOCENTE(Id_Docente)' },
+                    { name: 'Id_Estudiante', type: 'INT', isPk: false, isFk: true, references: 'ESTUDIANTE(Id_Estudiante)' },
+                    { name: 'Materias', type: 'VARCHAR(60)', isPk: false },
+                    { name: 'Aula', type: 'VARCHAR(20)', isPk: false }
+                ]
+            }
+        ],
+        relationships: [
+            { id: 'rel-docente-de', fromTable: 'DOCENTE', fromCol: 'Id_Docente', toTable: 'DOCENTE_POR_ESTUDIANTE', toCol: 'Id_Docente', type: '1:N', label: 'asigna' },
+            { id: 'rel-estudiante-de', fromTable: 'ESTUDIANTE', fromCol: 'Id_Estudiante', toTable: 'DOCENTE_POR_ESTUDIANTE', toCol: 'Id_Estudiante', type: '1:N', label: 'inscribe' }
+        ]
+    },
+    '3fn': {
+        title: '3FN — Esquema Relacional Normalizado: alumnos — carreras — cursos — alumno_curso',
+        cardinality: '3FN',
+        description: 'Tercera Forma Normal óptima: eliminación completa de dependencias transitivas con claves foráneas.',
+        tables: [
+            {
+                name: 'alumnos',
+                columns: [
+                    { name: 'matricula', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'nombre', type: 'VARCHAR(50)', isPk: false },
+                    { name: 'dirección', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'telefono', type: 'VARCHAR(15)', isPk: false },
+                    { name: 'id_carrera', type: 'VARCHAR(10)', isPk: false, isFk: true, references: 'carreras(id_carrera)' }
+                ]
+            },
+            {
+                name: 'carreras',
+                columns: [
+                    { name: 'id_carrera', type: 'VARCHAR(10)', isPk: true, constraint: 'PK' },
+                    { name: 'carrera', type: 'VARCHAR(80)', isPk: false }
+                ]
+            },
+            {
+                name: 'cursos',
+                columns: [
+                    { name: 'código', type: 'VARCHAR(10)', isPk: true, constraint: 'PK' },
+                    { name: 'curso', type: 'VARCHAR(60)', isPk: false }
+                ]
+            },
+            {
+                name: 'alumno_curso',
+                columns: [
+                    { name: 'matricula', type: 'INT', isPk: false, isFk: true, references: 'alumnos(matricula)' },
+                    { name: 'código', type: 'VARCHAR(10)', isPk: false, isFk: true, references: 'cursos(código)' }
+                ]
+            }
+        ],
+        relationships: [
+            { id: 'rel-carreras-alumnos', fromTable: 'carreras', fromCol: 'id_carrera', toTable: 'alumnos', toCol: 'id_carrera', type: '1:N', label: 'pertenece' },
+            { id: 'rel-alumnos-ac', fromTable: 'alumnos', fromCol: 'matricula', toTable: 'alumno_curso', toCol: 'matricula', type: '1:N', label: 'inscribe' },
+            { id: 'rel-cursos-ac', fromTable: 'cursos', fromCol: 'código', toTable: 'alumno_curso', toCol: 'código', type: '1:N', label: 'cursa' }
+        ]
+    }
+};
 
+/* ── Subcomponente: Vista de Normalización Pedagógica ─────────── */
+function NormalizationView({ currentPhase, onSelectPhase }) {
     const PHASES = [
         { id: 'all', label: 'Todas las Fases (Comparativa)' },
         { id: '0fn', label: '0FN (No Normalizada)' },
@@ -421,7 +545,7 @@ function NormalizationView() {
         { id: '3fn', label: '3FN (Dep. Transitivas)' }
     ];
 
-    const phasesToRender = phase === 'all' ? ['0fn', '1fn', '2fn', '3fn'] : [phase];
+    const phasesToRender = currentPhase === 'all' ? ['0fn', '1fn', '2fn', '3fn'] : [currentPhase];
 
     return (
         <div className="norm-container">
@@ -432,8 +556,8 @@ function NormalizationView() {
                     {PHASES.map(p => (
                         <button
                             key={p.id}
-                            className={`norm-phase-btn ${phase === p.id ? 'active' : ''}`}
-                            onClick={() => setPhase(p.id)}
+                            className={`norm-phase-btn ${currentPhase === p.id ? 'active' : ''}`}
+                            onClick={() => onSelectPhase(p.id)}
                         >
                             {p.label}
                         </button>
@@ -513,10 +637,39 @@ function NormalizationView() {
 
 /* ── Componente Principal: LiveExamplePanel ─────────────────────── */
 export default function LiveExamplePanel({ example, onClose }) {
-    const normalized = useMemo(() => normalizeExample(example), [example]);
-
-    // Pestañas: 'canvas' (Tablero E-R), 'normalization' (Normalización), 'mermaid' (Conceptual), 'sql' (DDL)
+    const isNorm = example?.defaultTab === 'normalization' || example?.title?.toLowerCase().includes('normaliz');
+    const [normPhase, setNormPhase] = useState('3fn');
     const [activeTab, setActiveTab] = useState(example?.defaultTab || 'canvas');
+
+    const normalized = useMemo(() => {
+        if (isNorm) {
+            const key = normPhase === 'all' ? '3fn' : normPhase;
+            const schema = NORMALIZATION_SCHEMAS[key] || NORMALIZATION_SCHEMAS['3fn'];
+            const tables = schema.tables.map(t => ({
+                name: t.name,
+                columns: t.columns.map(c => ({
+                    name: c.name,
+                    type: c.type,
+                    isPk: !!c.isPk,
+                    isFk: !!c.isFk,
+                    constraint: c.isPk ? 'PK' : c.isFk ? 'FK' : null,
+                    references: c.references || null
+                }))
+            }));
+            return {
+                _isErDiagram: true,
+                title: schema.title,
+                description: schema.description,
+                cardinality: schema.cardinality,
+                mermaid_code: generateCleanMermaid(tables, schema.relationships),
+                tables,
+                relationships: schema.relationships,
+                sql: null
+            };
+        }
+        return normalizeExample(example);
+    }, [isNorm, normPhase, example]);
+
     const [panelWidth, setPanelWidth] = useState(780);
     const [zoom, setZoom] = useState(1.0);
     const [positions, setPositions] = useState({});
@@ -608,7 +761,16 @@ export default function LiveExamplePanel({ example, onClose }) {
         const count = tables.length;
         const newPos = {};
 
-        if (count === 1) {
+        if (isNorm && (normPhase === '3fn' || normPhase === 'all')) {
+            newPos['carreras'] = { x: 40, y: 50 };
+            newPos['alumnos'] = { x: 40, y: 240 };
+            newPos['cursos'] = { x: 380, y: 50 };
+            newPos['alumno_curso'] = { x: 380, y: 240 };
+        } else if (isNorm && normPhase === '2fn') {
+            newPos['ESTUDIANTE'] = { x: 40, y: 60 };
+            newPos['DOCENTE'] = { x: 380, y: 60 };
+            newPos['DOCENTE_POR_ESTUDIANTE'] = { x: 210, y: 260 };
+        } else if (count === 1) {
             newPos[tables[0].name] = { x: 180, y: 80 };
         } else if (count === 2) {
             newPos[tables[0].name] = { x: 60, y: 80 };
@@ -632,13 +794,13 @@ export default function LiveExamplePanel({ example, onClose }) {
         }
         setPositions(newPos);
         setZoom(1.0);
-    }, [normalized]);
+    }, [normalized, isNorm, normPhase]);
 
     useEffect(() => {
         autoArrangePositions();
         setSelectedTable(null);
         setActiveRelationship(null);
-    }, [example, autoArrangePositions]);
+    }, [example, normPhase, autoArrangePositions]);
 
     // Manejo de Arrastre con Mouse
     const handleMouseDown = useCallback((e, tableName) => {
@@ -1106,7 +1268,10 @@ export default function LiveExamplePanel({ example, onClose }) {
 
                 {/* ── MODO 4: VISUALIZADOR PRÁCTICO DE NORMALIZACIÓN ───────── */}
                 {activeTab === 'normalization' && (
-                    <NormalizationView />
+                    <NormalizationView
+                        currentPhase={normPhase}
+                        onSelectPhase={(p) => setNormPhase(p)}
+                    />
                 )}
             </div>
         </aside>
