@@ -267,12 +267,256 @@ function TableEntityCard({
     );
 }
 
+/* ── Datos de Referencia Pedagógica de Normalización (1FN, 2FN, 3FN) ── */
+const NORMALIZATION_DATA = {
+    '0fn': {
+        title: '0FN — Tabla No Normalizada (Sin Normalizar)',
+        badge: '0FN',
+        badgeColor: '#ef4444',
+        rule: 'Datos almacenados en una sola estructura con atributos multivaluados y redundancia severa.',
+        anomaly: 'Anomalías de inserción, modificación (actualización) y eliminación. Si un estudiante no tiene materia no se puede registrar, y si cambia de dirección hay que actualizar múltiples registros.',
+        tables: [
+            {
+                name: 'Reporte_Matriculas_General',
+                description: 'Tabla única con datos desnormalizados de estudiantes, docentes y asignaturas',
+                columns: ['Nombre_Estudiante', 'Numero_identificacion', 'Sexo', 'Docente', 'Materias'],
+                rows: [
+                    ['Melisa Rios Buritica', '1007306575', 'Femenino', 'Daniel Perez', 'Matematicas'],
+                    ['Jhon Cuervo Naranjo', '1305879059', 'Masculino', 'Claudia Naranjo', 'Ingles'],
+                    ['Maria Angel Bustamante', '1010141526', 'Femenino', 'Esteban Piedrahita', 'Español'],
+                    ['Melisa Rios Buritica', '1007306575', 'Femenino', 'Claudia Naranjo', 'Ingles']
+                ]
+            }
+        ]
+    },
+    '1fn': {
+        title: '1FN — Primera Forma Normal (Atomicidad y Claves)',
+        badge: '1FN',
+        badgeColor: '#f59e0b',
+        rule: 'Todos los atributos son atómicos (indivisibles), no existen grupos repetitivos y se define una Clave Primaria (PK) explícita.',
+        anomaly: 'Se separan nombres completos en Nombre, Primer Apellido y Segundo Apellido. Se asigna Id_Estudiante como PK.',
+        tables: [
+            {
+                name: 'Estudiante_1FN',
+                description: 'Tabla con atributos atómicos y tipo de identificación individual',
+                columns: ['Id_Estudiante (PK)', 'Nombre_Est', 'P_Apellido', 'S_Apellido', 'T_Identificacion'],
+                pkIndex: 0,
+                rows: [
+                    ['115', 'Melisa', 'Rios', 'Buritica', 'CC'],
+                    ['116', 'Jhon', 'Cuervo', 'Naranjo', 'CC'],
+                    ['117', 'Maria Angel', 'Bustamante', 'Yepez', 'T.I'],
+                    ['118', 'Melisa', 'Rios', 'Buritica', 'CC']
+                ]
+            }
+        ]
+    },
+    '2fn': {
+        title: '2FN — Segunda Forma Normal (Eliminación de Dependencias Parciales)',
+        badge: '2FN',
+        badgeColor: '#38bdf8',
+        rule: 'Cumple 1FN y todos los atributos no clave dependen funcionalmente de la totalidad de la Clave Primaria (no de una parte de ella).',
+        anomaly: 'Se separan las entidades ESTUDIANTE y DOCENTE de la tabla intermedia de asignación de cursos.',
+        tables: [
+            {
+                name: 'ESTUDIANTE',
+                description: 'Entidad independiente de alumnos',
+                columns: ['Id_Estudiante (PK)', 'Nombre_Est', 'P_Apellido', 'S_Apellido', 'T_Identificacion'],
+                pkIndex: 0,
+                rows: [
+                    ['115', 'Melisa', 'Rios', 'Buritica', 'CC'],
+                    ['116', 'Jhon', 'Cuervo', 'Naranjo', 'CC'],
+                    ['117', 'Maria Angel', 'Bustamante', 'Yepez', 'T.I']
+                ]
+            },
+            {
+                name: 'DOCENTE',
+                description: 'Entidad independiente de profesores',
+                columns: ['Id_Docente (PK)', 'Nombre_Docent', 'P_Apellido', 'S_Apellido', 'Materias'],
+                pkIndex: 0,
+                rows: [
+                    ['12', 'Daniel', 'Perez', 'Alzate', 'Matematicas'],
+                    ['15', 'Claudia', 'Naranjo', 'Estrada', 'Ingles'],
+                    ['18', 'Esteban', 'Piedrahita', 'Gomez', 'Español']
+                ]
+            },
+            {
+                name: 'DOCENTE_POR_ESTUDIANTE',
+                description: 'Tabla de relación intermedia con claves foráneas compuestas',
+                columns: ['Id_Docente (FK)', 'Id_Estudiante (FK)', 'Materias', 'Aula'],
+                fkIndices: [0, 1],
+                rows: [
+                    ['12', '115', 'Matematicas', '305'],
+                    ['15', '116', 'Ingles', '201'],
+                    ['18', '117', 'Español', '508'],
+                    ['15', '115', 'Ingles', '201']
+                ]
+            }
+        ]
+    },
+    '3fn': {
+        title: '3FN — Tercera Forma Normal (Eliminación de Dependencias Transitivas)',
+        badge: '3FN',
+        badgeColor: '#10b981',
+        rule: 'Cumple 2FN y ningún atributo no clave depende transitivamente de otro atributo no clave (X -> Y, Y -> Z eliminado mediante nueva tabla).',
+        anomaly: 'Esquema relacional óptimo de producción académica (como en el ejemplo de alumnos, cursos, carreras y alumno_curso).',
+        tables: [
+            {
+                name: 'alumnos',
+                description: 'Datos atómicos de estudiantes con referencia a su carrera',
+                columns: ['matricula (PK)', 'nombre', 'dirección', 'telefono', 'id_carrera (FK)'],
+                pkIndex: 0,
+                fkIndices: [4],
+                rows: [
+                    ['100', 'juan', 'ongolmo 340, concepción', '78872890', 'C2100'],
+                    ['200', 'ana', 'san martín 840, santiago', '78342367', 'C2020']
+                ]
+            },
+            {
+                name: 'carreras',
+                description: 'Catálogo normalizado de carreras universitarias',
+                columns: ['id_carrera (PK)', 'carrera'],
+                pkIndex: 0,
+                rows: [
+                    ['C2100', 'ingeniería civil informática'],
+                    ['C2020', 'ingeniería comercial']
+                ]
+            },
+            {
+                name: 'cursos',
+                description: 'Catálogo de materias/cursos ofertados',
+                columns: ['código (PK)', 'curso'],
+                pkIndex: 0,
+                rows: [
+                    ['bd1', 'base de datos'],
+                    ['e2', 'estadística'],
+                    ['a5', 'analítica']
+                ]
+            },
+            {
+                name: 'alumno_curso',
+                description: 'Tabla de relación muchos a muchos (N:M) normalizada',
+                columns: ['matricula (FK)', 'código (FK)'],
+                fkIndices: [0, 1],
+                rows: [
+                    ['100', 'bd1'],
+                    ['100', 'e2'],
+                    ['100', 'a5'],
+                    ['200', 'e2'],
+                    ['200', 'a5']
+                ]
+            }
+        ]
+    }
+};
+
+/* ── Subcomponente: Vista de Normalización Pedagógica ─────────── */
+function NormalizationView() {
+    const [phase, setPhase] = useState('all');
+
+    const PHASES = [
+        { id: 'all', label: 'Todas las Fases (Comparativa)' },
+        { id: '0fn', label: '0FN (No Normalizada)' },
+        { id: '1fn', label: '1FN (Atomicidad)' },
+        { id: '2fn', label: '2FN (Dep. Parciales)' },
+        { id: '3fn', label: '3FN (Dep. Transitivas)' }
+    ];
+
+    const phasesToRender = phase === 'all' ? ['0fn', '1fn', '2fn', '3fn'] : [phase];
+
+    return (
+        <div className="norm-container">
+            {/* Selector de Fase */}
+            <div className="norm-phase-nav">
+                <span className="norm-phase-label">Fase de Normalización:</span>
+                <div className="norm-phase-buttons">
+                    {PHASES.map(p => (
+                        <button
+                            key={p.id}
+                            className={`norm-phase-btn ${phase === p.id ? 'active' : ''}`}
+                            onClick={() => setPhase(p.id)}
+                        >
+                            {p.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Contenido de Fases */}
+            <div className="norm-content-scroll">
+                {phasesToRender.map(key => {
+                    const data = NORMALIZATION_DATA[key];
+                    if (!data) return null;
+
+                    return (
+                        <div key={key} className="norm-phase-card">
+                            <div className="norm-phase-header">
+                                <div className="norm-header-badge-row">
+                                    <span className="norm-phase-badge" style={{ borderColor: data.badgeColor, color: data.badgeColor }}>
+                                        {data.badge}
+                                    </span>
+                                    <h4 className="norm-phase-title">{data.title}</h4>
+                                </div>
+                                <p className="norm-rule-text"><strong>Regla:</strong> {data.rule}</p>
+                                {data.anomaly && (
+                                    <p className="norm-anomaly-text"><strong>Diagnóstico:</strong> {data.anomaly}</p>
+                                )}
+                            </div>
+
+                            <div className="norm-tables-grid">
+                                {data.tables.map((table, tIdx) => (
+                                    <div key={tIdx} className="norm-table-wrapper">
+                                        <div className="norm-table-title-bar">
+                                            <span className="norm-table-name">{table.name}</span>
+                                            {table.description && (
+                                                <span className="norm-table-desc">{table.description}</span>
+                                            )}
+                                        </div>
+
+                                        <div className="norm-table-scroll">
+                                            <table className="norm-table">
+                                                <thead>
+                                                    <tr>
+                                                        {table.columns.map((col, cIdx) => {
+                                                            const isPk = table.pkIndex === cIdx || col.includes('(PK)');
+                                                            const isFk = table.fkIndices?.includes(cIdx) || col.includes('(FK)');
+                                                            return (
+                                                                <th key={cIdx} className={isPk ? 'th-pk' : isFk ? 'th-fk' : ''}>
+                                                                    <span>{col}</span>
+                                                                    {isPk && <span className="norm-key-badge pk">PK</span>}
+                                                                    {isFk && <span className="norm-key-badge fk">FK</span>}
+                                                                </th>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {table.rows.map((row, rIdx) => (
+                                                        <tr key={rIdx}>
+                                                            {row.map((cell, cIdx) => (
+                                                                <td key={cIdx}>{cell}</td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 /* ── Componente Principal: LiveExamplePanel ─────────────────────── */
 export default function LiveExamplePanel({ example, onClose }) {
     const normalized = useMemo(() => normalizeExample(example), [example]);
 
-    // Pestañas: 'canvas' (Tablero E-R), 'mermaid' (Conceptual), 'sql' (DDL)
-    const [activeTab, setActiveTab] = useState('canvas');
+    // Pestañas: 'canvas' (Tablero E-R), 'normalization' (Normalización), 'mermaid' (Conceptual), 'sql' (DDL)
+    const [activeTab, setActiveTab] = useState(example?.defaultTab || 'canvas');
     const [panelWidth, setPanelWidth] = useState(780);
     const [zoom, setZoom] = useState(1.0);
     const [positions, setPositions] = useState({});
@@ -615,6 +859,16 @@ export default function LiveExamplePanel({ example, onClose }) {
                     </button>
 
                     <button
+                        className={`er-nav-tab ${activeTab === 'normalization' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('normalization')}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
+                        </svg>
+                        <span>Normalización</span>
+                    </button>
+
+                    <button
                         className={`er-nav-tab ${activeTab === 'mermaid' ? 'active' : ''}`}
                         onClick={() => setActiveTab('mermaid')}
                     >
@@ -848,6 +1102,11 @@ export default function LiveExamplePanel({ example, onClose }) {
                             </SyntaxHighlighter>
                         </div>
                     </div>
+                )}
+
+                {/* ── MODO 4: VISUALIZADOR PRÁCTICO DE NORMALIZACIÓN ───────── */}
+                {activeTab === 'normalization' && (
+                    <NormalizationView />
                 )}
             </div>
         </aside>

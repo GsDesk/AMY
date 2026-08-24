@@ -355,6 +355,69 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                     </div>
                 )}
 
+                {/* Botón para abrir pestaña de Normalización cuando el mensaje habla de normalización */}
+                {isTutor && message.id !== 'welcome' && !isStreaming && onOpenDiagram && (
+                    cleanText.toLowerCase().includes('normaliz') ||
+                    cleanText.toLowerCase().includes('1fn') ||
+                    cleanText.toLowerCase().includes('2fn') ||
+                    cleanText.toLowerCase().includes('3fn') ||
+                    cleanText.toLowerCase().includes('forma normal') ||
+                    message.topic?.toLowerCase().includes('normaliz')
+                ) && (
+                    <button
+                        className="er-reopen-btn norm-reopen-btn"
+                        onClick={() => {
+                            onOpenDiagram({
+                                type: 'er_diagram',
+                                title: 'Ejemplo Práctico: Proceso de Normalización (1FN a 3FN)',
+                                defaultTab: 'normalization',
+                                cardinality: '3FN',
+                                description: 'Evolución de esquemas relacionales: eliminación de redundancias y dependencias funcionales.',
+                                tables: [
+                                    {
+                                        name: 'alumnos',
+                                        columns: [
+                                            { name: 'matricula', type: 'INT', isPk: true, constraint: 'PK' },
+                                            { name: 'nombre', type: 'VARCHAR(50)' },
+                                            { name: 'dirección', type: 'VARCHAR(100)' },
+                                            { name: 'telefono', type: 'VARCHAR(15)' },
+                                            { name: 'id_carrera', type: 'VARCHAR(10)', isFk: true, references: 'carreras(id_carrera)' }
+                                        ]
+                                    },
+                                    {
+                                        name: 'carreras',
+                                        columns: [
+                                            { name: 'id_carrera', type: 'VARCHAR(10)', isPk: true, constraint: 'PK' },
+                                            { name: 'carrera', type: 'VARCHAR(80)' }
+                                        ]
+                                    },
+                                    {
+                                        name: 'cursos',
+                                        columns: [
+                                            { name: 'código', type: 'VARCHAR(10)', isPk: true, constraint: 'PK' },
+                                            { name: 'curso', type: 'VARCHAR(60)' }
+                                        ]
+                                    },
+                                    {
+                                        name: 'alumno_curso',
+                                        columns: [
+                                            { name: 'matricula', type: 'INT', isFk: true, references: 'alumnos(matricula)' },
+                                            { name: 'código', type: 'VARCHAR(10)', isFk: true, references: 'cursos(código)' }
+                                        ]
+                                    }
+                                ]
+                            });
+                        }}
+                        title="Abrir panel interactivo con tablas de normalización 1FN, 2FN y 3FN"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
+                        </svg>
+                        Ver Tablas de Normalización (1FN, 2FN, 3FN)
+                        <span className="er-btn-badge">1FN-3FN</span>
+                    </button>
+                )}
+
                 {/* Botón para abrir diagrama E-R (excluyendo el mensaje de bienvenida inicial) */}
                 {isTutor && message.id !== 'welcome' && !isStreaming && onOpenDiagram && (erDiagram || hasSqlTables || cleanText.toLowerCase().includes('cliente') || cleanText.toLowerCase().includes('empleado') || cleanText.toLowerCase().includes('factura') || cleanText.toLowerCase().includes('tabla') || cleanText.toLowerCase().includes('relación')) && (
 

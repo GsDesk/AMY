@@ -73,13 +73,6 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         }
     }, [currentConversationId, onConversationCreated]);
 
-    // Cuando llega un ejemplo, notificar al padre (ChatPage)
-    useEffect(() => {
-        if (lastExample && onExampleReceived) {
-            onExampleReceived(lastExample);
-        }
-    }, [lastExample, onExampleReceived]);
-
     const handleExplainAndFocus = useCallback((text) => {
         sendMessage(text);
     }, [sendMessage]);

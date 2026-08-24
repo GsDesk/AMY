@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    AMY — E-R Workbench / Tablero Interactivo E-R (Zero Emojis & Zero Gradients)
    ============================================================ */
 
@@ -786,6 +786,227 @@
     font-size: 0.85rem;
     text-align: center;
     padding: 3rem 1rem;
+}
+
+/* ── Pestaña de Normalización Práctica ─────────────────────────────────── */
+.norm-container {
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    height: 100%;
+    overflow-y: auto;
+    background: #09090b;
+}
+
+.norm-phase-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid #27272a;
+}
+
+.norm-phase-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a1a1aa;
+}
+
+.norm-phase-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.norm-phase-btn {
+    padding: 0.4rem 0.85rem;
+    background: #141417;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    color: #a1a1aa;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.norm-phase-btn:hover {
+    background: #18181b;
+    border-color: #3f3f46;
+    color: #ffffff;
+}
+
+.norm-phase-btn.active {
+    background: #18181b;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+}
+
+.norm-content-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.norm-phase-card {
+    background: #0d0d10;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.norm-phase-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.norm-header-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.norm-phase-badge {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid;
+    background: #141417;
+}
+
+.norm-phase-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.norm-rule-text,
+.norm-anomaly-text {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #a1a1aa;
+}
+
+.norm-rule-text strong {
+    color: #38bdf8;
+}
+
+.norm-anomaly-text strong {
+    color: #fbbf24;
+}
+
+.norm-tables-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.norm-table-wrapper {
+    background: #141417;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.norm-table-title-bar {
+    background: #18181b;
+    padding: 0.55rem 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #27272a;
+}
+
+.norm-table-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.norm-table-desc {
+    font-size: 0.72rem;
+    color: #71717a;
+}
+
+.norm-table-scroll {
+    overflow-x: auto;
+}
+
+.norm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    text-align: left;
+}
+
+.norm-table th {
+    background: #0d0d10;
+    padding: 0.55rem 0.85rem;
+    color: #e4e4e7;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    border-bottom: 1px solid #27272a;
+    border-right: 1px solid #1f1f23;
+    white-space: nowrap;
+}
+
+.norm-table th:last-child {
+    border-right: none;
+}
+
+.norm-table td {
+    padding: 0.5rem 0.85rem;
+    color: #a1a1aa;
+    border-bottom: 1px solid #1f1f23;
+    border-right: 1px solid #1f1f23;
+    white-space: nowrap;
+}
+
+.norm-table td:last-child {
+    border-right: none;
+}
+
+.norm-table tr:last-child td {
+    border-bottom: none;
+}
+
+.norm-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+    color: #ffffff;
+}
+
+.norm-key-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    margin-left: 0.35rem;
+    display: inline-block;
+}
+
+.norm-key-badge.pk {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.norm-key-badge.fk {
+    background: rgba(167, 139, 250, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(167, 139, 250, 0.4);
 }
 
 /* ── RESPONSIVIDAD MÓVIL ─────────────────────────────────────────────── */
