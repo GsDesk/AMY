@@ -306,43 +306,361 @@
     gap: 0.5rem;
 }
 
-.footer-actions-group {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.45rem;
+.logout-trigger-btn {
     width: 100%;
-}
-
-.switch-account-btn,
-.logout-btn {
-    width: 100%;
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     font-family: 'Outfit', sans-serif;
     font-weight: 500;
-    padding: 0.45rem 0.35rem;
+    padding: 0.55rem 0.85rem;
     background: #141417;
     border: 1px solid #27272a;
     color: #e4e4e7;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3rem;
+    gap: 0.45rem;
     transition: all 0.15s ease;
-    white-space: nowrap;
 }
 
-.switch-account-btn:hover,
-.logout-btn:hover {
+.logout-trigger-btn:hover {
     background: #18181b;
     border-color: #3f3f46;
     color: #ffffff;
 }
 
-.logout-btn:hover {
-    color: #f87171;
+/* ── Modal de Gestión de Sesión & Cambio de Cuenta ── */
+.session-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: sessionFadeIn 0.18s ease-out;
+}
+
+@keyframes sessionFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.session-modal-card {
+    background: #0d0d10;
+    border: 1px solid #27272a;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: sessionSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sessionSlideUp {
+    from { transform: translateY(12px) scale(0.98); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.session-modal-header {
+    padding: 1.1rem 1.25rem;
+    background: #141417;
+    border-bottom: 1px solid #27272a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.session-modal-user {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 0;
+}
+
+.session-modal-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.session-modal-user-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.session-modal-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.session-modal-email {
+    font-size: 0.74rem;
+    color: #a1a1aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.session-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: #71717a;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.session-modal-close-btn:hover {
+    background: #27272a;
+    color: #ffffff;
+}
+
+.session-modal-body {
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.session-action-btn {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    background: #141417;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    color: #f4f4f5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.session-action-btn:hover {
+    background: #18181b;
+    border-color: #3f3f46;
+}
+
+.session-action-btn.active {
+    border-color: #38bdf8;
+    background: #141820;
+}
+
+.session-action-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.session-action-left svg {
+    flex-shrink: 0;
+    color: #38bdf8;
+}
+
+.session-action-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.session-action-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.session-action-subtitle {
+    font-size: 0.7rem;
+    color: #71717a;
+}
+
+.session-chevron {
+    transition: transform 0.2s ease;
+    color: #71717a;
+}
+
+.session-chevron.expanded {
+    transform: rotate(180deg);
+    color: #38bdf8;
+}
+
+.logout-action-btn:hover {
     border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.logout-action-btn .session-action-left svg {
+    color: #ef4444;
+}
+
+.logout-action-btn:hover .session-action-title {
+    color: #f87171;
+}
+
+/* ── Tarjeta de Cuentas Guardadas (Subcard) ───────── */
+.session-accounts-subcard {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    animation: sessionSubcardSlide 0.2s ease-out;
+}
+
+@keyframes sessionSubcardSlide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.session-accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.session-account-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.65rem;
+    background: #141417;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.session-account-item:hover {
+    background: #18181b;
+    border-color: #3f3f46;
+}
+
+.session-account-item.current-active {
+    border-color: #38bdf8;
+    background: #0e1a24;
+}
+
+.account-item-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #27272a;
+    color: #ffffff;
+    font-size: 0.74rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.account-item-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.account-item-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-item-email {
+    font-size: 0.68rem;
+    color: #71717a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-active-tag {
+    font-size: 0.64rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+}
+
+.account-remove-btn {
+    background: transparent;
+    border: none;
+    color: #71717a;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.account-remove-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.add-account-btn {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: #141417;
+    border: 1px dashed #3f3f46;
+    border-radius: 8px;
+    color: #a1a1aa;
+    font-size: 0.74rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all 0.15s ease;
+}
+
+.add-account-btn:hover {
+    background: #18181b;
+    border-color: #38bdf8;
+    color: #ffffff;
 }
 
 /* ── RESPONSIVE: Sidebar como drawer en móvil ─────── */
@@ -381,4 +699,10 @@
 
     /* La lista de conversaciones puede ser más larga en móvil */
     .conv-list { max-height: 300px; }
+
+    .session-modal-card {
+        max-width: 95vw;
+        border-radius: 12px;
+    }
 }
+

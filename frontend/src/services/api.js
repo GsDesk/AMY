@@ -72,6 +72,7 @@ export async function login(email, password) {
     const data = await response.json();
     localStorage.setItem('amy_token', data.token);
     localStorage.setItem('amy_user', JSON.stringify(data.user));
+    saveAccountSession(data.user, data.token);
     return data;
 }
 
@@ -103,6 +104,7 @@ export async function loginWithMicrosoft(accessToken) {
     const data = await response.json();
     localStorage.setItem('amy_token', data.token);
     localStorage.setItem('amy_user', JSON.stringify(data.user));
+    saveAccountSession(data.user, data.token);
     return data;
 }
 
@@ -124,6 +126,7 @@ export async function googleLogin(credential) {
     const data = await response.json();
     localStorage.setItem('amy_token', data.token);
     localStorage.setItem('amy_user', JSON.stringify(data.user));
+    saveAccountSession(data.user, data.token);
     return data;
 }
 
@@ -145,11 +148,87 @@ export async function register(email, password, nombre) {
     const data = await response.json();
     localStorage.setItem('amy_token', data.token);
     localStorage.setItem('amy_user', JSON.stringify(data.user));
+    saveAccountSession(data.user, data.token);
     return data;
 }
 
+export function saveAccountSession(user, token) {
+    if (!user || !user.email) return;
+    try {
+        const raw = localStorage.getItem('amy_saved_accounts');
+        let accounts = raw ? JSON.parse(raw) : [];
+        accounts = accounts.filter(a => a.email !== user.email);
+        accounts.unshift({
+            id: user.id || user.email,
+            email: user.email,
+            nombre: user.nombre || user.email.split('@')[0],
+            rol: user.rol || 'estudiante',
+            token: token || null,
+            lastLogin: new Date().toISOString()
+        });
+        localStorage.setItem('amy_saved_accounts', JSON.stringify(accounts));
+    } catch (err) {
+        console.error('Error guardando cuenta en localStorage:', err);
+    }
+}
+
+export function getSavedAccounts() {
+    try {
+        const raw = localStorage.getItem('amy_saved_accounts');
+        let accounts = raw ? JSON.parse(raw) : [];
+        const currentUser = getUser();
+        // Si no hay cuentas guardadas pero el usuario actual está logueado, agregarlo
+        if (accounts.length === 0 && currentUser) {
+            const token = getToken();
+            saveAccountSession(currentUser, token);
+            return [{
+                id: currentUser.id || currentUser.email,
+                email: currentUser.email,
+                nombre: currentUser.nombre || currentUser.email.split('@')[0],
+                rol: currentUser.rol || 'estudiante',
+                token: token,
+                lastLogin: new Date().toISOString()
+            }];
+        }
+        return accounts;
+    } catch {
+        return [];
+    }
+}
+
+export function removeSavedAccount(email) {
+    try {
+        const raw = localStorage.getItem('amy_saved_accounts');
+        let accounts = raw ? JSON.parse(raw) : [];
+        accounts = accounts.filter(a => a.email !== email);
+        localStorage.setItem('amy_saved_accounts', JSON.stringify(accounts));
+        return accounts;
+    } catch {
+        return [];
+    }
+}
+
+export function switchAccountSession(account) {
+    if (!account) return;
+    if (account.token) {
+        localStorage.setItem('amy_token', account.token);
+    } else {
+        localStorage.removeItem('amy_token');
+    }
+    localStorage.setItem('amy_user', JSON.stringify({
+        id: account.id,
+        email: account.email,
+        nombre: account.nombre,
+        rol: account.rol
+    }));
+    // Limpiar id de conversación activa para cargar las del nuevo usuario
+    localStorage.removeItem('amy_active_conversation_id');
+}
+
 export function logout() {
-    localStorage.clear();
+    localStorage.removeItem('amy_token');
+    localStorage.removeItem('amy_user');
+    localStorage.removeItem('amy_active_conversation_id');
 }
 
 export function getUser() {

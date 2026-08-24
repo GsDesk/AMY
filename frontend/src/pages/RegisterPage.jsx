@@ -265,7 +265,7 @@ export default function RegisterPage() {
                                     <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
                                     <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
                                 </svg>
-                                <span>Microsoft UPEC</span>
+                                <span>Continuar con Microsoft (UPEC)</span>
                             </button>
 
                             {authConfig?.googleClientId && (

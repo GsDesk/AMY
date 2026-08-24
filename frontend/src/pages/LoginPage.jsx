@@ -129,7 +129,7 @@ export default function LoginPage() {
                                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                             </svg>
                         </Link>
-                        <h1 className="login-main-title">Welcome Back</h1>
+                        <h1 className="login-main-title">Bienvenido de Nuevo</h1>
                         <p className="login-main-subtitle">Ingresa a tu cuenta para continuar con tu tutor socrático</p>
                     </div>
 
@@ -147,7 +147,7 @@ export default function LoginPage() {
                                 <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
                                 <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
                             </svg>
-                            <span>Continue with Microsoft (UPEC)</span>
+                            <span>Continuar con Microsoft (UPEC)</span>
                         </button>
 
                         {authConfig?.googleClientId && (
@@ -168,12 +168,12 @@ export default function LoginPage() {
                     </div>
 
                     <div className="login-divider-line">
-                        <span>or</span>
+                        <span>o</span>
                     </div>
 
                     <form className="login-fields-form" onSubmit={handleSubmit}>
                         <div className="login-input-group">
-                            <label htmlFor="email">Email</label>
+                            <label htmlFor="email">Correo Electrónico</label>
                             <input
                                 id="email"
                                 type="email"
@@ -186,7 +186,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="login-input-group">
-                            <label htmlFor="password">Password</label>
+                            <label htmlFor="password">Contraseña</label>
                             <div className="password-input-wrapper">
                                 <input
                                     id="password"
@@ -225,17 +225,17 @@ export default function LoginPage() {
                             className="btn-login-submit"
                             disabled={loading}
                         >
-                            {loading ? 'Verificando...' : 'Continue with Email'}
+                            {loading ? 'Verificando...' : 'Iniciar Sesión'}
                         </button>
                     </form>
 
                     <div className="login-switch-footer">
-                        <span>Don't have an account? <Link to="/register" className="login-link-highlight">Sign up</Link></span>
+                        <span>¿No tienes una cuenta? <Link to="/register" className="login-link-highlight">Regístrate</Link></span>
                     </div>
 
                     <div className="login-legal-footer">
-                        <a href="#privacy">Privacy</a>
-                        <a href="#terms">Terms</a>
+                        <a href="#privacy">Privacidad</a>
+                        <a href="#terms">Términos</a>
                         <a href="#cookies">Cookies</a>
                         <span>UPEC</span>
                     </div>
