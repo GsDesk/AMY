@@ -37,22 +37,30 @@
 }
 
 .login-geometric-logo {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: #141417;
-    border: 1px solid #27272a;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: #000000;
+    border: 1px solid #27272a;
+    border-radius: 10px;
     color: #ffffff;
-    margin-bottom: 0.6rem;
     text-decoration: none;
     transition: transform 0.2s ease;
+    overflow: hidden;
+    margin-bottom: 0.6rem;
 }
 
 .login-geometric-logo:hover {
     transform: scale(1.05);
+}
+
+.login-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 4px;
 }
 
 .login-main-title {
@@ -362,14 +370,19 @@
     width: 38px;
     height: 38px;
     border-radius: 8px;
-    background: #18181b;
+    background: #000000;
     border: 1px solid #27272a;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: #ffffff;
+    overflow: hidden;
+}
+
+.showcase-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 3px;
 }
 
 .showcase-author-info {

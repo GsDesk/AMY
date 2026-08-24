@@ -275,59 +275,68 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
         <div className={`chat-message ${isTutor ? 'tutor-msg' : 'user-msg'} ${isError ? 'error-msg' : ''}`}>
             {isTutor && (
                 <div className="msg-avatar tutor-avatar">
-                    <span>A</span>
+                    <img src="/amy-logo.png" alt="AMY" className="msg-avatar-logo-img" />
                 </div>
             )}
 
             <div className="msg-content">
                 <div className={`msg-bubble ${isStreaming ? 'msg-bubble--streaming' : ''}`}>
                     {isTutor ? (
-                        <>
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    code({ node, inline, className, children, ...props }) {
-                                        const match = /language-(\w+)/.exec(className || '');
-                                        const language = match ? match[1] : null;
-                                        const codeString = String(children).replace(/\n$/, '');
+                        cleanText ? (
+                            <>
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        code({ node, inline, className, children, ...props }) {
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            const language = match ? match[1] : null;
+                                            const codeString = String(children).replace(/\n$/, '');
 
-                                        return !inline && match ? (
-                                            <div className="code-block-wrapper">
-                                                <CodeToolbar
-                                                    code={codeString}
-                                                    language={language}
-                                                    onExplain={onExplainCode}
-                                                />
-                                                <SyntaxHighlighter
-                                                    style={vscDarkPlus}
-                                                    language={language}
-                                                    showLineNumbers={true}
-                                                    PreTag="div"
-                                                    customStyle={{
-                                                        borderRadius: '0 0 8px 8px',
-                                                        fontSize: '0.82rem',
-                                                        margin: '0',
-                                                        background: '#0d0d1a',
-                                                        borderTop: 'none',
-                                                    }}
-                                                    {...props}
-                                                >
-                                                    {codeString}
-                                                </SyntaxHighlighter>
-                                            </div>
-                                        ) : (
-                                            <code className="inline-code" {...props}>
-                                                {children}
-                                            </code>
-                                        );
-                                    }
-                                }}
-                            >
-                                {cleanText}
-                            </ReactMarkdown>
-                            {isStreaming && <span className="streaming-cursor" />}
-
-                        </>
+                                            return !inline && match ? (
+                                                <div className="code-block-wrapper">
+                                                    <CodeToolbar
+                                                        code={codeString}
+                                                        language={language}
+                                                        onExplain={onExplainCode}
+                                                    />
+                                                    <SyntaxHighlighter
+                                                        style={vscDarkPlus}
+                                                        language={language}
+                                                        showLineNumbers={true}
+                                                        PreTag="div"
+                                                        customStyle={{
+                                                            borderRadius: '0 0 8px 8px',
+                                                            fontSize: '0.82rem',
+                                                            margin: '0',
+                                                            background: '#0d0d1a',
+                                                            borderTop: 'none',
+                                                        }}
+                                                        {...props}
+                                                    >
+                                                        {codeString}
+                                                    </SyntaxHighlighter>
+                                                </div>
+                                            ) : (
+                                                <code className="inline-code" {...props}>
+                                                    {children}
+                                                </code>
+                                            );
+                                        }
+                                    }}
+                                >
+                                    {cleanText}
+                                </ReactMarkdown>
+                                {isStreaming && <span className="streaming-cursor" />}
+                            </>
+                        ) : (
+                            <div className="astronaut-thinking-card">
+                                <img src="/astronaut-walking.png" alt="AMY Pensando..." className="astronaut-walking-img" />
+                                <div className="astronaut-thinking-text">
+                                    <span className="astronaut-thinking-title">AMY está pensando...</span>
+                                    <span className="astronaut-thinking-sub">Analizando esquemas y bases de datos</span>
+                                </div>
+                            </div>
+                        )
                     ) : (
                         <div className="user-msg-content-wrapper">
                             {message.attachment && (
@@ -408,7 +417,10 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                             </span>
                         )}
                         {isStreaming && (
-                            <span className="streaming-badge">Generando...</span>
+                            <span className="streaming-badge">
+                                <span className="streaming-pulse-dot" />
+                                Pensando...
+                            </span>
                         )}
                     </div>
                 )}

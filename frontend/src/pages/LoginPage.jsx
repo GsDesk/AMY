@@ -209,9 +209,7 @@ export default function LoginPage() {
                 <div className="login-form-container">
                     <div className="login-pane-header">
                         <Link to="/" className="login-geometric-logo" title="Volver al inicio">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                            </svg>
+                            <img src="/amy-logo.png" alt="AMY Logo" className="login-logo-img" />
                         </Link>
                         <h1 className="login-main-title">Bienvenido de Nuevo</h1>
                         <p className="login-main-subtitle">Ingresa a tu cuenta para continuar con tu tutor socrático</p>
@@ -504,7 +502,9 @@ export default function LoginPage() {
                             "El método socrático transforma la intuición en maestría técnica de Bases de Datos."
                         </p>
                         <div className="showcase-author-card">
-                            <div className="showcase-avatar">A</div>
+                            <div className="showcase-avatar">
+                                <img src="/amy-logo.png" alt="AMY" className="showcase-avatar-img" />
+                            </div>
                             <div className="showcase-author-info">
                                 <span className="showcase-name">AMY Socrático</span>
                                 <span className="showcase-role">Tutor IA · Universidad Politécnica Estatal del Carchi</span>

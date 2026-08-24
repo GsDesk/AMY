@@ -146,7 +146,9 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
                     </button>
                 )}
                 <div className="brand">
-                    <div className="amy-mark">A</div>
+                    <div className="amy-mark">
+                        <img src="/amy-logo.png" alt="AMY Logo" className="amy-brand-logo-img" />
+                    </div>
                     <h1>AMY</h1>
                     <span className="subtitle">Fundamentos de BD / UPEC</span>
                 </div>

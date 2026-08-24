@@ -190,13 +190,19 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                             />
                         ))}
 
-                        {isLoading && (
+                        {isLoading && !messages.some(m => m.streaming) && (
                             <div className="chat-message tutor-msg typing-msg">
-                                <div className="msg-avatar tutor-avatar"><span>A</span></div>
+                                <div className="msg-avatar tutor-avatar">
+                                    <img src="/amy-logo.png" alt="AMY" className="msg-avatar-logo-img" />
+                                </div>
                                 <div className="msg-content">
                                     <div className="msg-bubble typing-bubble">
-                                        <div className="typing-dots">
-                                            <span></span><span></span><span></span>
+                                        <div className="astronaut-thinking-card">
+                                            <img src="/astronaut-walking.png" alt="AMY Pensando..." className="astronaut-walking-img" />
+                                            <div className="astronaut-thinking-text">
+                                                <span className="astronaut-thinking-title">AMY está pensando...</span>
+                                                <span className="astronaut-thinking-sub">Analizando esquemas y bases de datos</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

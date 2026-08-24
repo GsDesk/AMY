@@ -246,9 +246,7 @@ export default function RegisterPage() {
 
                         <div className="register-card-header">
                             <Link to="/" className="register-card-logo" title="Volver al inicio">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                                </svg>
+                                <img src="/amy-logo.png" alt="AMY Logo" className="register-logo-img" />
                             </Link>
                             <h2>Bienvenido a AMY</h2>
                             <p>Crea tu cuenta institucional o personal</p>
