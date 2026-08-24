@@ -48,6 +48,8 @@ class MessageOut(BaseModel):
     source: Optional[str] = None
     rag_used: Optional[bool] = None
     live_example: Optional[str] = None
+    attachment: Optional[str] = None
+    rag_learned: Optional[bool] = None
     created_at: str
 
 
@@ -101,12 +103,17 @@ async def create_conversation(
         now,
     )
 
-    logger.info("Conversacion creada: %s para usuario %s", conv_id, current_user["id"])
-    return ConversationCreated(id=conv_id, titulo=titulo, created_at=str(now))
+    logger.info("Conversacion creada: %s (usuario=%s)", conv_id, current_user["id"])
+    return ConversationCreated(
+        id=conv_id,
+        titulo=titulo,
+        created_at=now.isoformat(),
+    )
 
 
 @router.get("/api/conversations/{conversation_id}/messages", response_model=list[MessageOut])
-async def get_messages(
+@router.get("/api/conversations/{conversation_id}/messages/", response_model=list[MessageOut], include_in_schema=False)
+async def get_conversation_messages(
     conversation_id: str,
     current_user: dict = Depends(get_current_user),
 ):
@@ -127,7 +134,7 @@ async def get_messages(
         )
 
     rows = await db.fetch(
-        """SELECT id, sender, content, topic, source, rag_used, live_example, created_at
+        """SELECT id, sender, content, topic, source, rag_used, live_example, attachment, rag_learned, created_at
            FROM mensajes
            WHERE conversacion_id = $1
            ORDER BY created_at ASC""",
@@ -142,6 +149,8 @@ async def get_messages(
             source=r.get("source"),
             rag_used=r.get("rag_used"),
             live_example=str(r["live_example"]) if r.get("live_example") else None,
+            attachment=str(r["attachment"]) if r.get("attachment") else None,
+            rag_learned=bool(r.get("rag_learned")) if r.get("rag_learned") is not None else None,
             created_at=str(r["created_at"]),
         )
         for r in rows

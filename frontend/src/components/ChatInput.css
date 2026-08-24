@@ -10,14 +10,20 @@
 
 .input-wrapper {
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
     background: #141417;
     border: 1px solid #27272a;
     border-radius: 10px;
-    padding: 0.3rem 0.4rem 0.3rem 0.9rem;
+    padding: 0.35rem 0.45rem 0.35rem 0.6rem;
     transition: all 0.15s ease;
-    gap: 0.4rem;
+    gap: 0.35rem;
     position: relative;
+}
+
+.input-wrapper.input-dragging {
+    border-color: #ffffff;
+    background: #18181b;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 .input-wrapper:focus-within {
@@ -28,7 +34,130 @@
     opacity: 0.5;
 }
 
-.input-wrapper textarea {
+/* ── Previsualización del archivo adjunto ────────────────────── */
+.attachment-preview-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 0.35rem 0.6rem;
+    max-width: 100%;
+    animation: fadeInAttach 0.15s ease-out;
+}
+
+@keyframes fadeInAttach {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.attachment-preview-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-img-mini {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #3f3f46;
+}
+
+.preview-doc-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #27272a;
+    color: #ffffff;
+    padding: 0.2rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.attachment-info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow: hidden;
+}
+
+.attachment-name {
+    font-size: 0.76rem;
+    color: #ffffff;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.attachment-size {
+    font-size: 0.66rem;
+    color: #a1a1aa;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.attachment-remove-btn {
+    background: transparent;
+    border: none;
+    color: #71717a;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-left: auto;
+}
+
+.attachment-remove-btn:hover {
+    background: #27272a;
+    color: #ffffff;
+}
+
+/* ── Fila Principal del Input (Clip + Textarea + Controles) ──── */
+.input-row-main {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.45rem;
+    width: 100%;
+    position: relative;
+}
+
+.attach-clip-btn {
+    background: transparent;
+    border: none;
+    color: #71717a;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+}
+
+.attach-clip-btn:hover:not(:disabled) {
+    background: #1f1f23;
+    color: #ffffff;
+}
+
+.attach-clip-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.input-row-main textarea {
     flex: 1;
     background: transparent;
     border: none;
@@ -36,14 +165,14 @@
     font-family: 'Outfit', sans-serif;
     font-size: 0.88rem;
     resize: none;
-    padding: 0.5rem 7rem 0.5rem 0;
+    padding: 0.45rem 7.2rem 0.45rem 0.2rem;
     outline: none;
     max-height: 150px;
     line-height: 1.5;
     -webkit-appearance: none;
 }
 
-.input-wrapper textarea::placeholder {
+.input-row-main textarea::placeholder {
     color: #71717a;
     font-size: 0.84rem;
 }

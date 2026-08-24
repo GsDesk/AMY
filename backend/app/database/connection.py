@@ -90,6 +90,9 @@ class Database:
             await conn.execute("ALTER TABLE usuarios ALTER COLUMN password_hash DROP NOT NULL;")
             # Migración idempotente para asegurar columna rol en tablas existentes
             await conn.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(20) NOT NULL DEFAULT 'estudiante';")
+            # Migración idempotente para soportar adjuntos multimodales y estado de aprendizaje RAG
+            await conn.execute("ALTER TABLE mensajes ADD COLUMN IF NOT EXISTS attachment TEXT;")
+            await conn.execute("ALTER TABLE mensajes ADD COLUMN IF NOT EXISTS rag_learned BOOLEAN DEFAULT FALSE;")
 
         logger.info("Tablas del sistema verificadas y listas")
 

@@ -42,24 +42,38 @@ class GeminiClient:
             self._client = httpx.AsyncClient(timeout=self._timeout)
         return self._client
 
-    def _build_body(self, prompt: str, system: str = "") -> dict:
+    def _build_body(self, prompt: str, system: str = "", attachment: dict | None = None) -> dict:
+        parts = []
+        if attachment and attachment.get("base64_data") and attachment.get("mime_type"):
+            base64_str = attachment["base64_data"]
+            if "," in base64_str:
+                base64_str = base64_str.split(",", 1)[1]
+
+            parts.append({
+                "inlineData": {
+                    "mimeType": attachment["mime_type"],
+                    "data": base64_str
+                }
+            })
+
+        parts.append({"text": prompt or "Analiza el archivo o imagen adjunta."})
+
         body = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "temperature": 0.3,
                 "maxOutputTokens": 2048,
                 "topP": 0.95,
             },
-
         }
         if system:
             body["systemInstruction"] = {"parts": [{"text": system}]}
         return body
 
-    async def generate(self, prompt: str, system: str = "") -> str:
+    async def generate(self, prompt: str, system: str = "", attachment: dict | None = None) -> str:
         """Generación completa (sin streaming). Retorna el texto completo."""
         api_key = self._api_key()
-        request_body = self._build_body(prompt, system)
+        request_body = self._build_body(prompt, system, attachment)
         client = self._get_client()
 
         last_error = None
@@ -104,10 +118,10 @@ class GeminiClient:
 
         raise RuntimeError(f"Todos los modelos Gemini fallaron. Ultimo error: {last_error}")
 
-    async def stream(self, prompt: str, system: str = "") -> AsyncIterator[str]:
+    async def stream(self, prompt: str, system: str = "", attachment: dict | None = None) -> AsyncIterator[str]:
         """Streaming SSE — emite tokens mientras se generan."""
         api_key = self._api_key()
-        request_body = self._build_body(prompt, system)
+        request_body = self._build_body(prompt, system, attachment)
 
         last_error = None
         for model in GEMINI_MODELS:

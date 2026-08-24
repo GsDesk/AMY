@@ -37,8 +37,9 @@ export function useChat() {
         }
     }, []);
 
-    const sendMessage = useCallback(async (text) => {
-        if (!text.trim() || isLoading) return;
+    const sendMessage = useCallback(async (text, attachment = null) => {
+        if ((!text || !text.trim()) && !attachment) return;
+        if (isLoading) return;
 
         stopGeneration();
         const controller = new AbortController();
@@ -47,7 +48,13 @@ export function useChat() {
         const userMsg = {
             id: `user-${Date.now()}`,
             sender: 'user',
-            text: text.trim(),
+            text: (text || '').trim(),
+            attachment: attachment ? {
+                filename: attachment.filename,
+                mimeType: attachment.mimeType,
+                sizeBytes: attachment.sizeBytes,
+                base64Data: attachment.base64Data
+            } : null,
             timestamp: new Date()
         };
 
@@ -66,6 +73,8 @@ export function useChat() {
             topic: 'Procesando...',
             ragUsed: false,
             ragSources: [],
+            ragLearned: false,
+            ragLearnedReason: null,
             streaming: true,
             timestamp: new Date()
         }]);
@@ -74,7 +83,7 @@ export function useChat() {
             // Crear conversacion si es la primera
             let convId = currentConversationId;
             if (!convId) {
-                const firstWords = text.trim().substring(0, 60);
+                const firstWords = (text || '').trim().substring(0, 60) || attachment?.filename || 'Nueva conversación';
                 const conv = await createConversation(firstWords, controller.signal);
                 convId = conv.id;
                 setCurrentConversationId(convId);
@@ -85,9 +94,15 @@ export function useChat() {
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
             const body = JSON.stringify({
-                student_query: text.trim(),
+                student_query: (text || '').trim(),
                 conversation_id: convId,
-                model_preference: selectedModel
+                model_preference: selectedModel,
+                attachment: attachment ? {
+                    filename: attachment.filename,
+                    mime_type: attachment.mimeType,
+                    base64_data: attachment.base64Data,
+                    size_bytes: attachment.sizeBytes
+                } : null
             });
 
             // Intentar endpoint SSE streaming
@@ -100,7 +115,7 @@ export function useChat() {
 
             if (!resp.ok) {
                 // Si stream no existe (404) o falla, usar POST /api/chat directamente
-                const data = await sendChatMessage(text.trim(), convId, null, selectedModel);
+                const data = await sendChatMessage((text || '').trim(), convId, null, selectedModel);
                 setMessages(prev => prev.map(m =>
                     m.id === tutorId ? {
                         ...m,
@@ -110,6 +125,8 @@ export function useChat() {
                         topic: data.topic || 'General',
                         ragUsed: data.rag_context_used || false,
                         ragSources: data.rag_sources || [],
+                        ragLearned: data.rag_learned || false,
+                        ragLearnedReason: data.rag_learned_reason || null,
                         hasExample: !!data.live_example,
                         liveExample: data.live_example || null,
                         modelSwitched: data.model_switched || false,
@@ -173,6 +190,8 @@ export function useChat() {
                             topic: finalResult.topic || 'General',
                             ragUsed: finalResult.rag_context_used || false,
                             ragSources: finalResult.rag_sources || [],
+                            ragLearned: finalResult.rag_learned || false,
+                            ragLearnedReason: finalResult.rag_learned_reason || null,
                             hasExample: !!finalResult.live_example,
                             liveExample: finalResult.live_example || null,
                             modelSwitched: finalResult.model_switched || false,
@@ -200,6 +219,8 @@ export function useChat() {
                         topic: data.topic || 'General',
                         ragUsed: data.rag_context_used || false,
                         ragSources: data.rag_sources || [],
+                        ragLearned: data.rag_learned || false,
+                        ragLearnedReason: data.rag_learned_reason || null,
                         hasExample: !!data.live_example,
                         liveExample: data.live_example || null,
                         modelSwitched: data.model_switched || false,
@@ -215,16 +236,18 @@ export function useChat() {
 
             // Reintentar automáticamente vía POST /api/chat estándar si el stream SSE falla o se corta
             try {
-                const data = await sendChatMessage(userMsg.text, currentConversationId, null, selectedModel);
+                const data = await sendChatMessage((text || '').trim(), currentConversationId, null, selectedModel);
                 setMessages(prev => prev.map(m =>
                     m.id === tutorId ? {
                         ...m,
-                        text: data.feedback || data.text || 'No pude generar la respuesta.',
+                        text: data.feedback || 'No pude generar una respuesta.',
                         analysis: data.analysis,
-                        source: data.source || 'gemini',
+                        source: data.source || 'ollama-mistral',
                         topic: data.topic || 'General',
                         ragUsed: data.rag_context_used || false,
                         ragSources: data.rag_sources || [],
+                        ragLearned: data.rag_learned || false,
+                        ragLearnedReason: data.rag_learned_reason || null,
                         hasExample: !!data.live_example,
                         liveExample: data.live_example || null,
                         modelSwitched: data.model_switched || false,
@@ -233,20 +256,22 @@ export function useChat() {
                     } : m
                 ));
                 if (data.live_example) setLastExample(data.live_example);
-                return;
-            } catch (fallbackErr) {
-                console.error('Fallback error:', fallbackErr);
-            }
-
-            setMessages(prev => {
-                const finalMsgs = prev.map(m =>
+            } catch (retryErr) {
+                console.error("Error al reintentar chat:", retryErr);
+                setMessages(prev => prev.map(m =>
                     m.id === tutorId ? {
                         ...m,
-                        text: 'Ocurrió un pequeño inconveniente de conexión. Por favor, vuelve a intentar tu pregunta.',
+                        text: 'Lo siento, ocurrió un problema de comunicación con el tutor. Por favor intenta de nuevo.',
                         source: 'error',
                         topic: 'Error',
                         streaming: false
                     } : m
+                ));
+            }
+        } finally {
+            setMessages(prev => {
+                const finalMsgs = prev.map(m =>
+                    m.id === tutorId ? { ...m, streaming: false } : m
                 );
                 if (currentConversationId) {
                     try {
@@ -255,7 +280,6 @@ export function useChat() {
                 }
                 return finalMsgs;
             });
-        } finally {
             abortControllerRef.current = null;
             setIsLoading(false);
             window.dispatchEvent(new CustomEvent('amy_conv_updated'));
@@ -300,12 +324,23 @@ export function useChat() {
                         }
                     }
                 }
+
+                let parsedAttachment = null;
+                if (msg.attachment) {
+                    try {
+                        parsedAttachment = typeof msg.attachment === 'string' ? JSON.parse(msg.attachment) : msg.attachment;
+                    } catch {}
+                }
+
                 return {
                     id: msg.id || `msg-${idx}-${Date.now()}`,
                     sender: msg.sender === 'user' ? 'user' : 'tutor',
                     text: clean,
+                    attachment: parsedAttachment,
                     source: msg.source || 'loaded',
                     topic: msg.topic || '',
+                    ragUsed: msg.rag_used || false,
+                    ragLearned: msg.rag_learned || false,
                     liveExample: msg.live_example ? (typeof msg.live_example === 'string' ? JSON.parse(msg.live_example) : msg.live_example) : null,
                     hasExample: !!msg.live_example,
                     timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date()

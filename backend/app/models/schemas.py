@@ -9,12 +9,20 @@ from typing import Optional
 
 # -- Request Schemas ------------------------------------------
 
+class AttachmentPayload(BaseModel):
+    """Archivo adjunto (imagen o documento) enviado junto al mensaje."""
+    filename: str
+    mime_type: str
+    base64_data: str
+    size_bytes: int = 0
+
+
 class ChatRequest(BaseModel):
     """Mensaje del estudiante hacia el tutor."""
     student_query: str = Field(
         ...,
-        min_length=1,
-        max_length=2000,
+        min_length=0,
+        max_length=4000,
         description="Consulta del estudiante sobre Bases de Datos."
     )
     conversation_id: Optional[str] = Field(
@@ -24,6 +32,10 @@ class ChatRequest(BaseModel):
     model_preference: str = Field(
         default="auto",
         description="Motor de IA preferido: 'auto' (default), 'groq' o 'ollama'."
+    )
+    attachment: Optional[AttachmentPayload] = Field(
+        default=None,
+        description="Archivo o captura adjunta para análisis multimodal."
     )
 
 
@@ -81,6 +93,14 @@ class ChatResponse(BaseModel):
     switch_reason: Optional[str] = Field(
         default=None,
         description="Motivo de la conmutacion de modelo."
+    )
+    rag_learned: bool = Field(
+        default=False,
+        description="Indica si el documento adjunto fue incorporado al aprendizaje vectorial de AMY."
+    )
+    rag_learned_reason: Optional[str] = Field(
+        default=None,
+        description="Explicación pedagógica de por qué se indexó o no en la base vectorial."
     )
 
 

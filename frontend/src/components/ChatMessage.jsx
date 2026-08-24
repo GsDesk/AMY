@@ -208,6 +208,7 @@ function SourcesPanel({ sources }) {
 
 // ── Componente principal: ChatMessage ─────────────────────────────────────────
 export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
+    const [lightboxOpen, setLightboxOpen] = useState(false);
     const isTutor = message.sender === 'tutor';
     const isError = message.source === 'error';
     const isStreaming = message.streaming === true;
@@ -328,11 +329,60 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
 
                         </>
                     ) : (
-                        <p>{message.text}</p>
+                        <div className="user-msg-content-wrapper">
+                            {message.attachment && (
+                                <div className="msg-attachment-render">
+                                    {(message.attachment.mimeType?.startsWith('image/') || message.attachment.mime_type?.startsWith('image/') || (message.attachment.base64Data || message.attachment.base64_data)) ? (
+                                        <div className="msg-img-container" onClick={() => setLightboxOpen(true)}>
+                                            <img
+                                                src={message.attachment.base64Data || message.attachment.base64_data || message.attachment.previewUrl}
+                                                alt={message.attachment.filename}
+                                                className="msg-attached-img"
+                                            />
+                                            <div className="img-hover-overlay">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+                                                </svg>
+                                                <span>Ver imagen</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="msg-attached-doc-card">
+                                            <div className="doc-card-icon">
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                            </div>
+                                            <div className="doc-card-info">
+                                                <span className="doc-card-name" title={message.attachment.filename}>{message.attachment.filename}</span>
+                                                <span className="doc-card-ext">{message.attachment.filename?.split('.').pop()?.toUpperCase() || 'DOCUMENTO'}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {message.text && <p className="user-text-body">{message.text}</p>}
+                        </div>
                     )}
                 </div>
 
-
+                {/* Modal Lightbox para ampliar capturas */}
+                {lightboxOpen && message.attachment && (
+                    <div className="lightbox-overlay" onClick={() => setLightboxOpen(false)}>
+                        <div className="lightbox-content" onClick={e => e.stopPropagation()}>
+                            <div className="lightbox-header">
+                                <span>{message.attachment.filename}</span>
+                                <button className="lightbox-close-btn" onClick={() => setLightboxOpen(false)}>✕</button>
+                            </div>
+                            <img
+                                src={message.attachment.base64Data || message.attachment.base64_data || message.attachment.previewUrl}
+                                alt={message.attachment.filename}
+                                className="lightbox-full-img"
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {isTutor && message.source && message.source !== 'system' && (
                     <div className="msg-meta">
@@ -348,6 +398,14 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                         )}
                         {message.ragUsed && (
                             <span className="rag-badge">RAG</span>
+                        )}
+                        {message.ragLearned && (
+                            <span className="rag-learned-badge" title="Este documento aportó contenido conceptual y fue indexado en la base vectorial RAG">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Conocimiento RAG Indexado
+                            </span>
                         )}
                         {isStreaming && (
                             <span className="streaming-badge">Generando...</span>

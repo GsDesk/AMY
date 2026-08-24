@@ -138,7 +138,9 @@ async def _save_chat_messages(
     user_id: str,
     student_query: str,
     result: dict,
-) -> None:
+    attachment: dict | None = None,
+    rag_learned: bool = False
+):
     """Persiste el mensaje del estudiante y la respuesta del tutor en la BD."""
     now = datetime.now(timezone.utc)
 
@@ -148,7 +150,7 @@ async def _save_chat_messages(
     )
     if owner is None:
         # Crear la conversación automáticamente si aún no estaba en BD
-        first_words = student_query.strip()[:60] or "Nueva conversación"
+        first_words = student_query.strip()[:60] or (attachment.get("filename", "Nuevo archivo") if attachment else "Nueva conversación")
         try:
             await db.execute(
                 """INSERT INTO conversaciones (id, usuario_id, titulo, created_at, updated_at)
@@ -171,10 +173,20 @@ async def _save_chat_messages(
         )
         return
 
+    # Metadatos del adjunto
+    attachment_json = None
+    if attachment:
+        attachment_json = json.dumps({
+            "filename": attachment.get("filename"),
+            "mime_type": attachment.get("mime_type"),
+            "size_bytes": attachment.get("size_bytes", 0),
+            "base64_data": attachment.get("base64_data") if (attachment.get("mime_type", "").startswith("image/") and len(attachment.get("base64_data", "")) < 300000) else None
+        })
+
     # Mensaje del estudiante
     await db.execute(
-        """INSERT INTO mensajes (id, conversacion_id, sender, content, topic, source, rag_used, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)""",
+        """INSERT INTO mensajes (id, conversacion_id, sender, content, topic, source, rag_used, attachment, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)""",
         str(uuid.uuid4()),
         conversation_id,
         "user",
@@ -182,6 +194,7 @@ async def _save_chat_messages(
         result.get("topic"),
         None,
         False,
+        attachment_json,
         now,
     )
 
@@ -204,8 +217,8 @@ async def _save_chat_messages(
             pass
 
     await db.execute(
-        """INSERT INTO mensajes (id, conversacion_id, sender, content, topic, source, rag_used, live_example, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)""",
+        """INSERT INTO mensajes (id, conversacion_id, sender, content, topic, source, rag_used, live_example, rag_learned, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)""",
         str(uuid.uuid4()),
         conversation_id,
         "tutor",
@@ -214,6 +227,7 @@ async def _save_chat_messages(
         result.get("source"),
         result.get("rag_context_used", False),
         live_example_json,
+        rag_learned,
         now,
     )
 
@@ -231,8 +245,8 @@ async def _save_chat_messages(
 @app.post("/api/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")
 async def chat_endpoint(request_body: ChatRequest, request: Request):
-    if not request_body.student_query.strip():
-        raise HTTPException(status_code=400, detail="La consulta no puede estar vacia.")
+    if not request_body.student_query.strip() and not request_body.attachment:
+        raise HTTPException(status_code=400, detail="La consulta o el adjunto no pueden estar vacíos.")
     try:
         chat_history = None
         
@@ -255,13 +269,30 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
                         role = "user" if r["sender"] == "user" else "assistant"
                         chat_history.append({"role": role, "content": r["content"]})
 
+        attachment_dict = request_body.attachment.model_dump() if request_body.attachment else None
+        
+        # Evaluación pedagógica del adjunto
+        is_learned, learn_reason = False, None
+        if attachment_dict:
+            from app.rag.knowledge_evaluator import evaluate_and_index_attachment
+            is_learned, learn_reason, _ = await evaluate_and_index_attachment(
+                filename=attachment_dict["filename"],
+                mime_type=attachment_dict["mime_type"],
+                base64_data=attachment_dict["base64_data"],
+                student_query=request_body.student_query
+            )
+
+        query_text = request_body.student_query.strip() or f"Analiza el archivo adjunto: {attachment_dict.get('filename') if attachment_dict else ''}"
         result = await brain.think(
-            request_body.student_query,
+            query_text,
             chat_history=chat_history,
             model_preference=request_body.model_preference
         )
         if result.get("source") == "error":
             raise HTTPException(status_code=503, detail=result)
+
+        result["rag_learned"] = is_learned
+        result["rag_learned_reason"] = learn_reason
 
         # Persistir mensajes si hay conversation_id y usuario autenticado
         if request_body.conversation_id:
@@ -273,6 +304,8 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
                         user_id,
                         request_body.student_query,
                         result,
+                        attachment=attachment_dict,
+                        rag_learned=is_learned
                     )
                 except Exception as e:
                     logger.error("Error al persistir mensajes del chat: %s", e)
@@ -293,8 +326,10 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
     El cliente recibe 'data: <token>\n\n' mientras Gemini genera la respuesta.
     Fallback automatico a respuesta completa si el proveedor no soporta stream.
     """
-    if not request_body.student_query.strip():
-        raise HTTPException(status_code=400, detail="La consulta no puede estar vacia.")
+    if not request_body.student_query.strip() and not request_body.attachment:
+        raise HTTPException(status_code=400, detail="La consulta o el adjunto no pueden estar vacíos.")
+
+    attachment_dict = request_body.attachment.model_dump() if request_body.attachment else None
 
     async def generate_sse():
         try:
@@ -315,26 +350,40 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                             for r in rows
                         ]
 
-            # Verificar cache primero
-            from app.cache.redis_cache import redis_cache
-            from app.core.guardrails import SYSTEM_PROMPT
-            history_context = str([m["content"] for m in chat_history]) if chat_history else ""
-            cached = await redis_cache.get_cached_response(request_body.student_query, context=history_context)
-            if cached:
-                if request_body.conversation_id:
-                    user_id = await _get_optional_user_id(request)
-                    if user_id:
-                        try:
-                            await _save_chat_messages(
-                                request_body.conversation_id,
-                                user_id,
-                                request_body.student_query,
-                                cached,
-                            )
-                        except Exception as e:
-                            logger.error("Error al guardar mensaje en cache stream: %s", e)
-                yield f"data: {json.dumps({'type': 'result', 'data': cached})}\n\n"
-                return
+            # Iniciar evaluación pedagógica del adjunto en segundo plano si existe
+            learn_task = None
+            if attachment_dict:
+                from app.rag.knowledge_evaluator import evaluate_and_index_attachment
+                learn_task = asyncio.create_task(
+                    evaluate_and_index_attachment(
+                        filename=attachment_dict["filename"],
+                        mime_type=attachment_dict["mime_type"],
+                        base64_data=attachment_dict["base64_data"],
+                        student_query=request_body.student_query
+                    )
+                )
+
+            # Verificar cache solo si no hay adjunto
+            if not attachment_dict:
+                from app.cache.redis_cache import redis_cache
+                from app.core.guardrails import SYSTEM_PROMPT
+                history_context = str([m["content"] for m in chat_history]) if chat_history else ""
+                cached = await redis_cache.get_cached_response(request_body.student_query, context=history_context)
+                if cached:
+                    if request_body.conversation_id:
+                        user_id = await _get_optional_user_id(request)
+                        if user_id:
+                            try:
+                                await _save_chat_messages(
+                                    request_body.conversation_id,
+                                    user_id,
+                                    request_body.student_query,
+                                    cached,
+                                )
+                            except Exception as e:
+                                logger.error("Error al guardar mensaje en cache stream: %s", e)
+                    yield f"data: {json.dumps({'type': 'result', 'data': cached})}\n\n"
+                    return
 
             # Intentar Gemini streaming si esta disponible
             from app.integrations.gemini_client import gemini_client
@@ -343,12 +392,13 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
             from app.core.guardrails import sanitize_rag_context
             from datetime import datetime, timezone, timedelta
 
-            context_fragments = await semantic_search(request_body.student_query)
+            query_text = request_body.student_query.strip() or f"Analiza el archivo adjunto: {attachment_dict.get('filename') if attachment_dict else ''}"
+            context_fragments = await semantic_search(query_text)
             if context_fragments:
                 context_fragments = sanitize_rag_context(context_fragments)
 
             enriched_prompt = build_rag_prompt(
-                request_body.student_query, context_fragments, chat_history=chat_history
+                query_text, context_fragments, chat_history=chat_history
             )
             ecuador = timezone(timedelta(hours=-5))
             fecha_actual = datetime.now(ecuador).strftime('%A %d de %B del %Y, %H:%M')
@@ -358,15 +408,26 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
             if _s.GEMINI_API_KEY and _s.GEMINI_API_KEY.strip():
                 full_text = ""
                 try:
-                    async for token in gemini_client.stream(enriched_prompt, system_ctx):
+                    async for token in gemini_client.stream(enriched_prompt, system_ctx, attachment=attachment_dict):
                         full_text += token
                         yield f"data: {json.dumps({'type': 'token', 'text': token})}\n\n"
+                    
+                    # Obtener resultado de la evaluación pedagógica si hubo adjunto
+                    is_learned, learn_reason = False, None
+                    if learn_task:
+                        try:
+                            is_learned, learn_reason, _ = await learn_task
+                        except Exception as l_err:
+                            logger.error("Error esperando learn_task: %s", l_err)
+                            
                     # Enviar resultado final (metadata)
                     from app.core.guardrails import validate_response
                     result = validate_response(full_text)
                     result["source"] = "gemini"
                     result["rag_context_used"] = len(context_fragments) > 0
                     result["rag_sources"] = []
+                    result["rag_learned"] = is_learned
+                    result["rag_learned_reason"] = learn_reason
 
                     # Persistir mensaje en la base de datos si hay conversación
                     if request_body.conversation_id:
@@ -378,6 +439,8 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                                     user_id,
                                     request_body.student_query,
                                     result,
+                                    attachment=attachment_dict,
+                                    rag_learned=is_learned
                                 )
                             except Exception as e:
                                 logger.error("Error al guardar mensaje en stream: %s", e)
@@ -390,10 +453,19 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
 
             # Fallback: usar brain.think() normal y enviar resultado completo
             result = await brain.think(
-                request_body.student_query,
+                query_text,
                 chat_history=chat_history,
                 model_preference=request_body.model_preference
             )
+
+            is_learned, learn_reason = False, None
+            if learn_task:
+                try:
+                    is_learned, learn_reason, _ = await learn_task
+                except Exception:
+                    pass
+            result["rag_learned"] = is_learned
+            result["rag_learned_reason"] = learn_reason
 
             # Persistir mensaje en la base de datos si hay conversación
             if request_body.conversation_id:
@@ -405,6 +477,8 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                             user_id,
                             request_body.student_query,
                             result,
+                            attachment=attachment_dict,
+                            rag_learned=is_learned
                         )
                     except Exception as e:
                         logger.error("Error al guardar mensaje en fallback stream: %s", e)
