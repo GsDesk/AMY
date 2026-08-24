@@ -25,19 +25,19 @@
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .tutor-avatar {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-secondary);
-    color: var(--text-primary);
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #ffffff;
 }
 
 .user-avatar {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-primary);
-    color: var(--text-secondary);
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
 }
 
 /* Bubbles */
@@ -53,7 +53,7 @@
 
 .msg-bubble {
     padding: 0.9rem 1.1rem;
-    border-radius: 12px;
+    border-radius: 10px;
     line-height: 1.6;
     font-size: 0.9rem;
     min-width: 0;
@@ -62,21 +62,22 @@
     word-break: break-word;
 }
 
-
 .tutor-msg .msg-bubble {
-    background: var(--amy-msg-bg);
-    border: 1px solid var(--amy-msg-border);
-    border-top-left-radius: 2px;
+    background: #121215;
+    border: 1px solid #27272a;
+    border-left: 3px solid #38bdf8;
+    color: #f4f4f5;
 }
 
 .user-msg .msg-bubble {
-    background: var(--user-msg-bg);
-    border: 1px solid var(--user-msg-border);
-    border-top-right-radius: 2px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #ffffff;
 }
 
 .error-msg .msg-bubble {
-    border-color: rgba(248, 113, 113, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.08);
 }
 
 /* Markdown */
@@ -92,12 +93,12 @@
 
 .inline-code {
     font-family: 'JetBrains Mono', monospace;
-    background: var(--bg-primary);
-    padding: 2px 5px;
-    border-radius: 3px;
+    background: #18181b;
+    padding: 2px 6px;
+    border-radius: 4px;
     font-size: 0.82em;
-    color: var(--accent-muted);
-    border: 1px solid var(--border-primary);
+    color: #38bdf8;
+    border: 1px solid #27272a;
 }
 
 .msg-bubble pre {
@@ -115,40 +116,41 @@
 
 .source-badge, .topic-badge, .rag-badge {
     font-size: 0.65rem;
-    padding: 1px 6px;
+    padding: 2px 7px;
     border-radius: 4px;
     font-family: 'JetBrains Mono', monospace;
     letter-spacing: 0.3px;
+    font-weight: 600;
 }
 
 .source-badge.badge-default {
-    background: var(--bg-tertiary);
-    color: var(--text-muted);
-    border: 1px solid var(--border-primary);
+    background: #18181b;
+    color: #a1a1aa;
+    border: 1px solid #27272a;
 }
 
 .source-badge.badge-error {
-    background: rgba(248, 113, 113, 0.08);
+    background: rgba(239, 68, 68, 0.1);
     color: var(--error);
-    border: 1px solid rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .topic-badge {
-    background: var(--bg-tertiary);
-    color: var(--text-muted);
-    border: 1px solid var(--border-primary);
+    background: #18181b;
+    color: #ffffff;
+    border: 1px solid #27272a;
 }
 
 .rag-badge {
-    background: var(--bg-tertiary);
-    color: var(--text-muted);
-    border: 1px solid var(--border-primary);
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 .example-badge {
-    background: rgba(74, 222, 128, 0.06);
-    color: var(--success);
-    border: 1px solid rgba(74, 222, 128, 0.12);
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 @keyframes msg-appear {
@@ -162,7 +164,8 @@
     margin: 0.6rem 0;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    border: 1px solid #27272a;
+    background: #09090b;
 }
 
 .code-toolbar {
@@ -170,14 +173,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.4rem 0.8rem;
-    background: rgba(15, 15, 35, 0.9);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+    background: #141417;
+    border-bottom: 1px solid #27272a;
 }
 
 .code-lang-badge {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.65rem;
-    color: rgba(139, 92, 246, 0.8);
+    color: #a1a1aa;
     letter-spacing: 0.05em;
     font-weight: 600;
 }
@@ -201,10 +204,9 @@
 }
 
 .code-btn:hover {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.3);
-    color: var(--text-primary);
-    transform: translateY(-1px);
+    background: #27272a;
+    border-color: #3f3f46;
+    color: #ffffff;
 }
 
 .code-btn--copied {
@@ -214,14 +216,14 @@
 }
 
 .code-btn--explain {
-    border-color: rgba(251, 191, 36, 0.2);
-    color: rgba(251, 191, 36, 0.8);
+    border-color: #27272a;
+    color: #a1a1aa;
 }
 
 .code-btn--explain:hover {
-    background: rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.4);
-    color: #fbbf24;
+    background: #27272a;
+    border-color: #3f3f46;
+    color: #ffffff;
 }
 
 .model-switch-alert {
@@ -276,7 +278,7 @@
 
 .sources-panel-wrapper {
     margin-top: 0.5rem;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
 }
 
@@ -286,22 +288,22 @@
     gap: 0.4rem;
     width: 100%;
     padding: 0.45rem 0.75rem;
-    background: rgba(139, 92, 246, 0.06);
-    border: 1px solid rgba(139, 92, 246, 0.18);
+    background: #141417;
+    border: 1px solid #27272a;
     border-radius: 8px;
-    color: rgba(139, 92, 246, 0.85);
+    color: #a1a1aa;
     font-size: 0.72rem;
     font-family: 'JetBrains Mono', monospace;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     text-align: left;
     letter-spacing: 0.02em;
 }
 
 .sources-toggle-btn:hover {
-    background: rgba(139, 92, 246, 0.12);
-    border-color: rgba(139, 92, 246, 0.35);
-    color: rgba(167, 139, 250, 1);
+    background: #18181b;
+    border-color: #3f3f46;
+    color: #ffffff;
 }
 
 .sources-icon {
@@ -357,16 +359,14 @@
 .source-card {
     padding: 0.7rem 0.9rem;
     margin-top: 0.3rem;
-    background: rgba(10, 10, 28, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(139, 92, 246, 0.15);
+    background: #141417;
+    border: 1px solid #27272a;
     border-radius: 8px;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.15s ease;
 }
 
 .source-card:hover {
-    border-color: rgba(139, 92, 246, 0.3);
+    border-color: #3f3f46;
 }
 
 .source-card-header {

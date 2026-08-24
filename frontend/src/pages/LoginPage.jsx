@@ -33,6 +33,11 @@ export default function LoginPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('expired') === '1') {
+            setError('Tu sesión anterior ha expirado. Por favor, inicia sesión nuevamente.');
+        }
+
         getAuthConfig()
             .then(setAuthConfig)
             .catch((err) => console.error("Error al cargar la configuración de autenticación:", err));
@@ -113,91 +118,132 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="login-page">
-            <div className="login-card panel">
-                <div className="login-header">
-                    <Link to="/" className="login-back">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    </Link>
-                    <div className="login-brand">AMY</div>
-                    <p className="login-subtitle">Iniciar Sesión en el Tutor IA UPEC</p>
-                </div>
-
-                {/* BOTÓN INSTITUCIONAL DE MICROSOFT 365 (UPEC) */}
-                <button
-                    type="button"
-                    className="ms-upec-btn"
-                    onClick={handleMicrosoftLogin}
-                    disabled={loading}
-                >
-                    <svg className="ms-upec-logo" viewBox="0 0 23 23" fill="none">
-                        <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
-                        <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
-                        <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
-                        <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
-                    </svg>
-                    <span>Iniciar sesión con correo UPEC (@upec.edu.ec)</span>
-                </button>
-
-                <div className="login-separator">
-                    <span>o con credenciales / otros métodos</span>
-                </div>
-
-                <form className="login-form" onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="email">Correo electrónico</label>
-                        <input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="tu@upec.edu.ec"
-                            autoComplete="email"
-                            autoFocus
-                        />
+        <div className="login-page-split">
+            {/* Columna Izquierda: Formulario de Autenticación */}
+            <div className="login-form-pane">
+                <div className="login-form-container">
+                    <div className="login-pane-header">
+                        <Link to="/" className="login-geometric-logo" title="Volver al inicio">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </Link>
+                        <h1 className="login-main-title">Welcome Back</h1>
+                        <p className="login-main-subtitle">Ingresa a tu cuenta para continuar con tu tutor socrático</p>
                     </div>
 
-                    <div className="form-group">
-                        <label htmlFor="password">Contraseña</label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Tu contraseña"
-                            autoComplete="current-password"
-                        />
+                    {/* Botones SSO */}
+                    <div className="login-sso-stack">
+                        <button
+                            type="button"
+                            className="sso-provider-btn"
+                            onClick={handleMicrosoftLogin}
+                            disabled={loading}
+                        >
+                            <svg className="sso-icon" viewBox="0 0 23 23" fill="none">
+                                <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
+                                <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
+                                <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
+                                <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
+                            </svg>
+                            <span>Continue with Microsoft (UPEC)</span>
+                        </button>
+
+                        {authConfig?.googleClientId && (
+                            <GoogleOAuthProvider clientId={authConfig.googleClientId}>
+                                <div className="google-sso-wrapper">
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={handleGoogleError}
+                                        theme="filled_dark"
+                                        size="large"
+                                        width="100%"
+                                        text="continue_with"
+                                        shape="rectangular"
+                                    />
+                                </div>
+                            </GoogleOAuthProvider>
+                        )}
                     </div>
 
-                    {error && <div className="login-error">{error}</div>}
+                    <div className="login-divider-line">
+                        <span>or</span>
+                    </div>
 
-                    <button
-                        type="submit"
-                        className="btn btn-primary btn-lg login-btn"
-                        disabled={loading}
-                    >
-                        {loading ? 'Verificando...' : 'Iniciar sesión'}
-                    </button>
-                </form>
-
-                {authConfig?.googleClientId && (
-                    <GoogleOAuthProvider clientId={authConfig.googleClientId}>
-                        <div className="google-btn-container" style={{ marginTop: '1.2rem' }}>
-                            <GoogleLogin
-                                onSuccess={handleGoogleSuccess}
-                                onError={handleGoogleError}
-                                theme="filled_dark"
-                                size="large"
-                                width="320"
-                                text="signin_with"
-                                shape="rectangular"
+                    <form className="login-fields-form" onSubmit={handleSubmit}>
+                        <div className="login-input-group">
+                            <label htmlFor="email">Email</label>
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="tu.correo@upec.edu.ec"
+                                autoComplete="email"
+                                autoFocus
                             />
                         </div>
-                    </GoogleOAuthProvider>
-                )}
 
-                <div className="login-footer">
-                    <span>¿No tienes cuenta? <Link to="/register" className="login-link">Regístrate</Link></span>
+                        <div className="login-input-group">
+                            <label htmlFor="password">Password</label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Ingresa tu contraseña"
+                                autoComplete="current-password"
+                            />
+                        </div>
+
+                        {error && <div className="login-error-alert">{error}</div>}
+
+                        <button
+                            type="submit"
+                            className="btn-login-submit"
+                            disabled={loading}
+                        >
+                            {loading ? 'Verificando...' : 'Continue with Email'}
+                        </button>
+                    </form>
+
+                    <div className="login-switch-footer">
+                        <span>Don't have an account? <Link to="/register" className="login-link-highlight">Sign up</Link></span>
+                    </div>
+
+                    <div className="login-legal-footer">
+                        <a href="#privacy">Privacy</a>
+                        <a href="#terms">Terms</a>
+                        <a href="#cookies">Cookies</a>
+                        <span>UPEC</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Columna Derecha: Showcase Visual & Testimonial Académico */}
+            <div className="login-showcase-pane">
+                <div className="showcase-atmosphere"></div>
+                <div className="showcase-content-box">
+                    <div className="showcase-quote-wrapper">
+                        <p className="showcase-quote">
+                            "El método socrático transforma la intuición en maestría técnica de Bases de Datos."
+                        </p>
+                        <div className="showcase-author-card">
+                            <div className="showcase-avatar">A</div>
+                            <div className="showcase-author-info">
+                                <span className="showcase-name">AMY Socrático</span>
+                                <span className="showcase-role">Tutor IA · Universidad Politécnica Estatal del Carchi</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="showcase-tech-cloud">
+                        <span className="tech-badge">PostgreSQL</span>
+                        <span className="tech-badge">pgvector</span>
+                        <span className="tech-badge">Redis</span>
+                        <span className="tech-badge">Mistral 7B</span>
+                        <span className="tech-badge">FastAPI</span>
+                    </div>
                 </div>
             </div>
         </div>

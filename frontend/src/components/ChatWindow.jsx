@@ -1,9 +1,26 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import WorkflowSourceVisualizer from './WorkflowSourceVisualizer';
 import { useChat } from '../hooks/useChat';
 import './ChatWindow.css';
+
+const SOCRATIC_PHRASES = [
+    "¿Qué quieres crear hoy?",
+    "¿Qué consulta SQL optimizamos hoy?",
+    "¿Cómo modelamos tu base de datos hoy?",
+    "¿Normalizamos un esquema relacional?",
+    "¿Qué duda tienes sobre álgebra relacional?",
+    "¿Qué relación o cardinalidad analizamos hoy?",
+    "¿Diseñamos un modelo Entidad-Relación?"
+];
+
+const PROMPT_SUGGESTIONS = [
+    { label: "JOINs y Subconsultas", prompt: "¿Cómo determino qué tipo de JOIN usar entre dos tablas relacionadas?" },
+    { label: "Normalización (1FN a BCNF)", prompt: "¿Cómo sé si una tabla cumple con la 2da y 3ra Forma Normal?" },
+    { label: "Modelo Entidad-Relación", prompt: "¿Cómo identifico las cardinalidades 1:N y N:M en un diagrama E-R?" },
+    { label: "Transacciones y ACID", prompt: "¿Por qué es crucial la propiedad de Aislamiento en bases de datos concurrentes?" }
+];
 
 export default function ChatWindow({ conversationId, onExampleReceived, onConversationCreated, isPanelOpen, onTogglePanel, onToggleSidebar }) {
     const {
@@ -19,6 +36,28 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         selectedModel,
         setSelectedModel
     } = useChat();
+
+    // Frase aleatoria seleccionada al montar el componente
+    const targetPhrase = useMemo(() => {
+        const idx = Math.floor(Math.random() * SOCRATIC_PHRASES.length);
+        return SOCRATIC_PHRASES[idx];
+    }, [currentConversationId]);
+
+    // Construcción progresiva de izquierda a derecha (efecto Typewriter)
+    const [animatedPhrase, setAnimatedPhrase] = useState('');
+    useEffect(() => {
+        let currentIdx = 0;
+        setAnimatedPhrase('');
+        const interval = setInterval(() => {
+            if (currentIdx <= targetPhrase.length) {
+                setAnimatedPhrase(targetPhrase.slice(0, currentIdx));
+                currentIdx++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 40);
+        return () => clearInterval(interval);
+    }, [targetPhrase]);
 
     // Cuando llega un conversationId externo (del sidebar), cargar esa conversación
     useEffect(() => {
@@ -45,12 +84,14 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         sendMessage(text);
     }, [sendMessage]);
 
-    // Cuando el usuario pulsa "Ver Diagrama E-R" en un mensaje anterior
     const handleOpenDiagram = useCallback((example) => {
         if (onExampleReceived && example) {
             onExampleReceived(example);
         }
     }, [onExampleReceived]);
+
+    // Determinar si es una conversación vacía/inicial (solo tiene bienvenida o ningún mensaje de usuario)
+    const hasUserMessages = messages.some(m => m.sender === 'student' || m.sender === 'user');
 
     // Extraer las fuentes RAG del último mensaje del tutor
     const lastTutorMsg = [...messages].reverse().find(m => m.sender === 'tutor' && m.ragSources && m.ragSources.length > 0);
@@ -74,7 +115,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                 </button>
                 <h2>Sesión Educativa</h2>
 
-                {/* CONTENEDOR DERECHO (Extremo derecho del header) */}
+                {/* CONTENEDOR DERECHO */}
                 <div className="header-right-controls">
                     <WorkflowSourceVisualizer isLoading={isLoading} sources={currentSources} />
 
@@ -110,39 +151,75 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                 </div>
             </div>
 
+            {/* Si no hay mensajes del usuario, mostrar el Hero Centrado con Frase Animada (Imagen 1) */}
+            {!hasUserMessages ? (
+                <div className="chat-empty-state">
+                    <div className="chat-empty-content">
+                        <h1 className="chat-animated-title">
+                            {animatedPhrase}
+                            <span className="typewriter-cursor">|</span>
+                        </h1>
 
-            <div className="chat-messages" id="chat-messages">
-                {messages.map(msg => (
-                    <ChatMessage
-                        key={msg.id}
-                        message={msg}
-                        onExplainCode={handleExplainAndFocus}
-                        onOpenDiagram={handleOpenDiagram}
-                    />
-                ))}
+                        <div className="chat-empty-input-container">
+                            <ChatInput
+                                onSend={sendMessage}
+                                disabled={isLoading}
+                                selectedModel={selectedModel}
+                                onModelChange={setSelectedModel}
+                            />
+                        </div>
 
-                {isLoading && (
-                    <div className="chat-message tutor-msg typing-msg">
-                        <div className="msg-avatar tutor-avatar"><span>A</span></div>
-                        <div className="msg-content">
-                            <div className="msg-bubble typing-bubble">
-                                <div className="typing-dots">
-                                    <span></span><span></span><span></span>
-                                </div>
-                            </div>
+                        <div className="chat-suggestions-grid">
+                            {PROMPT_SUGGESTIONS.map((item, idx) => (
+                                <button
+                                    key={idx}
+                                    className="chat-suggestion-chip"
+                                    onClick={() => sendMessage(item.prompt)}
+                                    disabled={isLoading}
+                                >
+                                    <span className="chip-indicator"></span>
+                                    <span>{item.label}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
-                )}
+                </div>
+            ) : (
+                <>
+                    <div className="chat-messages" id="chat-messages">
+                        {messages.map(msg => (
+                            <ChatMessage
+                                key={msg.id}
+                                message={msg}
+                                onExplainCode={handleExplainAndFocus}
+                                onOpenDiagram={handleOpenDiagram}
+                            />
+                        ))}
 
-                <div ref={messagesEndRef} />
-            </div>
+                        {isLoading && (
+                            <div className="chat-message tutor-msg typing-msg">
+                                <div className="msg-avatar tutor-avatar"><span>A</span></div>
+                                <div className="msg-content">
+                                    <div className="msg-bubble typing-bubble">
+                                        <div className="typing-dots">
+                                            <span></span><span></span><span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-            <ChatInput
-                onSend={sendMessage}
-                disabled={isLoading}
-                selectedModel={selectedModel}
-                onModelChange={setSelectedModel}
-            />
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    <ChatInput
+                        onSend={sendMessage}
+                        disabled={isLoading}
+                        selectedModel={selectedModel}
+                        onModelChange={setSelectedModel}
+                    />
+                </>
+            )}
         </main>
     );
 }

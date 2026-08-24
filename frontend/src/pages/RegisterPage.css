@@ -1,13 +1,334 @@
-@import './LoginPage.css';
+/* ── Register Page Code Card Split Layout (Image 5) ───────────── */
 
-.login-link {
-    color: var(--text-primary);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
+.register-split-layout {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: #09090b;
+    color: #ffffff;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    position: relative;
+    overflow-x: hidden;
 }
 
-.login-link:hover {
-    color: var(--accent);
+.register-workspace-wrapper {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 2.5rem;
+    max-width: 1100px;
+    width: 100%;
+    align-items: stretch;
+    position: relative;
+    z-index: 10;
+}
+
+/* ── Left Side: Code Mockup Window ────────────────────────────── */
+.register-code-window {
+    background: #0d0d10;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.code-window-header {
+    background: #141417;
+    border-bottom: 1px solid #27272a;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.code-tabs-list {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.code-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #a1a1aa;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.code-tab-btn:hover {
+    color: #ffffff;
+    background: #18181b;
+}
+
+.code-tab-btn.active {
+    background: #18181b;
+    border-color: #3f3f46;
+    color: #ffffff;
+}
+
+.tab-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.tab-dot.sql { background: #38bdf8; }
+.tab-dot.algebra { background: #ffffff; }
+.tab-dot.rag { background: #10b981; }
+
+.code-window-body {
+    padding: 1.2rem 1.4rem;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 520px;
+    background: #09090b;
+}
+
+.code-pre {
+    margin: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: #e4e4e7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ── Right Side: Floating Register Card ───────────────────────── */
+.register-card-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.register-floating-card {
+    background: #0d0d10;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 2rem 2.2rem;
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    position: relative;
+}
+
+.card-window-dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: -0.3rem;
+}
+
+.card-window-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.card-window-dots .dot.red { background: #ef4444; }
+.card-window-dots .dot.yellow { background: #f59e0b; }
+.card-window-dots .dot.green { background: #10b981; }
+
+.register-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+}
+
+.register-card-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #141417;
+    border: 1px solid #27272a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    margin-bottom: 0.3rem;
+    text-decoration: none;
+}
+
+.register-card-header h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+}
+
+.register-card-header p {
+    font-size: 0.8rem;
+    color: #a1a1aa;
+}
+
+/* ── SSO Buttons ──────────────────────────────────────────────── */
+.register-sso-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.sso-pill-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    width: 100%;
+    background: #141417;
+    color: #ffffff;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.sso-pill-btn:hover:not(:disabled) {
+    background: #18181b;
+    border-color: #3f3f46;
+    color: #ffffff;
+}
+
+.google-sso-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.register-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #71717a;
+    font-size: 0.74rem;
+    margin: 0.1rem 0;
+}
+
+.register-divider::before,
+.register-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #27272a;
+}
+
+.register-divider:not(:empty)::before { margin-right: 0.8em; }
+.register-divider:not(:empty)::after { margin-left: 0.8em; }
+
+/* ── Form Rows ────────────────────────────────────────────────── */
+.register-fields-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.register-input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.register-input-row label {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #e4e4e7;
+}
+
+.register-input-row input {
+    padding: 0.65rem 0.85rem;
+    background: #141417;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.85rem;
+    outline: none;
+    transition: all 0.15s ease;
+}
+
+.register-input-row input::placeholder {
+    color: #71717a;
+    font-size: 0.8rem;
+}
+
+.register-input-row input:focus {
+    border-color: #3f3f46;
+}
+
+.register-error-banner {
+    font-size: 0.78rem;
+    color: #f87171;
+    padding: 0.45rem 0.7rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 6px;
+}
+
+.btn-register-submit {
+    width: 100%;
+    margin-top: 0.3rem;
+    background: #ffffff;
+    color: #09090b;
+    border: 1px solid #ffffff;
+    padding: 0.75rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-register-submit:hover:not(:disabled) {
+    background: #e4e4e7;
+    border-color: #e4e4e7;
+}
+
+.btn-register-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.register-switch-link {
+    text-align: center;
+    font-size: 0.78rem;
+    color: #a1a1aa;
+    margin-top: 0.1rem;
+}
+
+.link-signin {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 0.3rem;
+    transition: color 0.15s;
+}
+
+.link-signin:hover {
     text-decoration: underline;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 960px) {
+    .register-workspace-wrapper {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    .register-code-window {
+        display: none;
+    }
+    .register-floating-card {
+        max-width: 420px;
+        padding: 1.8rem 1.4rem;
+    }
 }

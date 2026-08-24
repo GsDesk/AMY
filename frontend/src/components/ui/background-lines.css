@@ -3,7 +3,7 @@
     position: relative;
     width: 100%;
     overflow: hidden;
-    background-color: #06060c;
+    background-color: #09090b;
     min-height: 80vh;
     display: flex;
     flex-direction: column;
@@ -23,7 +23,7 @@
 .bg-lines-gradient {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.18) 0%, rgba(6, 6, 12, 0.92) 75%);
+    background: radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.03) 0%, rgba(9, 9, 11, 0.95) 75%);
     pointer-events: none;
     z-index: 2;
 }

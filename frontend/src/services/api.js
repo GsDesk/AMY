@@ -6,17 +6,49 @@
 
 const API_BASE = '';
 
-/* ── Token helpers ─────────────────────────────────── */
+/* ── Token helpers & Ngrok / Auth handler ─────────────────────────── */
 
-function getToken() {
+export function getToken() {
     return localStorage.getItem('amy_token');
 }
 
-function authHeaders() {
+export function handleUnauthorized() {
+    localStorage.removeItem('amy_token');
+    localStorage.removeItem('amy_user');
+    window.dispatchEvent(new CustomEvent('amy_auth_expired'));
+    // Si no estamos en páginas públicas, redirigir a login
+    const path = window.location.pathname;
+    if (path !== '/login' && path !== '/register' && path !== '/') {
+        window.location.href = '/login?expired=1';
+    }
+}
+
+export function isTokenValid() {
+    const token = getToken();
+    if (!token) return false;
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return false;
+        const payload = JSON.parse(atob(parts[1]));
+        if (!payload || !payload.exp) return true;
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp < now) {
+            handleUnauthorized();
+            return false;
+        }
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export function authHeaders(extraHeaders = {}) {
     const token = getToken();
     return {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'ngrok-skip-browser-warning': '69420',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...extraHeaders
     };
 }
 
@@ -25,13 +57,16 @@ function authHeaders() {
 export async function login(email, password) {
     const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
+        },
         body: JSON.stringify({ email, password })
     });
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || `Error de autenticacion: ${response.status}`);
+        throw new Error(data.detail || `Error de autenticación: ${response.status}`);
     }
 
     const data = await response.json();
@@ -41,9 +76,11 @@ export async function login(email, password) {
 }
 
 export async function getAuthConfig() {
-    const response = await fetch(`${API_BASE}/api/auth/config`);
+    const response = await fetch(`${API_BASE}/api/auth/config`, {
+        headers: { 'ngrok-skip-browser-warning': '69420' }
+    });
     if (!response.ok) {
-        throw new Error(`Error al obtener configuracion: ${response.status}`);
+        throw new Error(`Error al obtener configuración: ${response.status}`);
     }
     return await response.json();
 }
@@ -51,7 +88,10 @@ export async function getAuthConfig() {
 export async function loginWithMicrosoft(accessToken) {
     const response = await fetch(`${API_BASE}/api/auth/microsoft-login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
+        },
         body: JSON.stringify({ accessToken })
     });
 
@@ -69,13 +109,16 @@ export async function loginWithMicrosoft(accessToken) {
 export async function googleLogin(credential) {
     const response = await fetch(`${API_BASE}/api/auth/google-login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
+        },
         body: JSON.stringify({ credential })
     });
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || `Error de autenticacion con Google: ${response.status}`);
+        throw new Error(data.detail || `Error de autenticación con Google: ${response.status}`);
     }
 
     const data = await response.json();
@@ -87,7 +130,10 @@ export async function googleLogin(credential) {
 export async function register(email, password, nombre) {
     const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
+        },
         body: JSON.stringify({ email, password, nombre })
     });
 
@@ -106,7 +152,6 @@ export function logout() {
     localStorage.clear();
 }
 
-
 export function getUser() {
     try {
         const raw = localStorage.getItem('amy_user');
@@ -117,7 +162,7 @@ export function getUser() {
 }
 
 export function isAuthenticated() {
-    return !!getToken();
+    return isTokenValid();
 }
 
 /* ── Chat ───────────────────────────────────────────── */
@@ -142,6 +187,11 @@ export async function sendChatMessage(studentQuery, conversationId = null, signa
 
     const response = await fetch(`${API_BASE}/api/chat`, fetchOptions);
 
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok && response.status !== 503) {
         throw new Error(`Error del servidor: ${response.status}`);
     }
@@ -154,7 +204,9 @@ export async function sendChatMessage(studentQuery, conversationId = null, signa
 
 export async function checkHealth() {
     try {
-        const response = await fetch(`${API_BASE}/health`);
+        const response = await fetch(`${API_BASE}/health`, {
+            headers: { 'ngrok-skip-browser-warning': '69420' }
+        });
         if (!response.ok) throw new Error('Health check failed');
         return await response.json();
     } catch {
@@ -176,6 +228,11 @@ export async function getConversations(signal = null) {
 
     const response = await fetch(`${API_BASE}/api/conversations`, fetchOptions);
 
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al obtener conversaciones: ${response.status}`);
     }
@@ -193,6 +250,11 @@ export async function createConversation(titulo, signal = null) {
 
     const response = await fetch(`${API_BASE}/api/conversations`, fetchOptions);
 
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al crear conversacion: ${response.status}`);
     }
@@ -205,6 +267,11 @@ export async function getMessages(conversationId, signal = null) {
     if (signal) fetchOptions.signal = signal;
 
     const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, fetchOptions);
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
 
     if (!response.ok) {
         throw new Error(`Error al obtener mensajes: ${response.status}`);
@@ -221,6 +288,11 @@ export async function deleteConversation(id, signal = null) {
     if (signal) fetchOptions.signal = signal;
 
     const response = await fetch(`${API_BASE}/api/conversations/${id}`, fetchOptions);
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
 
     if (!response.ok) {
         throw new Error(`Error al eliminar conversacion: ${response.status}`);
@@ -239,6 +311,12 @@ export async function getAdminStats() {
     const response = await fetch(`${API_BASE}/api/admin/stats`, {
         headers: authHeaders()
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al obtener estadísticas: ${response.status}`);
     }
@@ -249,6 +327,12 @@ export async function getAdminUsers() {
     const response = await fetch(`${API_BASE}/api/admin/users`, {
         headers: authHeaders()
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al obtener usuarios: ${response.status}`);
     }
@@ -261,6 +345,12 @@ export async function updateUserRole(userId, rol) {
         headers: authHeaders(),
         body: JSON.stringify({ rol })
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.detail || `Error al actualizar rol: ${response.status}`);
@@ -273,6 +363,12 @@ export async function getAdminKnowledge(category = 'all', limit = 50, offset = 0
     const response = await fetch(url, {
         headers: authHeaders()
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al obtener fragmentos RAG: ${response.status}`);
     }
@@ -284,6 +380,12 @@ export async function deleteKnowledgeFragment(fragmentId) {
         method: 'DELETE',
         headers: authHeaders()
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al eliminar fragmento RAG: ${response.status}`);
     }
@@ -294,6 +396,12 @@ export async function getAdminAnalytics() {
     const response = await fetch(`${API_BASE}/api/admin/analytics`, {
         headers: authHeaders()
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al obtener analíticas RAG: ${response.status}`);
     }
@@ -304,6 +412,12 @@ export async function getDmzLogs() {
     const response = await fetch(`${API_BASE}/api/admin/dmz-logs`, {
         headers: authHeaders()
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
     if (!response.ok) {
         throw new Error(`Error al obtener registros DMZ: ${response.status}`);
     }
@@ -318,7 +432,7 @@ export async function ingestAcademicFile(file, categoria, fuente = '', autor = '
     if (autor) formData.append('autor', autor);
 
     const token = getToken();
-    const headers = {};
+    const headers = { 'ngrok-skip-browser-warning': '69420' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const response = await fetch(`${API_BASE}/api/admin/ingest-file`, {
@@ -326,6 +440,11 @@ export async function ingestAcademicFile(file, categoria, fuente = '', autor = '
         headers,
         body: formData
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
 
     const data = await response.json().catch(() => ({}));
 
@@ -342,6 +461,11 @@ export async function ingestKnowledge(contenido, categoria, metadata = {}) {
         headers: authHeaders(),
         body: JSON.stringify({ contenido, categoria, metadata })
     });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
 
     const data = await response.json().catch(() => ({}));
 

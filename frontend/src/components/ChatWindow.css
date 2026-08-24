@@ -1,4 +1,4 @@
-﻿/* ── ChatWindow ─────────────────────────────────────── */
+/* ── ChatWindow ─────────────────────────────────────── */
 .chat-window {
     flex: 1;
     display: flex;
@@ -7,12 +7,16 @@
     min-width: 0;
     border-radius: 0;
     height: 100vh;
+    background: #09090b;
 }
 
 /* ── Header ─────────────────────────────────────────── */
 .chat-header {
-    padding: 0.7rem 1rem;
-    border-bottom: 1px solid var(--border-primary);
+    padding: 0.8rem 1.2rem;
+    border-bottom: 1px solid #27272a;
+    background: #0d0d10;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -22,9 +26,11 @@
 }
 
 .chat-header h2 {
-    font-size: 0.88rem;
+    font-size: 0.82rem;
+    font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
-    color: var(--text-primary);
+    color: #ffffff;
+    letter-spacing: 0.5px;
     white-space: nowrap;
     flex: 1;
 }
@@ -70,9 +76,9 @@
 
 /* ── Icon buttons ────────────────────────────────────── */
 .icon-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #ffffff;
     cursor: pointer;
     padding: 0.38rem;
     border-radius: 6px;
@@ -83,8 +89,9 @@
 }
 
 .icon-btn:hover {
-    color: var(--text-secondary);
-    background: var(--bg-tertiary);
+    color: #ffffff;
+    background: #27272a;
+    border-color: #3f3f46;
 }
 
 /* ── Messages area ───────────────────────────────────── */
@@ -97,6 +104,7 @@
     gap: 0.9rem;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    background: #09090b;
 }
 
 /* ── Typing indicator ────────────────────────────────── */
@@ -109,15 +117,120 @@
 }
 
 .typing-dots span {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: var(--text-muted);
+    background: #ffffff;
     animation: dot-pulse 1.2s infinite;
 }
 
 .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
 .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+/* ── Empty State Hero (Image 1) ──────────────────────── */
+.chat-empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
+}
+
+.chat-empty-content {
+    max-width: 680px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.8rem;
+    animation: fadeInEmpty 0.4s ease-out;
+}
+
+@keyframes fadeInEmpty {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-animated-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: -0.02em;
+    min-height: 2.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+}
+
+.typewriter-cursor {
+    color: #a78bfa;
+    font-weight: 300;
+    animation: blinkCursor 0.8s infinite;
+}
+
+@keyframes blinkCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.chat-empty-input-container {
+    width: 100%;
+}
+
+.chat-empty-input-container .chat-input-area {
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+.chat-empty-input-container .input-wrapper {
+    background: rgba(14, 14, 30, 0.95);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(139, 92, 246, 0.15);
+    padding: 0.6rem 0.6rem 0.6rem 1.2rem;
+    border-radius: 16px;
+}
+
+.chat-suggestions-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    max-width: 620px;
+}
+
+.chat-suggestion-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.9rem;
+    background: rgba(18, 18, 40, 0.7);
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    border-radius: 9999px;
+    color: #cbd5e1;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chat-suggestion-chip:hover {
+    background: rgba(139, 92, 246, 0.18);
+    border-color: rgba(139, 92, 246, 0.45);
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+    transform: translateY(-1px);
+}
+
+.chip-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #38bdf8;
+}
 
 @keyframes dot-pulse {
     0%, 60%, 100% { opacity: 0.3; }

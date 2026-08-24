@@ -1,21 +1,54 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BackgroundLines } from '../components/ui/background-lines';
 import './LandingPage.css';
 
 export default function LandingPage() {
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 40) {
+                setIsScrolled(true);
+            } else {
+                setIsScrolled(false);
+            }
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
         <div className="landing">
-            {/* Header */}
-            <header className="landing-header">
-                <div className="landing-logo">AMY</div>
-                <nav className="landing-nav">
-                    <Link to="/login" className="btn btn-header">Iniciar Sesión</Link>
-                </nav>
-            </header>
+            {/* Header con animación de píldora flotante reactiva al scroll */}
+            <div className={`landing-header-container ${isScrolled ? 'is-scrolled' : ''}`}>
+                <header className={`landing-header ${isScrolled ? 'floating-pill' : ''}`}>
+                    <div className="landing-logo-group">
+                        <div className="landing-logo-mark">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <span className="landing-logo">AMY</span>
+                    </div>
+
+                    <nav className="landing-center-nav">
+                        <a href="#hero" className="landing-nav-link">Inicio</a>
+                        <a href="#features" className="landing-nav-link">Funcionalidades</a>
+                        <a href="#socratic" className="landing-nav-link">Método Socrático</a>
+                        <a href="#architecture" className="landing-nav-link">Arquitectura RAG</a>
+                    </nav>
+
+                    <div className="landing-nav-actions">
+                        <Link to="/login" className="btn btn-header-login">Iniciar Sesión</Link>
+                        <Link to="/register" className="btn btn-header-register">Comenzar</Link>
+                    </div>
+                </header>
+            </div>
 
             {/* Hero decorado con BackgroundLines */}
             <BackgroundLines className="hero-background-wrapper">
-                <section className="hero">
+                <section className="hero" id="hero">
                     <div className="hero-content">
                         <span className="hero-badge">UPEC / Ingeniería en Computación</span>
                         <h1 className="hero-title">
@@ -28,7 +61,7 @@ export default function LandingPage() {
                             Sin respuestas directas, solo preguntas que te llevan a la solución.
                         </p>
                         <div className="hero-actions">
-                            <Link to="/login" className="btn btn-primary btn-lg">
+                            <Link to="/register" className="btn btn-primary btn-lg">
                                 Comenzar ahora
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                             </Link>
@@ -69,12 +102,12 @@ export default function LandingPage() {
 
             {/* Features */}
             <section className="features" id="features">
-                <h2 className="section-title">Funcionalidades</h2>
+                <h2 className="section-title">Funcionalidades Principales</h2>
                 <div className="features-grid">
                     <div className="feature-card panel">
                         <div className="feature-icon">RAG</div>
                         <h3>Base de Conocimiento</h3>
-                        <p>Dataset académico indexado con vectores de 4096 dimensiones. Respuestas fundamentadas en fuentes bibliográficas reales.</p>
+                        <p>Dataset académico indexado con vectores de 768 dimensiones. Respuestas fundamentadas en fuentes bibliográficas reales.</p>
                     </div>
                     <div className="feature-card panel">
                         <div className="feature-icon">SQL</div>
@@ -94,8 +127,30 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* Método Socrático */}
+            <section className="features" id="socratic" style={{ paddingTop: '1rem' }}>
+                <h2 className="section-title">Metodología Pedagógica Socrática</h2>
+                <div className="features-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    <div className="feature-card panel">
+                        <div className="feature-icon">01</div>
+                        <h3>Inducción Reflexiva</h3>
+                        <p>AMY no entrega el código final de inmediato; te ayuda a descomponer el problema en premisas lógicas para que descubras la respuesta.</p>
+                    </div>
+                    <div className="feature-card panel">
+                        <div className="feature-icon">02</div>
+                        <h3>Diagnóstico de Errores</h3>
+                        <p>Si cometes un error conceptual en una clave foránea o forma normal, AMY te formula contraejemplos para validar tu razonamiento.</p>
+                    </div>
+                    <div className="feature-card panel">
+                        <div className="feature-icon">03</div>
+                        <h3>Validación de Esquemas</h3>
+                        <p>Visualiza diagramas entidad-relación generados dinámicamente y scripts SQL DDL verificados en tiempo real.</p>
+                    </div>
+                </div>
+            </section>
+
             {/* Footer */}
-            <footer className="landing-footer">
+            <footer className="landing-footer" id="architecture">
                 <div className="footer-content">
                     <div className="footer-brand">
                         <span className="footer-logo">AMY</span>
@@ -103,7 +158,7 @@ export default function LandingPage() {
                         <span>Fundamentos de Bases de Datos</span>
                     </div>
                     <div className="footer-info">
-                        Universidad Politécnica Estatal del Carchi
+                        Universidad Politécnica Estatal del Carchi — UPEC
                     </div>
                 </div>
             </footer>

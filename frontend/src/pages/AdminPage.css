@@ -1,18 +1,19 @@
-﻿/* ============================================================
+/* ============================================================
    AMY — Admin Panel Styling (Monochromatic Strict Mode & Zero Emojis)
    ============================================================ */
 
 :root {
     --tailark-bg: #09090b;
     --tailark-card-bg: #141417;
-    --tailark-card-hover: #18181b;
+    --tailark-card-hover: #1f1f23;
     --tailark-border: #27272a;
-    --tailark-border-subtle: #1f1f23;
-    --tailark-text: #f4f4f5;
+    --tailark-border-subtle: #27272a;
+    --tailark-text: #ffffff;
     --tailark-text-muted: #a1a1aa;
     --tailark-text-dim: #71717a;
-    --tailark-primary: #38bdf8;
-    --tailark-green: #22c55e;
+    --tailark-primary: #ffffff;
+    --tailark-cyan: #38bdf8;
+    --tailark-green: #10b981;
     --tailark-red: #ef4444;
 }
 

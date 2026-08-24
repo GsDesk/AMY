@@ -1,50 +1,57 @@
 /* ============================================================
    AMY — Asistente de Base de Datos UPEC
-   Design System: Neutral Gray Professional Theme
+   Design System: Classical Monochrome (Black, White & Zinc Dark Mode)
    ============================================================ */
 
 :root {
     /* -- Backgrounds --------------------------------- */
-    --bg-primary: #0e0e0e;
-    --bg-secondary: #161616;
-    --bg-tertiary: #1c1c1c;
-    --bg-card: #1a1a1a;
-    --bg-elevated: #222222;
+    --bg-primary: #09090b;
+    --bg-secondary: #0f0f12;
+    --bg-tertiary: #18181b;
+    --bg-card: #141417;
+    --bg-elevated: #1f1f23;
 
     /* -- Borders ------------------------------------ */
-    --border-primary: #2a2a2a;
-    --border-secondary: #333333;
-    --border-focus: #555555;
+    --border-primary: #27272a;
+    --border-secondary: #3f3f46;
+    --border-focus: #52525b;
 
     /* -- Text --------------------------------------- */
-    --text-primary: #e0e0e0;
-    --text-secondary: #8a8a8a;
-    --text-muted: #5a5a5a;
+    --text-primary: #ffffff;
+    --text-secondary: #e4e4e7;
+    --text-muted: #a1a1aa;
+    --text-dim: #71717a;
 
-    /* -- Accent (Clean White) ----------------------- */
+    /* -- Accent (Classic White & Technical Cyan) ---- */
     --accent: #ffffff;
-    --accent-muted: #b0b0b0;
-    --accent-dim: #666666;
+    --accent-violet: #ffffff;
+    --accent-cyan: #38bdf8;
+    --accent-muted: #d4d4d8;
+    --accent-dim: #27272a;
+    --accent-gradient: none;
+    --accent-gradient-btn: #ffffff;
+    --accent-gradient-btn-hover: #e4e4e7;
 
     /* -- Semantic ----------------------------------- */
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --error: #f87171;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
 
     /* -- Interactive -------------------------------- */
-    --btn-bg: #2a2a2a;
-    --btn-hover: #363636;
-    --btn-active: #404040;
+    --btn-bg: #18181b;
+    --btn-hover: #27272a;
+    --btn-active: #3f3f46;
 
     /* -- Chat Bubbles ------------------------------- */
-    --amy-msg-bg: #1a1a1a;
-    --amy-msg-border: #2a2a2a;
-    --user-msg-bg: #222222;
-    --user-msg-border: #333333;
+    --amy-msg-bg: #121215;
+    --amy-msg-border: #27272a;
+    --amy-msg-accent: #38bdf8;
+    --user-msg-bg: #18181b;
+    --user-msg-border: #27272a;
 
-    /* -- Panel (Glass removed, solid) --------------- */
-    --panel-bg: #141414;
-    --panel-border: #232323;
+    /* -- Panel -------------------------------------- */
+    --panel-bg: #0d0d10;
+    --panel-border: #27272a;
 }
 
 /* -- Reset ------------------------------------------- */
@@ -58,7 +65,6 @@ html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Evita zoom en iOS al enfocar inputs */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
 }
@@ -69,7 +75,6 @@ body {
     color: var(--text-primary);
     min-height: 100vh;
     min-height: 100dvh;
-    /* Previene scroll horizontal en móvil */
     overflow-x: hidden;
 }
 
@@ -79,11 +84,13 @@ body {
     min-height: 100dvh;
 }
 
-/* -- Solid Panel (replaces glassmorphism) ------------ */
+/* -- Panel Glass ------------------------------------- */
 .panel {
     background: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--panel-border);
-    border-radius: 16px;
+    border-radius: 14px;
 }
 
 /* -- Typography -------------------------------------- */
@@ -108,20 +115,20 @@ a:hover {
 }
 
 /* -- Scrollbar --------------------------------------- */
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: var(--border-primary);
+    background: #27272a;
     border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--border-secondary);
+    background: #3f3f46;
 }
 
 /* -- Selection --------------------------------------- */
 ::selection {
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
+    background: #27272a;
+    color: #ffffff;
 }
 
 /* -- Focus ------------------------------------------- */
@@ -145,7 +152,7 @@ a:hover {
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 
 .btn:hover {
@@ -154,14 +161,16 @@ a:hover {
 }
 
 .btn-primary {
-    background: var(--text-primary);
-    color: var(--bg-primary);
-    border-color: var(--text-primary);
+    background: #ffffff;
+    color: #09090b;
+    border: 1px solid #ffffff;
+    font-weight: 600;
 }
 
 .btn-primary:hover {
-    background: var(--accent);
-    border-color: var(--accent);
+    background: #e4e4e7;
+    border-color: #e4e4e7;
+    transform: translateY(-1px);
 }
 
 .btn-lg {

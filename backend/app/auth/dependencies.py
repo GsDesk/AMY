@@ -30,7 +30,8 @@ async def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token invalido: identificador de usuario ausente.",
             )
-    except JWTError:
+    except JWTError as e:
+        logger.warning("Token JWT invalido o expirado: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token invalido o expirado.",
@@ -41,6 +42,7 @@ async def get_current_user(
         user_id,
     )
     if row is None:
+        logger.warning("Usuario con id=%s no encontrado en la base de datos", user_id)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no encontrado.",
