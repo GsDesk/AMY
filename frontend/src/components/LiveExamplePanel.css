@@ -1072,3 +1072,89 @@
         font-size: 0.72rem;
     }
 }
+
+/* ── Estado de Tablero E-R en Blanco (Limpio) ────────────────────────── */
+.er-empty-board-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    width: 100%;
+    padding: 2.5rem 1.5rem;
+    box-sizing: border-box;
+}
+
+.er-empty-board-card {
+    max-width: 520px;
+    width: 100%;
+    background: radial-gradient(circle at center, rgba(6, 182, 212, 0.04) 0%, rgba(18, 20, 24, 0.92) 100%);
+    border: 1px solid rgba(6, 182, 212, 0.22);
+    border-radius: 16px;
+    padding: 2.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 0 24px rgba(6, 182, 212, 0.04);
+}
+
+.er-empty-board-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 0 24px rgba(6, 182, 212, 0.18);
+}
+
+.er-empty-board-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #f4f4f5;
+    margin: 0 0 0.6rem 0;
+    letter-spacing: -0.01em;
+}
+
+.er-empty-board-desc {
+    font-size: 0.84rem;
+    color: #a1a1aa;
+    line-height: 1.55;
+    margin: 0 0 1.4rem 0;
+}
+
+.er-empty-board-features {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    width: 100%;
+    text-align: left;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 1rem 1.15rem;
+}
+
+.er-empty-feat-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: 0.8rem;
+    color: #d4d4d8;
+    line-height: 1.4;
+}
+
+.er-feat-dot {
+    color: #06b6d4;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+.er-badge-blank {
+    background: rgba(148, 163, 184, 0.15) !important;
+    border-color: rgba(148, 163, 184, 0.3) !important;
+    color: #94a3b8 !important;
+}

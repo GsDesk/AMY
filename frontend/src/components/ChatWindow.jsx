@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import WorkflowSourceVisualizer from './WorkflowSourceVisualizer';
+import MorphThinkingAnimation from './MorphThinkingAnimation';
 import { useChat } from '../hooks/useChat';
 import './ChatWindow.css';
 
@@ -22,7 +23,18 @@ const PROMPT_SUGGESTIONS = [
     { label: "Transacciones y ACID", prompt: "¿Por qué es crucial la propiedad de Aislamiento en bases de datos concurrentes?" }
 ];
 
-export default function ChatWindow({ conversationId, onExampleReceived, onConversationCreated, isPanelOpen, onTogglePanel, onToggleSidebar }) {
+function isExampleOrProblemQuery(query, attachment) {
+    if (attachment) return true;
+    if (!query) return false;
+    const q = query.toLowerCase().trim();
+    const isConceptual = /\b(para\s+qu[eé]\s+sirve|qu[eé]\s+es|qu[eé]\s+son|c[oó]mo\s+funciona|concepto\s+de|definici[oó]n\s+de|por\s+qu[eé]|diferencia\s+entre|fundamentos)\b/i.test(q);
+    const asksExample = /\b(ejemplo|ejercicio|pr[aá]ctica|practica|caso\s+pr[aá]ctico|dise[ñn]a|modela|crea\s+un\s+diagrama|genera\s+un\s+diagrama|haz\s+un\s+diagrama|diagrama\s+e-?r|problema)\b/i.test(q);
+    if (asksExample) return true;
+    if (isConceptual) return false;
+    return false;
+}
+
+export default function ChatWindow({ conversationId, onExampleReceived, onResetExample, onConversationCreated, isPanelOpen, onTogglePanel, onToggleSidebar }) {
     const {
         messages,
         isLoading,
@@ -73,9 +85,36 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
         }
     }, [currentConversationId, onConversationCreated]);
 
+    // Verificar si la conversación activa contiene algún ejemplo solicitado
+    useEffect(() => {
+        const hasLiveExample = messages.some(m =>
+            m.sender === 'tutor' &&
+            m.liveExample &&
+            !m.liveExample.isEmpty &&
+            m.liveExample.tables?.length > 0
+        );
+        if (!hasLiveExample && onResetExample) {
+            onResetExample();
+        }
+    }, [messages, onResetExample]);
+
+    // Si el backend envía un live_example válido en el stream
+    useEffect(() => {
+        if (lastExample && !lastExample.isEmpty && lastExample.tables?.length > 0 && onExampleReceived) {
+            onExampleReceived(lastExample);
+        }
+    }, [lastExample, onExampleReceived]);
+
+    const handleSend = useCallback((text, attachment = null) => {
+        if (!isExampleOrProblemQuery(text, attachment) && onResetExample) {
+            onResetExample();
+        }
+        sendMessage(text, attachment);
+    }, [sendMessage, onResetExample]);
+
     const handleExplainAndFocus = useCallback((text) => {
-        sendMessage(text);
-    }, [sendMessage]);
+        handleSend(text);
+    }, [handleSend]);
 
     const handleOpenDiagram = useCallback((example) => {
         if (onExampleReceived && example) {
@@ -156,7 +195,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
 
                         <div className="chat-empty-input-container">
                             <ChatInput
-                                onSend={sendMessage}
+                                onSend={handleSend}
                                 disabled={isLoading}
                                 selectedModel={selectedModel}
                                 onModelChange={setSelectedModel}
@@ -168,7 +207,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                                 <button
                                     key={idx}
                                     className="chat-suggestion-chip"
-                                    onClick={() => sendMessage(item.prompt)}
+                                    onClick={() => handleSend(item.prompt)}
                                     disabled={isLoading}
                                 >
                                     <span className="chip-indicator"></span>
@@ -197,15 +236,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                                 </div>
                                 <div className="msg-content">
                                     <div className="msg-bubble typing-bubble-round">
-                                        <div className="astronaut-thinking-bubble-round">
-                                            <div className="astronaut-avatar-orb">
-                                                <img src="/astronaut-walking.gif" alt="AMY Pensando..." className="astronaut-walking-media" />
-                                            </div>
-                                            <div className="astronaut-thinking-text">
-                                                <span className="astronaut-thinking-title">AMY está pensando...</span>
-                                                <span className="astronaut-thinking-sub">Analizando esquemas y bases de datos</span>
-                                            </div>
-                                        </div>
+                                        <MorphThinkingAnimation />
                                     </div>
                                 </div>
                             </div>
@@ -215,7 +246,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onConver
                     </div>
 
                     <ChatInput
-                        onSend={sendMessage}
+                        onSend={handleSend}
                         disabled={isLoading}
                         selectedModel={selectedModel}
                         onModelChange={setSelectedModel}

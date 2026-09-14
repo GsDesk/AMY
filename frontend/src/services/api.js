@@ -422,8 +422,13 @@ export async function deleteConversation(id, signal = null) {
 
 /* ── Admin & DMZ Ingestion ────────────────────────────── */
 
-export async function getAdminStats() {
-    const response = await fetch(`${API_BASE}/api/admin/stats`, {
+export async function getAdminStats(category = 'all', timeRange = '30days', frequency = 'diario') {
+    const params = new URLSearchParams({
+        category,
+        time_range: timeRange,
+        frequency
+    });
+    const response = await fetch(`${API_BASE}/api/admin/stats?${params.toString()}`, {
         headers: authHeaders()
     });
 

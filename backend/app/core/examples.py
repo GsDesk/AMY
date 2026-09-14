@@ -234,6 +234,10 @@ def detect_example(query: str, topic: str = "") -> dict | None:
     interactivo de relaciones entre tablas.
     Retorna el ejemplo apropiado o None.
     """
+    from app.core.guardrails import is_example_or_problem_requested
+    if not is_example_or_problem_requested(query):
+        return None
+
     text = (query + " " + topic).lower().strip()
 
     # Primero verificar si hay una palabra de activacion

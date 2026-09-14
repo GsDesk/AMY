@@ -252,7 +252,7 @@ function TableEntityCard({
                                     {col.isFk && <span className="er-badge-constraint badge-fk">FK</span>}
                                     {col.references && (
                                         <span className="er-ref-target" title={col.references}>
-                                            -> {col.references.split('(')[0]}
+                                            &rarr; {col.references.split('(')[0]}
                                         </span>
                                     )}
                                 </div>
@@ -270,8 +270,8 @@ function TableEntityCard({
     );
 }
 
-/* ── Datos de Referencia Pedagógica de Normalización (1FN, 2FN, 3FN) ── */
-const NORMALIZATION_DATA = {
+/* ── Datos de Normalización Académica (Estudiantes, Carreras, Cursos) ── */
+const ACADEMIC_NORMALIZATION_DATA = {
     '0fn': {
         title: '0FN — Tabla No Normalizada (Sin Normalizar)',
         badge: '0FN',
@@ -412,10 +412,9 @@ const NORMALIZATION_DATA = {
     }
 };
 
-/* ── Esquemas Completos de Normalización para Tablero E-R, Conceptual y SQL ── */
-const NORMALIZATION_SCHEMAS = {
+const ACADEMIC_NORMALIZATION_SCHEMAS = {
     '0fn': {
-        title: '0FN — Tabla No Normalizada (Sin Normalizar)',
+        title: '0FN — Tabla No Normalizada: Reporte_Matriculas_General',
         cardinality: '0FN',
         description: 'Tabla única desnormalizada con anomalías de redundancia y atributos no atómicos.',
         tables: [
@@ -433,7 +432,7 @@ const NORMALIZATION_SCHEMAS = {
         relationships: []
     },
     '1fn': {
-        title: '1FN — Primera Forma Normal (Valores Atómicos)',
+        title: '1FN — Primera Forma Normal: Estudiante_1FN',
         cardinality: '1FN',
         description: 'Todos los atributos son atómicos e indivisibles, con clave primaria única Id_Estudiante.',
         tables: [
@@ -451,7 +450,7 @@ const NORMALIZATION_SCHEMAS = {
         relationships: []
     },
     '2fn': {
-        title: '2FN — Segunda Forma Normal (Eliminación de Dep. Parciales)',
+        title: '2FN — Segunda Forma Normal: ESTUDIANTE — DOCENTE — DOCENTE_POR_ESTUDIANTE',
         cardinality: '2FN',
         description: 'Separación en entidades Estudiante y Docente para evitar dependencias funcionales parciales.',
         tables: [
@@ -535,8 +534,482 @@ const NORMALIZATION_SCHEMAS = {
     }
 };
 
+/* ── Datos de Normalización Comercial / Facturación / Ventas ─────── */
+const SALES_NORMALIZATION_DATA = {
+    '0fn': {
+        title: '0FN — Tabla No Normalizada: Reporte_Facturacion_General',
+        badge: '0FN',
+        badgeColor: '#ef4444',
+        rule: 'Datos de ventas y facturación almacenados en una sola estructura con atributos multivaluados y grupos repetitivos.',
+        anomaly: 'Redundancia severa: Los datos del cliente y vendedor se duplican en cada fila de producto facturado. Si un cliente no compra no puede registrarse, y si se borra un detalle se pierde la venta.',
+        tables: [
+            {
+                name: 'Reporte_Facturacion_General',
+                description: 'Tabla desnormalizada con repetición de clientes, empleados y líneas de productos',
+                columns: ['Num_Factura', 'Fecha_Emision', 'Cliente', 'CI_RUC', 'Empleado', 'Producto', 'Cant', 'Precio_Unit', 'Subtotal'],
+                rows: [
+                    ['FAC-001', '2026-03-10', 'Carlos Mendoza', '1712345678', 'Ana Gómez', 'Laptop Dell XPS', '1', '$1200.00', '$1200.00'],
+                    ['FAC-001', '2026-03-10', 'Carlos Mendoza', '1712345678', 'Ana Gómez', 'Mouse Inalámbrico', '2', '$25.00', '$50.00'],
+                    ['FAC-002', '2026-03-11', 'Elena Morales', '0923456781', 'Luis Torres', 'Teclado Mecánico', '1', '$80.00', '$80.00'],
+                    ['FAC-003', '2026-03-12', 'Carlos Mendoza', '1712345678', 'Ana Gómez', 'Monitor 27 Pulgadas', '1', '$300.00', '$300.00']
+                ]
+            }
+        ]
+    },
+    '1fn': {
+        title: '1FN — Primera Forma Normal: Ventas_Detalle_1FN',
+        badge: '1FN',
+        badgeColor: '#f59e0b',
+        rule: 'Todos los atributos son atómicos e indivisibles. Se eliminan grupos repetitivos definiendo una clave primaria compuesta (id_factura + id_producto).',
+        anomaly: 'Dependencias parciales: Cliente, CI y Empleado dependen solo de id_factura; mientras que Nombre_Producto y Precio dependen solo de id_producto.',
+        tables: [
+            {
+                name: 'Ventas_Detalle_1FN',
+                description: 'Valores atómicos con clave primaria compuesta (id_factura, id_producto)',
+                columns: ['id_factura (PK)', 'id_producto (PK)', 'fecha_emision', 'nombre_cliente', 'ci_ruc', 'empleado', 'nombre_producto', 'precio_unitario', 'cantidad'],
+                pkIndex: 0,
+                rows: [
+                    ['1', '101', '2026-03-10', 'Carlos Mendoza', '1712345678', 'Ana Gómez', 'Laptop Dell XPS', '$1200.00', '1'],
+                    ['1', '102', '2026-03-10', 'Carlos Mendoza', '1712345678', 'Ana Gómez', 'Mouse Inalámbrico', '$25.00', '2'],
+                    ['2', '103', '2026-03-11', 'Elena Morales', '0923456781', 'Luis Torres', 'Teclado Mecánico', '$80.00', '1'],
+                    ['3', '104', '2026-03-12', 'Carlos Mendoza', '1712345678', 'Ana Gómez', 'Monitor 27 Pulgadas', '$300.00', '1']
+                ]
+            }
+        ]
+    },
+    '2fn': {
+        title: '2FN — Segunda Forma Normal: Factura — Producto — Detalle_Factura',
+        badge: '2FN',
+        badgeColor: '#38bdf8',
+        rule: 'Cumple 1FN y se eliminan dependencias funcionales parciales separando las entidades principales de la transacción.',
+        anomaly: 'Dependencia transitiva en FACTURA: El nombre y CI del cliente dependen de id_cliente y no directamente de id_factura.',
+        tables: [
+            {
+                name: 'FACTURA',
+                description: 'Cabecera de transacción de venta sin repetición de productos',
+                columns: ['id_factura (PK)', 'numero_factura', 'fecha_emision', 'id_cliente (FK)', 'nombre_cliente', 'id_empleado (FK)'],
+                pkIndex: 0,
+                fkIndices: [3, 5],
+                rows: [
+                    ['1', 'FAC-001', '2026-03-10', '10', 'Carlos Mendoza', '5'],
+                    ['2', 'FAC-002', '2026-03-11', '20', 'Elena Morales', '8'],
+                    ['3', 'FAC-003', '2026-03-12', '10', 'Carlos Mendoza', '5']
+                ]
+            },
+            {
+                name: 'PRODUCTO',
+                description: 'Catálogo independiente de artículos y precios',
+                columns: ['id_producto (PK)', 'codigo_producto', 'nombre', 'precio_unitario', 'stock'],
+                pkIndex: 0,
+                rows: [
+                    ['101', 'PRD-01', 'Laptop Dell XPS', '$1200.00', '15'],
+                    ['102', 'PRD-02', 'Mouse Inalámbrico', '$25.00', '50'],
+                    ['103', 'PRD-03', 'Teclado Mecánico', '$80.00', '30'],
+                    ['104', 'PRD-04', 'Monitor 27 Pulgadas', '$300.00', '20']
+                ]
+            },
+            {
+                name: 'DETALLE_FACTURA',
+                description: 'Líneas de venta vinculadas por claves foráneas a Factura y Producto',
+                columns: ['id_factura (FK)', 'id_producto (FK)', 'cantidad', 'precio_unitario', 'subtotal'],
+                fkIndices: [0, 1],
+                rows: [
+                    ['1', '101', '1', '$1200.00', '$1200.00'],
+                    ['1', '102', '2', '$25.00', '$50.00'],
+                    ['2', '103', '1', '$80.00', '$80.00'],
+                    ['3', '104', '1', '$300.00', '$300.00']
+                ]
+            }
+        ]
+    },
+    '3fn': {
+        title: '3FN — Tercera Forma Normal: CLIENTE — EMPLEADO — FACTURA — DETALLE — PRODUCTO',
+        badge: '3FN',
+        badgeColor: '#10b981',
+        rule: 'Cumple 2FN y se eliminan dependencias transitivas: CLIENTE y EMPLEADO se extraen como entidades maestras independientes.',
+        anomaly: 'Esquema relacional en 3FN óptimo de producción: cero redundancia y máxima integridad referencial.',
+        tables: [
+            {
+                name: 'CLIENTE',
+                description: 'Catálogo maestro de clientes (sin duplicidad en facturas)',
+                columns: ['id_cliente (PK)', 'ci_ruc', 'nombres', 'apellidos', 'telefono', 'correo'],
+                pkIndex: 0,
+                rows: [
+                    ['10', '1712345678', 'Carlos', 'Mendoza', '0991234567', 'carlos.m@empresa.com'],
+                    ['20', '0923456781', 'Elena', 'Morales', '0987654321', 'elena.m@gmail.com']
+                ]
+            },
+            {
+                name: 'EMPLEADO',
+                description: 'Catálogo de personal comercial y administrativo',
+                columns: ['id_empleado (PK)', 'ci', 'nombres', 'apellidos', 'cargo'],
+                pkIndex: 0,
+                rows: [
+                    ['5', '1709988776', 'Ana', 'Gómez', 'Vendedora Senior'],
+                    ['8', '1721122334', 'Luis', 'Torres', 'Cajero Principal']
+                ]
+            },
+            {
+                name: 'FACTURA',
+                description: 'Cabecera de facturas con referencias foráneas a Cliente y Empleado',
+                columns: ['id_factura (PK)', 'numero_factura', 'fecha_emision', 'id_cliente (FK)', 'id_empleado (FK)', 'total'],
+                pkIndex: 0,
+                fkIndices: [3, 4],
+                rows: [
+                    ['1', 'FAC-001', '2026-03-10', '10', '5', '$1250.00'],
+                    ['2', 'FAC-002', '2026-03-11', '20', '8', '$80.00'],
+                    ['3', 'FAC-003', '2026-03-12', '10', '5', '$300.00']
+                ]
+            },
+            {
+                name: 'DETALLE_FACTURA',
+                description: 'Líneas de ítems facturados vinculados a Factura y Producto',
+                columns: ['id_detalle (PK)', 'id_factura (FK)', 'id_producto (FK)', 'cantidad', 'precio_unitario', 'subtotal'],
+                pkIndex: 0,
+                fkIndices: [1, 2],
+                rows: [
+                    ['1', '1', '101', '1', '$1200.00', '$1200.00'],
+                    ['2', '1', '102', '2', '$25.00', '$50.00'],
+                    ['3', '2', '103', '1', '$80.00', '$80.00'],
+                    ['4', '3', '104', '1', '$300.00', '$300.00']
+                ]
+            },
+            {
+                name: 'PRODUCTO',
+                description: 'Catálogo normalizado de productos e inventario',
+                columns: ['id_producto (PK)', 'codigo_producto', 'nombre', 'precio_unitario', 'stock'],
+                pkIndex: 0,
+                rows: [
+                    ['101', 'PRD-01', 'Laptop Dell XPS', '$1200.00', '15'],
+                    ['102', 'PRD-02', 'Mouse Inalámbrico', '$25.00', '50'],
+                    ['103', 'PRD-03', 'Teclado Mecánico', '$80.00', '30'],
+                    ['104', 'PRD-04', 'Monitor 27 Pulgadas', '$300.00', '20']
+                ]
+            }
+        ]
+    }
+};
+
+const SALES_NORMALIZATION_SCHEMAS = {
+    '0fn': {
+        title: '0FN — Tabla No Normalizada: Reporte_Facturacion_General',
+        cardinality: '0FN',
+        description: 'Tabla única desnormalizada con redundancia repetitiva de clientes, empleados y productos.',
+        tables: [
+            {
+                name: 'Reporte_Facturacion_General',
+                columns: [
+                    { name: 'Num_Factura', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'Fecha_Emision', type: 'DATE', isPk: false },
+                    { name: 'Cliente', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'CI_RUC', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'Empleado', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'Producto', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'Cant', type: 'INT', isPk: false },
+                    { name: 'Precio_Unit', type: 'DECIMAL(10,2)', isPk: false },
+                    { name: 'Subtotal', type: 'DECIMAL(10,2)', isPk: false }
+                ]
+            }
+        ],
+        relationships: []
+    },
+    '1fn': {
+        title: '1FN — Primera Forma Normal: Ventas_Detalle_1FN',
+        cardinality: '1FN',
+        description: 'Todos los atributos son atómicos e indivisibles con clave primaria compuesta.',
+        tables: [
+            {
+                name: 'Ventas_Detalle_1FN',
+                columns: [
+                    { name: 'id_factura', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'id_producto', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'fecha_emision', type: 'DATE', isPk: false },
+                    { name: 'nombre_cliente', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'ci_ruc', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'empleado', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'nombre_producto', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'precio_unitario', type: 'DECIMAL(10,2)', isPk: false },
+                    { name: 'cantidad', type: 'INT', isPk: false }
+                ]
+            }
+        ],
+        relationships: []
+    },
+    '2fn': {
+        title: '2FN — Segunda Forma Normal: Factura — Producto — Detalle_Factura',
+        cardinality: '2FN',
+        description: 'Eliminación de dependencias parciales: separación en Factura, Producto y Detalle de Venta.',
+        tables: [
+            {
+                name: 'FACTURA',
+                columns: [
+                    { name: 'id_factura', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'numero_factura', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'fecha_emision', type: 'DATE', isPk: false },
+                    { name: 'id_cliente', type: 'INT', isPk: false, isFk: true, references: 'CLIENTE(id_cliente)' },
+                    { name: 'nombre_cliente', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'id_empleado', type: 'INT', isPk: false, isFk: true, references: 'EMPLEADO(id_empleado)' }
+                ]
+            },
+            {
+                name: 'PRODUCTO',
+                columns: [
+                    { name: 'id_producto', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'codigo_producto', type: 'VARCHAR(30)', isPk: false },
+                    { name: 'nombre', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'precio_unitario', type: 'DECIMAL(10,2)', isPk: false },
+                    { name: 'stock', type: 'INT', isPk: false }
+                ]
+            },
+            {
+                name: 'DETALLE_FACTURA',
+                columns: [
+                    { name: 'id_detalle', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'id_factura', type: 'INT', isPk: false, isFk: true, references: 'FACTURA(id_factura)' },
+                    { name: 'id_producto', type: 'INT', isPk: false, isFk: true, references: 'PRODUCTO(id_producto)' },
+                    { name: 'cantidad', type: 'INT', isPk: false },
+                    { name: 'precio_unitario', type: 'DECIMAL(10,2)', isPk: false },
+                    { name: 'subtotal', type: 'DECIMAL(10,2)', isPk: false }
+                ]
+            }
+        ],
+        relationships: [
+            { id: 'rel-f-df', fromTable: 'FACTURA', fromCol: 'id_factura', toTable: 'DETALLE_FACTURA', toCol: 'id_factura', type: '1:N', label: 'contiene' },
+            { id: 'rel-p-df', fromTable: 'PRODUCTO', fromCol: 'id_producto', toTable: 'DETALLE_FACTURA', toCol: 'id_producto', type: '1:N', label: 'incluye' }
+        ]
+    },
+    '3fn': {
+        title: '3FN — Esquema Normalizado: Cliente — Empleado — Factura — Detalle — Producto',
+        cardinality: '3FN',
+        description: 'Tercera Forma Normal: eliminación completa de dependencias transitivas extrayendo Cliente y Empleado.',
+        tables: [
+            {
+                name: 'CLIENTE',
+                columns: [
+                    { name: 'id_cliente', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'ci_ruc', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'nombres', type: 'VARCHAR(60)', isPk: false },
+                    { name: 'apellidos', type: 'VARCHAR(60)', isPk: false },
+                    { name: 'telefono', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'correo_electronico', type: 'VARCHAR(100)', isPk: false }
+                ]
+            },
+            {
+                name: 'EMPLEADO',
+                columns: [
+                    { name: 'id_empleado', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'ci', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'nombres', type: 'VARCHAR(60)', isPk: false },
+                    { name: 'apellidos', type: 'VARCHAR(60)', isPk: false },
+                    { name: 'cargo', type: 'VARCHAR(50)', isPk: false }
+                ]
+            },
+            {
+                name: 'FACTURA',
+                columns: [
+                    { name: 'id_factura', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'numero_factura', type: 'VARCHAR(20)', isPk: false },
+                    { name: 'fecha_emision', type: 'DATE', isPk: false },
+                    { name: 'id_cliente', type: 'INT', isPk: false, isFk: true, references: 'CLIENTE(id_cliente)' },
+                    { name: 'id_empleado', type: 'INT', isPk: false, isFk: true, references: 'EMPLEADO(id_empleado)' },
+                    { name: 'total', type: 'DECIMAL(10,2)', isPk: false }
+                ]
+            },
+            {
+                name: 'DETALLE_FACTURA',
+                columns: [
+                    { name: 'id_detalle', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'id_factura', type: 'INT', isPk: false, isFk: true, references: 'FACTURA(id_factura)' },
+                    { name: 'id_producto', type: 'INT', isPk: false, isFk: true, references: 'PRODUCTO(id_producto)' },
+                    { name: 'cantidad', type: 'INT', isPk: false },
+                    { name: 'precio_unitario', type: 'DECIMAL(10,2)', isPk: false },
+                    { name: 'subtotal', type: 'DECIMAL(10,2)', isPk: false }
+                ]
+            },
+            {
+                name: 'PRODUCTO',
+                columns: [
+                    { name: 'id_producto', type: 'INT', isPk: true, constraint: 'PK' },
+                    { name: 'codigo_producto', type: 'VARCHAR(30)', isPk: false },
+                    { name: 'nombre', type: 'VARCHAR(100)', isPk: false },
+                    { name: 'precio_unitario', type: 'DECIMAL(10,2)', isPk: false },
+                    { name: 'stock', type: 'INT', isPk: false }
+                ]
+            }
+        ],
+        relationships: [
+            { id: 'rel-c-f', fromTable: 'CLIENTE', fromCol: 'id_cliente', toTable: 'FACTURA', toCol: 'id_cliente', type: '1:N', label: 'emite' },
+            { id: 'rel-e-f', fromTable: 'EMPLEADO', fromCol: 'id_empleado', toTable: 'FACTURA', toCol: 'id_empleado', type: '1:N', label: 'procesa' },
+            { id: 'rel-f-df', fromTable: 'FACTURA', fromCol: 'id_factura', toTable: 'DETALLE_FACTURA', toCol: 'id_factura', type: '1:N', label: 'contiene' },
+            { id: 'rel-p-df', fromTable: 'PRODUCTO', fromCol: 'id_producto', toTable: 'DETALLE_FACTURA', toCol: 'id_producto', type: '1:N', label: 'pertenece' }
+        ]
+    }
+};
+
+/* ── Generador Dinámico de Normalización para Esquemas Personalizados ── */
+function buildGenericNormalization(tables) {
+    if (!tables || tables.length === 0) {
+        return { normData: ACADEMIC_NORMALIZATION_DATA, normSchemas: ACADEMIC_NORMALIZATION_SCHEMAS };
+    }
+
+    const mainTable = tables[0];
+    const secondTable = tables[1] || tables[0];
+    const mainCols = mainTable.columns || [];
+    const secCols = secondTable.columns || [];
+
+    const normData = {
+        '0fn': {
+            title: `0FN — Tabla No Normalizada: Reporte_${mainTable.name}_General`,
+            badge: '0FN',
+            badgeColor: '#ef4444',
+            rule: 'Todos los atributos combinados en una sola estructura desnormalizada con redundancia severa.',
+            anomaly: `Anomalías de inserción y modificación: los datos de ${mainTable.name} y ${secondTable.name} se duplican en cada registro.`,
+            tables: [
+                {
+                    name: `Reporte_${mainTable.name}_General`,
+                    description: `Estructura plana sin normalizar que agrupa campos de ${tables.map(t => t.name).join(', ')}`,
+                    columns: [...mainCols.slice(0, 4).map(c => c.name), ...secCols.slice(0, 3).map(c => c.name)],
+                    rows: [
+                        ['Dato 1', 'Valor A', 'Registro 101', 'Info X', 'Item 1', 'Activo', 'Detalle'],
+                        ['Dato 2', 'Valor B', 'Registro 102', 'Info Y', 'Item 2', 'Activo', 'Detalle']
+                    ]
+                }
+            ]
+        },
+        '1fn': {
+            title: `1FN — Primera Forma Normal: ${mainTable.name}_1FN`,
+            badge: '1FN',
+            badgeColor: '#f59e0b',
+            rule: 'Atributos atómicos indivisibles y definición explícita de clave primaria.',
+            anomaly: 'Persisten dependencias funcionales parciales o transitivas entre entidades.',
+            tables: [
+                {
+                    name: `${mainTable.name}_1FN`,
+                    description: 'Valores atómicos con clave primaria identificada',
+                    columns: mainCols.map(c => c.isPk ? `${c.name} (PK)` : c.name),
+                    pkIndex: 0,
+                    rows: [
+                        mainCols.map((c, i) => i === 0 ? '1' : `Val_${c.name}_A`),
+                        mainCols.map((c, i) => i === 0 ? '2' : `Val_${c.name}_B`)
+                    ]
+                }
+            ]
+        },
+        '2fn': {
+            title: `2FN — Segunda Forma Normal: ${tables.slice(0, 2).map(t => t.name).join(' — ')}`,
+            badge: '2FN',
+            badgeColor: '#38bdf8',
+            rule: 'Cumple 1FN y se eliminan dependencias parciales separando las tablas principales.',
+            anomaly: 'Pueden existir atributos que dependen transitivamente de otra columna no clave.',
+            tables: tables.slice(0, 2).map(t => ({
+                name: t.name,
+                description: `Entidad ${t.name} aislada en 2FN`,
+                columns: t.columns.map(c => c.isPk ? `${c.name} (PK)` : c.isFk ? `${c.name} (FK)` : c.name),
+                pkIndex: 0,
+                rows: [
+                    t.columns.map((c, i) => i === 0 ? '101' : `Dato_${c.name}`),
+                    t.columns.map((c, i) => i === 0 ? '102' : `Dato_${c.name}`)
+                ]
+            }))
+        },
+        '3fn': {
+            title: `3FN — Tercera Forma Normal: ${tables.map(t => t.name).join(' — ')}`,
+            badge: '3FN',
+            badgeColor: '#10b981',
+            rule: 'Cumple 2FN y se eliminan completamente las dependencias transitivas mediante claves foráneas.',
+            anomaly: 'Esquema relacional en 3FN óptimo sin redundancias.',
+            tables: tables.map(t => ({
+                name: t.name,
+                description: `Entidad normalizada ${t.name} con claves e integridad`,
+                columns: t.columns.map(c => c.isPk ? `${c.name} (PK)` : c.isFk ? `${c.name} (FK)` : c.name),
+                pkIndex: 0,
+                rows: [
+                    t.columns.map((c, i) => i === 0 ? '1' : c.isFk ? '10' : `Val_${c.name}_1`),
+                    t.columns.map((c, i) => i === 0 ? '2' : c.isFk ? '20' : `Val_${c.name}_2`)
+                ]
+            }))
+        }
+    };
+
+    const normSchemas = {
+        '0fn': {
+            title: `0FN — Tabla No Normalizada: Reporte_${mainTable.name}_General`,
+            cardinality: '0FN',
+            description: `Tabla plana desnormalizada que agrupa atributos de ${tables.map(t => t.name).join(', ')}.`,
+            tables: [
+                {
+                    name: `Reporte_${mainTable.name}_General`,
+                    columns: [...mainCols.slice(0, 4), ...secCols.slice(0, 3)].map(c => ({
+                        name: c.name,
+                        type: c.type || 'VARCHAR(100)',
+                        isPk: false
+                    }))
+                }
+            ],
+            relationships: []
+        },
+        '1fn': {
+            title: `1FN — Primera Forma Normal: ${mainTable.name}_1FN`,
+            cardinality: '1FN',
+            description: 'Valores atómicos con clave primaria explícita.',
+            tables: [
+                {
+                    name: `${mainTable.name}_1FN`,
+                    columns: mainCols.map(c => ({
+                        name: c.name,
+                        type: c.type || 'VARCHAR(100)',
+                        isPk: c.isPk,
+                        constraint: c.isPk ? 'PK' : null
+                    }))
+                }
+            ],
+            relationships: []
+        },
+        '2fn': {
+            title: `2FN — Segunda Forma Normal: ${tables.slice(0, 2).map(t => t.name).join(' — ')}`,
+            cardinality: '2FN',
+            description: 'Separación de entidades para eliminar dependencias funcionales parciales.',
+            tables: tables.slice(0, 2),
+            relationships: []
+        },
+        '3fn': {
+            title: `3FN — Esquema Relacional Normalizado: ${tables.map(t => t.name).join(' — ')}`,
+            cardinality: '3FN',
+            description: 'Tercera Forma Normal completa con todas las entidades y claves foráneas.',
+            tables: tables,
+            relationships: []
+        }
+    };
+
+    return { normData, normSchemas };
+}
+
+/* ── Selector Dinámico de Normalización según Entidades del Ejercicio ── */
+function getNormalizationDataAndSchemas(tables) {
+    if (!tables || tables.length === 0) {
+        return { normData: ACADEMIC_NORMALIZATION_DATA, normSchemas: ACADEMIC_NORMALIZATION_SCHEMAS };
+    }
+
+    const tableNames = tables.map(t => (t.name || '').toLowerCase());
+    const isSales = tableNames.some(n =>
+        ['factura', 'cliente', 'producto', 'venta', 'detalle', 'pedido', 'articulo', 'empleado', 'orden'].some(k => n.includes(k))
+    );
+    if (isSales) {
+        return { normData: SALES_NORMALIZATION_DATA, normSchemas: SALES_NORMALIZATION_SCHEMAS };
+    }
+
+    const isAcademic = tableNames.some(n =>
+        ['estudiante', 'alumno', 'docente', 'profesor', 'curso', 'materia', 'carrera', 'matricula', 'inscripcion'].some(k => n.includes(k))
+    );
+    if (isAcademic) {
+        return { normData: ACADEMIC_NORMALIZATION_DATA, normSchemas: ACADEMIC_NORMALIZATION_SCHEMAS };
+    }
+
+    return buildGenericNormalization(tables);
+}
+
 /* ── Subcomponente: Vista de Normalización Pedagógica ─────────── */
-function NormalizationView({ currentPhase, onSelectPhase }) {
+function NormalizationView({ currentPhase, onSelectPhase, normData }) {
     const PHASES = [
         { id: 'all', label: 'Todas las Fases (Comparativa)' },
         { id: '0fn', label: '0FN (No Normalizada)' },
@@ -568,7 +1041,7 @@ function NormalizationView({ currentPhase, onSelectPhase }) {
             {/* Contenido de Fases */}
             <div className="norm-content-scroll">
                 {phasesToRender.map(key => {
-                    const data = NORMALIZATION_DATA[key];
+                    const data = (normData && normData[key]) || ACADEMIC_NORMALIZATION_DATA[key];
                     if (!data) return null;
 
                     return (
@@ -641,10 +1114,16 @@ export default function LiveExamplePanel({ example, onClose }) {
     const [normPhase, setNormPhase] = useState('3fn');
     const [activeTab, setActiveTab] = useState(example?.defaultTab || 'canvas');
 
+    // Derivar datasets de normalización acordes a las tablas del ejercicio activo
+    const { normData, normSchemas } = useMemo(() => {
+        const rawTables = example?.tables || [];
+        return getNormalizationDataAndSchemas(rawTables);
+    }, [example?.tables]);
+
     const normalized = useMemo(() => {
         if (isNorm) {
             const key = normPhase === 'all' ? '3fn' : normPhase;
-            const schema = NORMALIZATION_SCHEMAS[key] || NORMALIZATION_SCHEMAS['3fn'];
+            const schema = normSchemas[key] || normSchemas['3fn'];
             const tables = schema.tables.map(t => ({
                 name: t.name,
                 columns: t.columns.map(c => ({
@@ -663,12 +1142,12 @@ export default function LiveExamplePanel({ example, onClose }) {
                 cardinality: schema.cardinality,
                 mermaid_code: generateCleanMermaid(tables, schema.relationships),
                 tables,
-                relationships: schema.relationships,
+                relationships: schema.relationships || [],
                 sql: null
             };
         }
         return normalizeExample(example);
-    }, [isNorm, normPhase, example]);
+    }, [isNorm, normPhase, example, normSchemas]);
 
     const [panelWidth, setPanelWidth] = useState(780);
     const [zoom, setZoom] = useState(1.0);
@@ -989,7 +1468,11 @@ export default function LiveExamplePanel({ example, onClose }) {
                 <div className="er-panel-header-info">
                     <div className="er-panel-title-row">
                         <span className="er-panel-kicker">Tablero de Modelado</span>
-                        <span className="er-cardinality-badge">{normalized.cardinality || '1:N'}</span>
+                        {normalized.tables.length > 0 ? (
+                            <span className="er-cardinality-badge">{normalized.cardinality || '1:N'}</span>
+                        ) : (
+                            <span className="er-cardinality-badge er-badge-blank">Lienzo en Blanco</span>
+                        )}
                     </div>
                     <h3 className="er-panel-title">{normalized.title}</h3>
                     <p className="er-panel-desc">{normalized.description}</p>
@@ -1059,6 +1542,7 @@ export default function LiveExamplePanel({ example, onClose }) {
                             className="er-tool-btn"
                             onClick={() => setZoom(z => Math.min(1.8, Math.round((z + 0.15) * 100) / 100))}
                             title="Aumentar zoom"
+                            disabled={normalized.tables.length === 0}
                         >
                             +
                         </button>
@@ -1067,6 +1551,7 @@ export default function LiveExamplePanel({ example, onClose }) {
                             className="er-tool-btn"
                             onClick={() => setZoom(z => Math.max(0.4, Math.round((z - 0.15) * 100) / 100))}
                             title="Reducir zoom"
+                            disabled={normalized.tables.length === 0}
                         >
                             -
                         </button>
@@ -1074,6 +1559,7 @@ export default function LiveExamplePanel({ example, onClose }) {
                             className="er-tool-btn er-tool-action"
                             onClick={autoArrangePositions}
                             title="Auto-organizar entidades en el tablero"
+                            disabled={normalized.tables.length === 0}
                         >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -1089,130 +1575,166 @@ export default function LiveExamplePanel({ example, onClose }) {
                 {/* ── MODO 1: TABLERO INTERACTIVO E-R ──────────────────────── */}
                 {activeTab === 'canvas' && (
                     <div className="er-canvas-container" ref={canvasRef} onWheel={handleCanvasWheel}>
-                        {/* Selector rápido móvil de entidades */}
-                        <div className="er-mobile-entity-selector">
-                            <span className="er-sel-label">Enfocar:</span>
-                            <select
-                                className="er-entity-dropdown"
-                                value={selectedTable || ''}
-                                onChange={(e) => setSelectedTable(e.target.value)}
-                            >
-                                <option value="">Todas las entidades ({normalized.tables.length})</option>
-                                {normalized.tables.map(t => (
-                                    <option key={t.name} value={t.name}>{t.name} ({t.columns.length} cols)</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Lienzo con Rejilla Técnica */}
-                        <div
-                            className="er-canvas-stage"
-                            style={{
-                                transform: `scale(${zoom})`,
-                                transformOrigin: '0 0'
-                            }}
-                            onClick={() => { setSelectedTable(null); setActiveRelationship(null); }}
-                        >
-                            {/* Capa SVG de Conexiones Relacionales */}
-                            <svg className="er-connections-layer">
-                                {relationships.map((rel) => {
-                                    const coords = calculatePorts(rel.fromTable, rel.toTable);
-                                    if (!coords) return null;
-
-                                    const isRelActive = activeRelationship?.id === rel.id ||
-                                        selectedTable === rel.fromTable ||
-                                        selectedTable === rel.toTable;
-
-                                    const { startX, startY, endX, endY } = coords;
-                                    const midX = (startX + endX) / 2;
-                                    const midY = (startY + endY) / 2;
-
-                                    const pathD = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
-
-                                    return (
-                                        <g
-                                            key={rel.id}
-                                            className={`er-relation-group ${isRelActive ? 'is-active-rel' : ''}`}
-                                            onClick={(e) => { e.stopPropagation(); setActiveRelationship(rel); }}
-                                        >
-                                            <path
-                                                d={pathD}
-                                                className="er-rel-path-base"
-                                            />
-                                            <path
-                                                d={pathD}
-                                                className="er-rel-path-highlight"
-                                            />
-
-                                            {/* Puntos terminales */}
-                                            <circle cx={startX} cy={startY} r="4" className="er-rel-terminal" />
-                                            <circle cx={endX} cy={endY} r="4" className="er-rel-terminal" />
-
-                                            {/* Pastilla Central de Cardinalidad */}
-                                            <g transform={`translate(${midX}, ${midY})`} className="er-cardinality-pill">
-                                                <rect
-                                                    x="-20"
-                                                    y="-10"
-                                                    width="40"
-                                                    height="20"
-                                                    rx="5"
-                                                    className="er-cardinality-rect"
-                                                />
-                                                <text
-                                                    x="0"
-                                                    y="4"
-                                                    textAnchor="middle"
-                                                    className="er-cardinality-text"
-                                                >
-                                                    {rel.type || '1:N'}
-                                                </text>
-                                            </g>
-                                        </g>
-                                    );
-                                })}
-                            </svg>
-
-                            {/* Tarjetas de Tablas Interactivas */}
-                            {normalized.tables.map((table) => {
-                                const pos = positions[table.name] || { x: 40, y: 40 };
-                                const isTableSelected = selectedTable === table.name;
-                                const isConnectedToActive = activeRelationship && (
-                                    activeRelationship.fromTable === table.name ||
-                                    activeRelationship.toTable === table.name
-                                );
-
-                                return (
-                                    <TableEntityCard
-                                        key={table.name}
-                                        table={table}
-                                        pos={pos}
-                                        onMouseDown={handleMouseDown}
-                                        onTouchStart={handleTouchStart}
-                                        isDragging={draggingTable === table.name}
-                                        isSelected={isTableSelected}
-                                        onSelect={(name) => setSelectedTable(name)}
-                                        activeHighlight={isTableSelected || isConnectedToActive}
-                                        onColumnClick={handleColumnClick}
-                                        isCollapsed={!!collapsedTables[table.name]}
-                                        onToggleCollapse={(name) => setCollapsedTables(prev => ({ ...prev, [name]: !prev[name] }))}
-                                    />
-                                );
-                            })}
-                        </div>
-
-                        {/* Banner Informativo de Relación Activa */}
-                        {activeRelationship && (
-                            <div className="er-active-rel-banner">
-                                <div className="er-rel-banner-content">
-                                    <span className="er-rel-badge-pill">{activeRelationship.type}</span>
-                                    <span className="er-rel-text">
-                                        <strong>{activeRelationship.fromTable}</strong>.{activeRelationship.fromCol} (PK)
-                                        {' -> '}
-                                        <strong>{activeRelationship.toTable}</strong>.{activeRelationship.toCol} (FK)
-                                    </span>
+                        {normalized.tables.length === 0 ? (
+                            <div className="er-empty-board-container">
+                                <div className="er-empty-board-card">
+                                    <div className="er-empty-board-icon">
+                                        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="1.5">
+                                            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                                            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                                            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                                            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                                            <path d="M10 6.5h4M17.5 10v4M14 17.5h-4M6.5 14v-4" strokeDasharray="2 2"/>
+                                        </svg>
+                                    </div>
+                                    <h3 className="er-empty-board-title">Tablero E-R en Blanco</h3>
+                                    <p className="er-empty-board-desc">
+                                        El tablero se encuentra limpio y listo. Al no haberse solicitado un ejercicio o ejemplo en la conversación, este espacio permanece en blanco a la espera de tus consultas prácticas.
+                                    </p>
+                                    <div className="er-empty-board-features">
+                                        <div className="er-empty-feat-item">
+                                            <span className="er-feat-dot">✦</span>
+                                            <span>Pídele a AMY: <em>"Dame un ejemplo de diagrama E-R con tablas"</em>.</span>
+                                        </div>
+                                        <div className="er-empty-feat-item">
+                                            <span className="er-feat-dot">✦</span>
+                                            <span>Plantea un ejercicio o caso de estudio relacional en el chat.</span>
+                                        </div>
+                                        <div className="er-empty-feat-item">
+                                            <span className="er-feat-dot">✦</span>
+                                            <span>O adjunta un archivo con esquema SQL para modelarlo automáticamente.</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button className="er-rel-close" onClick={() => setActiveRelationship(null)}>✕</button>
                             </div>
+                        ) : (
+                            <>
+                                {/* Selector rápido móvil de entidades */}
+                                <div className="er-mobile-entity-selector">
+                                    <span className="er-sel-label">Enfocar:</span>
+                                    <select
+                                        className="er-entity-dropdown"
+                                        value={selectedTable || ''}
+                                        onChange={(e) => setSelectedTable(e.target.value)}
+                                    >
+                                        <option value="">Todas las entidades ({normalized.tables.length})</option>
+                                        {normalized.tables.map(t => (
+                                            <option key={t.name} value={t.name}>{t.name} ({t.columns.length} cols)</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Lienzo con Rejilla Técnica */}
+                                <div
+                                    className="er-canvas-stage"
+                                    style={{
+                                        transform: `scale(${zoom})`,
+                                        transformOrigin: '0 0'
+                                    }}
+                                    onClick={() => { setSelectedTable(null); setActiveRelationship(null); }}
+                                >
+                                    {/* Capa SVG de Conexiones Relacionales */}
+                                    <svg className="er-connections-layer">
+                                        {relationships.map((rel) => {
+                                            const coords = calculatePorts(rel.fromTable, rel.toTable);
+                                            if (!coords) return null;
+
+                                            const isRelActive = activeRelationship?.id === rel.id ||
+                                                selectedTable === rel.fromTable ||
+                                                selectedTable === rel.toTable;
+
+                                            const { startX, startY, endX, endY } = coords;
+                                            const midX = (startX + endX) / 2;
+                                            const midY = (startY + endY) / 2;
+
+                                            const pathD = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+
+                                            return (
+                                                <g
+                                                    key={rel.id}
+                                                    className={`er-relation-group ${isRelActive ? 'is-active-rel' : ''}`}
+                                                    onClick={(e) => { e.stopPropagation(); setActiveRelationship(rel); }}
+                                                >
+                                                    <path
+                                                        d={pathD}
+                                                        className="er-rel-path-base"
+                                                    />
+                                                    <path
+                                                        d={pathD}
+                                                        className="er-rel-path-highlight"
+                                                    />
+
+                                                    {/* Puntos terminales */}
+                                                    <circle cx={startX} cy={startY} r="4" className="er-rel-terminal" />
+                                                    <circle cx={endX} cy={endY} r="4" className="er-rel-terminal" />
+
+                                                    {/* Pastilla Central de Cardinalidad */}
+                                                    <g transform={`translate(${midX}, ${midY})`} className="er-cardinality-pill">
+                                                        <rect
+                                                            x="-20"
+                                                            y="-10"
+                                                            width="40"
+                                                            height="20"
+                                                            rx="5"
+                                                            className="er-cardinality-rect"
+                                                        />
+                                                        <text
+                                                            x="0"
+                                                            y="4"
+                                                            textAnchor="middle"
+                                                            className="er-cardinality-text"
+                                                        >
+                                                            {rel.type || '1:N'}
+                                                        </text>
+                                                    </g>
+                                                </g>
+                                            );
+                                        })}
+                                    </svg>
+
+                                    {/* Tarjetas de Tablas Interactivas */}
+                                    {normalized.tables.map((table) => {
+                                        const pos = positions[table.name] || { x: 40, y: 40 };
+                                        const isTableSelected = selectedTable === table.name;
+                                        const isConnectedToActive = activeRelationship && (
+                                            activeRelationship.fromTable === table.name ||
+                                            activeRelationship.toTable === table.name
+                                        );
+
+                                        return (
+                                            <TableEntityCard
+                                                key={table.name}
+                                                table={table}
+                                                pos={pos}
+                                                onMouseDown={handleMouseDown}
+                                                onTouchStart={handleTouchStart}
+                                                isDragging={draggingTable === table.name}
+                                                isSelected={isTableSelected}
+                                                onSelect={(name) => setSelectedTable(name)}
+                                                activeHighlight={isTableSelected || isConnectedToActive}
+                                                onColumnClick={handleColumnClick}
+                                                isCollapsed={!!collapsedTables[table.name]}
+                                                onToggleCollapse={(name) => setCollapsedTables(prev => ({ ...prev, [name]: !prev[name] }))}
+                                            />
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Banner Informativo de Relación Activa */}
+                                {activeRelationship && (
+                                    <div className="er-active-rel-banner">
+                                        <div className="er-rel-banner-content">
+                                            <span className="er-rel-badge-pill">{activeRelationship.type}</span>
+                                            <span className="er-rel-text">
+                                                <strong>{activeRelationship.fromTable}</strong>.{activeRelationship.fromCol} (PK)
+                                                {' -> '}
+                                                <strong>{activeRelationship.toTable}</strong>.{activeRelationship.toCol} (FK)
+                                            </span>
+                                        </div>
+                                        <button className="er-rel-close" onClick={() => setActiveRelationship(null)}>✕</button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
@@ -1220,7 +1742,16 @@ export default function LiveExamplePanel({ example, onClose }) {
                 {/* ── MODO 2: DIAGRAMA CONCEPTUAL (MERMAID) ────────────────── */}
                 {activeTab === 'mermaid' && (
                     <div className="er-conceptual-tab">
-                        {normalized.mermaid_code ? (
+                        {normalized.tables.length === 0 ? (
+                            <div className="er-empty-board-container">
+                                <div className="er-empty-board-card">
+                                    <h3 className="er-empty-board-title">Diagrama Conceptual en Blanco</h3>
+                                    <p className="er-empty-board-desc">
+                                        No hay ningún esquema activo en la conversación. El diagrama Mermaid se generará automáticamente cuando pidas un ejemplo o plantees un ejercicio.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : normalized.mermaid_code ? (
                             <MermaidDiagram code={normalized.mermaid_code} />
                         ) : (
                             <div className="er-empty-state">
@@ -1233,45 +1764,70 @@ export default function LiveExamplePanel({ example, onClose }) {
                 {/* ── MODO 3: SCRIPT SQL DDL ───────────────────────────────── */}
                 {activeTab === 'sql' && (
                     <div className="er-sql-tab">
-                        <div className="er-sql-topbar">
-                            <span className="er-sql-heading">Definición de Tablas Relacionales (DDL)</span>
-                            <button
-                                className={`er-copy-btn ${copied ? 'copied' : ''}`}
-                                onClick={handleCopyCode}
-                            >
-                                {copied ? 'Copiado al Portapapeles' : 'Copiar Script SQL'}
-                            </button>
-                        </div>
-                        <div className="er-sql-code-wrapper">
-                            <SyntaxHighlighter
-                                language="sql"
-                                style={oneDark}
-                                customStyle={{
-                                    margin: 0,
-                                    padding: '1.2rem',
-                                    background: '#09090b',
-                                    borderRadius: '10px',
-                                    border: '1px solid #27272a',
-                                    fontSize: '0.84rem',
-                                    fontFamily: 'JetBrains Mono, monospace'
-                                }}
-                            >
-                                {normalized.tables.map(t => {
-                                    const colDefs = t.columns.map(c => `    ${c.name} ${c.type}${c.isPk ? ' PRIMARY KEY' : ''}`);
-                                    return `CREATE TABLE ${t.name} (\n${colDefs.join(',\n')}\n);`;
-                                }).join('\n\n') + '\n\n' +
-                                relationships.map(r => `ALTER TABLE ${r.toTable} ADD CONSTRAINT fk_${r.toTable}_${r.fromTable}\n    FOREIGN KEY (${r.toCol}) REFERENCES ${r.fromTable}(${r.fromCol});`).join('\n\n')}
-                            </SyntaxHighlighter>
-                        </div>
+                        {normalized.tables.length === 0 ? (
+                            <div className="er-empty-board-container">
+                                <div className="er-empty-board-card">
+                                    <h3 className="er-empty-board-title">Script SQL DDL en Blanco</h3>
+                                    <p className="er-empty-board-desc">
+                                        No hay tablas definidas en este momento. Las sentencias DDL aparecerán aquí cuando trabajes con un ejercicio o solicites un ejemplo.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="er-sql-topbar">
+                                    <span className="er-sql-heading">Definición de Tablas Relacionales (DDL)</span>
+                                    <button
+                                        className={`er-copy-btn ${copied ? 'copied' : ''}`}
+                                        onClick={handleCopyCode}
+                                    >
+                                        {copied ? 'Copiado al Portapapeles' : 'Copiar Script SQL'}
+                                    </button>
+                                </div>
+                                <div className="er-sql-code-wrapper">
+                                    <SyntaxHighlighter
+                                        language="sql"
+                                        style={oneDark}
+                                        customStyle={{
+                                            margin: 0,
+                                            padding: '1.2rem',
+                                            background: '#09090b',
+                                            borderRadius: '10px',
+                                            border: '1px solid #27272a',
+                                            fontSize: '0.84rem',
+                                            fontFamily: 'JetBrains Mono, monospace'
+                                        }}
+                                    >
+                                        {normalized.tables.map(t => {
+                                            const colDefs = t.columns.map(c => `    ${c.name} ${c.type}${c.isPk ? ' PRIMARY KEY' : ''}`);
+                                            return `CREATE TABLE ${t.name} (\n${colDefs.join(',\n')}\n);`;
+                                        }).join('\n\n') + '\n\n' +
+                                        relationships.map(r => `ALTER TABLE ${r.toTable} ADD CONSTRAINT fk_${r.toTable}_${r.fromTable}\n    FOREIGN KEY (${r.toCol}) REFERENCES ${r.fromTable}(${r.fromCol});`).join('\n\n')}
+                                    </SyntaxHighlighter>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
                 {/* ── MODO 4: VISUALIZADOR PRÁCTICO DE NORMALIZACIÓN ───────── */}
                 {activeTab === 'normalization' && (
-                    <NormalizationView
-                        currentPhase={normPhase}
-                        onSelectPhase={(p) => setNormPhase(p)}
-                    />
+                    (normalized.tables.length === 0 && !isNorm) ? (
+                        <div className="er-empty-board-container">
+                            <div className="er-empty-board-card">
+                                <h3 className="er-empty-board-title">Tablas de Normalización en Blanco</h3>
+                                <p className="er-empty-board-desc">
+                                    No hay tablas para normalizar en este momento. Este visor se activará cuando solicites un ejercicio de normalización (1FN, 2FN, 3FN) o ingreses un esquema a normalizar.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <NormalizationView
+                            currentPhase={normPhase}
+                            onSelectPhase={(p) => setNormPhase(p)}
+                            normData={normData}
+                        />
+                    )
                 )}
             </div>
         </aside>

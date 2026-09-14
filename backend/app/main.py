@@ -422,7 +422,11 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                             
                     # Enviar resultado final (metadata)
                     from app.core.guardrails import validate_response
-                    result = validate_response(full_text)
+                    result = validate_response(
+                        full_text,
+                        student_query=request_body.student_query,
+                        attachment=attachment_dict
+                    )
                     result["source"] = "gemini"
                     result["rag_context_used"] = len(context_fragments) > 0
                     result["rag_sources"] = []

@@ -11,7 +11,7 @@ from app.rag.retriever import semantic_search
 from app.integrations.gemini_client import gemini_client
 from app.integrations.groq_client import groq_client
 from app.integrations.ollama_client import ollama_client
-from app.core.guardrails import SYSTEM_PROMPT, validate_response, sanitize_rag_context
+from app.core.guardrails import SYSTEM_PROMPT, validate_response, sanitize_rag_context, is_example_or_problem_requested
 from app.core.prompts import build_rag_prompt
 from app.core.examples import detect_example
 from app.cache.redis_cache import redis_cache
@@ -228,7 +228,7 @@ class TutorBrain:
                 raise RuntimeError(f"Sin respuesta del proveedor seleccionado ({llm_source}).")
 
             # 5. Guardrails (Validación)
-            result = validate_response(raw_response)
+            result = validate_response(raw_response, student_query=student_query)
             result["source"] = llm_source
             result["rag_context_used"] = rag_context_used
             result["model_switched"] = model_switched
@@ -245,15 +245,18 @@ class TutorBrain:
                 for f in context_fragments
             ] if rag_context_used else []
 
-            # 6. Ejemplo interactivo — prioridad al diagrama dinamico del LLM
+            # 6. Ejemplo interactivo — ÚNICAMENTE si el estudiante solicitó un ejemplo o ingresó un problema
             topic = result.get("topic", "")
-            llm_live_example = result.get("live_example")
-            if llm_live_example:
-                logger.info("Diagrama E-R dinamico recibido del LLM (type=%s)", llm_live_example.get("type"))
+            if is_example_or_problem_requested(student_query):
+                llm_live_example = result.get("live_example")
+                if llm_live_example:
+                    logger.info("Diagrama E-R dinamico recibido del LLM (type=%s)", llm_live_example.get("type"))
+                else:
+                    static_example = detect_example(student_query, topic)
+                    if static_example:
+                        result["live_example"] = static_example
             else:
-                static_example = detect_example(student_query, topic)
-                if static_example:
-                    result["live_example"] = static_example
+                result["live_example"] = None
 
             # 7. Guardar en cache Redis para futuras consultas identicas (TTL 2h)
             if not is_greeting and result.get("source") != "error":

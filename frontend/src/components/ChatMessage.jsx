@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import MorphThinkingAnimation from './MorphThinkingAnimation';
 import './ChatMessage.css';
 
 // ── Helper: Desenvolver texto si viene envuelto en JSON crudo ─────────────────
@@ -86,6 +87,70 @@ function extractSQLTables(text) {
         }
     }
     return tables;
+}
+
+function parseMermaidER(text) {
+    if (!text || !text.includes('erDiagram')) return null;
+    const match = text.match(/erDiagram([\s\S]*?)(?:```|$)/);
+    if (!match) return null;
+    const content = match[1];
+
+    const relRegex = /^\s*([A-Za-z0-9_]+)\s+([|o}{\-.]{4,10})\s+([A-Za-z0-9_]+)\s*(?::\s*"?([^"\n]*)"?)?/gm;
+    const entRegex = /^\s*([A-Za-z0-9_]+)\s*\{([^}]*)\}/gm;
+
+    const relationships = [];
+    let relM;
+    while ((relM = relRegex.exec(content)) !== null) {
+        relationships.push({
+            fromTable: relM[1],
+            toTable: relM[3],
+            type: (relM[2].includes('}o') || relM[2].includes('o{')) ? 'N:M' : '1:N',
+            label: (relM[4] || 'relaciona').trim().replace(/^"|"$/g, '')
+        });
+    }
+
+    const tables = [];
+    let entM;
+    while ((entM = entRegex.exec(content)) !== null) {
+        const rawName = entM[1];
+        const tableName = rawName.toUpperCase() === rawName ? rawName.charAt(0) + rawName.slice(1).toLowerCase() : rawName;
+        const block = entM[2];
+        const columns = [];
+        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+        for (const line of lines) {
+            const cm = line.match(/^([A-Za-z0-9_()]+)\s+([A-Za-z0-9_]+)(?:\s+(PK|FK|UK))?/i);
+            if (cm) {
+                const ctype = cm[1].toUpperCase();
+                const cname = cm[2];
+                const constr = (cm[3] || '').toUpperCase();
+                const isFk = constr === 'FK';
+                const isPk = constr === 'PK' || (!isFk && (cname.toLowerCase() === `id_${tableName.toLowerCase()}` || cname.toLowerCase() === 'id'));
+                columns.push({
+                    name: cname,
+                    type: ctype === 'STRING' ? 'VARCHAR(50)' : ctype,
+                    isPk,
+                    isFk,
+                    constraint: isPk ? 'PK' : isFk ? 'FK' : null,
+                    references: isFk ? `${cname.replace(/^id_/, '')}(${cname})` : null
+                });
+            }
+        }
+        if (columns.length > 0) {
+            tables.push({ name: tableName, columns });
+        }
+    }
+
+    if (tables.length === 0) return null;
+
+    return {
+        type: 'er_diagram',
+        title: `Modelo: ${tables.map(t => t.name).join(' — ')}`,
+        cardinality: relationships[0]?.type || '1:N',
+        description: 'Esquema relacional interactivo de la lección',
+        mermaid_code: 'erDiagram\n' + content.trim(),
+        tables,
+        relationships
+    };
 }
 
 function hasSQLModel(text) {
@@ -216,9 +281,14 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
     // Desenvolver texto despojándolo de JSON crudo o markdown fences ```json
     const cleanText = useMemo(() => unwrapText(message.text || ''), [message.text]);
 
-    // Detectar diagrama E-R desde live_example
-    const erDiagram = isTutor && message.liveExample && message.liveExample.type === 'er_diagram'
-        ? message.liveExample : null;
+    // Detectar diagrama E-R desde live_example o parsear bloque Mermaid si no vino liveExample
+    const erDiagram = useMemo(() => {
+        if (!isTutor || isStreaming) return null;
+        if (message.liveExample && message.liveExample.type === 'er_diagram' && message.liveExample.tables?.length > 0) {
+            return message.liveExample;
+        }
+        return parseMermaidER(cleanText);
+    }, [isTutor, isStreaming, message.liveExample, cleanText]);
 
     // Detectar modelo SQL en el texto (CREATE TABLE) para mostrar botón del panel
     const sqlTables = useMemo(() => {
@@ -329,15 +399,7 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                                 {isStreaming && <span className="streaming-cursor" />}
                             </>
                         ) : (
-                            <div className="astronaut-thinking-bubble-round">
-                                <div className="astronaut-avatar-orb">
-                                    <img src="/astronaut-walking.gif" alt="AMY Pensando..." className="astronaut-walking-media" />
-                                </div>
-                                <div className="astronaut-thinking-text">
-                                    <span className="astronaut-thinking-title">AMY está pensando...</span>
-                                    <span className="astronaut-thinking-sub">Analizando esquemas y bases de datos</span>
-                                </div>
-                            </div>
+                            <MorphThinkingAnimation />
                         )
                     ) : (
                         <div className="user-msg-content-wrapper">
@@ -427,25 +489,27 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                     </div>
                 )}
 
-                {/* Botón para abrir pestaña de Normalización cuando el mensaje habla de normalización */}
+                {/* Botón para abrir pestaña de Normalización SOLO si se solicitó un ejemplo/ejercicio de normalización */}
                 {isTutor && message.id !== 'welcome' && !isStreaming && onOpenDiagram && (
-                    cleanText.toLowerCase().includes('normaliz') ||
-                    cleanText.toLowerCase().includes('1fn') ||
-                    cleanText.toLowerCase().includes('2fn') ||
-                    cleanText.toLowerCase().includes('3fn') ||
-                    cleanText.toLowerCase().includes('forma normal') ||
-                    message.topic?.toLowerCase().includes('normaliz')
+                    message.liveExample?.defaultTab === 'normalization' ||
+                    ((message.topic === 'Normalización' || cleanText.toLowerCase().includes('normaliz')) &&
+                     (cleanText.toLowerCase().includes('ejemplo') || cleanText.toLowerCase().includes('ejercicio') || cleanText.toLowerCase().includes('práctica')))
                 ) && (
                     <button
                         className="er-reopen-btn norm-reopen-btn"
                         onClick={() => {
+                            const activeTables = erDiagram?.tables?.length > 0
+                                ? erDiagram.tables
+                                : (sqlTables?.length > 0 ? sqlTables : null);
                             onOpenDiagram({
                                 type: 'er_diagram',
-                                title: 'Ejemplo Práctico: Proceso de Normalización (1FN a 3FN)',
+                                title: activeTables
+                                    ? `Normalización: ${activeTables.map(t => t.name).join(' — ')}`
+                                    : 'Ejemplo Práctico: Proceso de Normalización (1FN a 3FN)',
                                 defaultTab: 'normalization',
                                 cardinality: '3FN',
                                 description: 'Evolución de esquemas relacionales: eliminación de redundancias y dependencias funcionales.',
-                                tables: [
+                                tables: activeTables || [
                                     {
                                         name: 'alumnos',
                                         columns: [
@@ -490,9 +554,8 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                     </button>
                 )}
 
-                {/* Botón para abrir diagrama E-R (excluyendo el mensaje de bienvenida inicial) */}
-                {isTutor && message.id !== 'welcome' && !isStreaming && onOpenDiagram && (erDiagram || hasSqlTables || cleanText.toLowerCase().includes('cliente') || cleanText.toLowerCase().includes('empleado') || cleanText.toLowerCase().includes('factura') || cleanText.toLowerCase().includes('tabla') || cleanText.toLowerCase().includes('relación')) && (
-
+                {/* Botón para abrir diagrama E-R: ÚNICAMENTE si existe un live_example del tutor o código SQL DDL (CREATE TABLE) de un ejercicio/problema */}
+                {isTutor && message.id !== 'welcome' && !isStreaming && onOpenDiagram && (erDiagram || hasSqlTables) && (
                     <button
                         className="er-reopen-btn"
                         onClick={() => {
@@ -500,118 +563,6 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                                 onOpenDiagram(erDiagram);
                             } else if (hasSqlTables) {
                                 handleOpenSQLModel();
-                            } else {
-                                // Síntesis dinámica de modelo multitabla con completitud estricta de atributos reales
-                                const ENTITY_SCHEMA_MAP = {
-                                    cliente: {
-                                        name: 'Cliente',
-                                        columns: [
-                                            { name: 'id_cliente', type: 'INT', isPk: true },
-                                            { name: 'ci_ruc', type: 'VARCHAR(13)' },
-                                            { name: 'nombres', type: 'VARCHAR(50)' },
-                                            { name: 'apellidos', type: 'VARCHAR(50)' },
-                                            { name: 'telefono', type: 'VARCHAR(15)' },
-                                            { name: 'correo_electronico', type: 'VARCHAR(100)' },
-                                            { name: 'direccion', type: 'VARCHAR(150)' }
-                                        ]
-                                    },
-                                    empleado: {
-                                        name: 'Empleado',
-                                        columns: [
-                                            { name: 'id_empleado', type: 'INT', isPk: true },
-                                            { name: 'ci', type: 'VARCHAR(10)' },
-                                            { name: 'nombres', type: 'VARCHAR(50)' },
-                                            { name: 'apellidos', type: 'VARCHAR(50)' },
-                                            { name: 'cargo', type: 'VARCHAR(60)' },
-                                            { name: 'salario', type: 'DECIMAL(10,2)' },
-                                            { name: 'fecha_ingreso', type: 'DATE' }
-                                        ]
-                                    },
-                                    factura: {
-                                        name: 'Factura',
-                                        columns: [
-                                            { name: 'id_factura', type: 'INT', isPk: true },
-                                            { name: 'numero_factura', type: 'VARCHAR(20)' },
-                                            { name: 'fecha_emision', type: 'DATE' },
-                                            { name: 'subtotal', type: 'DECIMAL(10,2)' },
-                                            { name: 'iva', type: 'DECIMAL(10,2)' },
-                                            { name: 'total', type: 'DECIMAL(10,2)' },
-                                            { name: 'estado', type: 'VARCHAR(20)' },
-                                            { name: 'id_cliente', type: 'INT', isFk: true, references: 'Cliente(id_cliente)' },
-                                            { name: 'id_empleado', type: 'INT', isFk: true, references: 'Empleado(id_empleado)' }
-                                        ]
-                                    },
-                                    detalle_factura: {
-                                        name: 'Detalle_Factura',
-                                        columns: [
-                                            { name: 'id_detalle', type: 'INT', isPk: true },
-                                            { name: 'id_factura', type: 'INT', isFk: true, references: 'Factura(id_factura)' },
-                                            { name: 'id_producto', type: 'INT', isFk: true, references: 'Producto(id_producto)' },
-                                            { name: 'cantidad', type: 'INT' },
-                                            { name: 'precio_unitario', type: 'DECIMAL(10,2)' },
-                                            { name: 'subtotal_linea', type: 'DECIMAL(10,2)' }
-                                        ]
-                                    },
-                                    producto: {
-                                        name: 'Producto',
-                                        columns: [
-                                            { name: 'id_producto', type: 'INT', isPk: true },
-                                            { name: 'codigo_producto', type: 'VARCHAR(30)' },
-                                            { name: 'nombre', type: 'VARCHAR(100)' },
-                                            { name: 'descripcion', type: 'TEXT' },
-                                            { name: 'precio_unitario', type: 'DECIMAL(10,2)' },
-                                            { name: 'stock', type: 'INT' },
-                                            { name: 'categoria', type: 'VARCHAR(50)' }
-                                        ]
-                                    },
-                                    pago: {
-                                        name: 'Pago',
-                                        columns: [
-                                            { name: 'id_pago', type: 'INT', isPk: true },
-                                            { name: 'id_factura', type: 'INT', isFk: true, references: 'Factura(id_factura)' },
-                                            { name: 'fecha_pago', type: 'TIMESTAMP' },
-                                            { name: 'monto', type: 'DECIMAL(10,2)' },
-                                            { name: 'metodo_pago', type: 'VARCHAR(40)' },
-                                            { name: 'numero_transaccion', type: 'VARCHAR(50)' }
-                                        ]
-                                    }
-                                };
-
-                                const detectedKeys = [];
-                                Object.keys(ENTITY_SCHEMA_MAP).forEach(k => {
-                                    if (cleanText.toLowerCase().includes(k) || cleanText.toLowerCase().includes(k.replace('_', ' '))) {
-                                        detectedKeys.push(k);
-                                    }
-                                });
-
-                                const selectedKeys = detectedKeys.length >= 2 ? detectedKeys : ['cliente', 'factura', 'empleado', 'pago'];
-                                const finalTables = selectedKeys.map(k => ENTITY_SCHEMA_MAP[k]);
-
-                                const mermaidLines = ['erDiagram'];
-                                mermaidLines.push('  CLIENTE ||--o{ FACTURA : "1:N emite"');
-                                mermaidLines.push('  CLIENTE ||--o{ PAGO : "1:N efectua"');
-                                mermaidLines.push('  EMPLEADO ||--o{ FACTURA : "1:N procesa"');
-                                mermaidLines.push('  FACTURA ||--|{ DETALLE_FACTURA : "1:N contiene"');
-                                mermaidLines.push('  PRODUCTO ||--o{ DETALLE_FACTURA : "1:N pertenece"');
-
-                                finalTables.forEach(t => {
-                                    mermaidLines.push(`  ${t.name.toUpperCase()} {`);
-                                    t.columns.forEach(c => {
-                                        const typeStr = c.type.includes('VARCHAR') || c.type === 'TEXT' ? 'string' : c.type.includes('DECIMAL') ? 'decimal' : c.type.includes('DATE') ? 'date' : 'int';
-                                        const badge = c.isPk ? ' PK' : c.isFk ? ' FK' : '';
-                                        mermaidLines.push(`    ${typeStr} ${c.name}${badge}`);
-                                    });
-                                    mermaidLines.push('  }');
-                                });
-
-                                onOpenDiagram({
-                                    type: 'er_diagram',
-                                    title: `Modelo: ${finalTables.map(t => t.name).join(' — ')}`,
-                                    cardinality: '1:N',
-                                    description: 'Esquema relacional normalizado con completitud de atributos del mundo real',
-                                    mermaid_code: mermaidLines.join('\n'),
-                                    tables: finalTables
-                                });
                             }
                         }}
                         title="Abrir panel interactivo de diagrama E-R y tablas"
@@ -623,7 +574,7 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                             <path d="M14 17.5h7M17.5 14v7"/>
                         </svg>
                         Ver Diagrama E-R
-                        <span className="er-btn-badge">1:N</span>
+                        <span className="er-btn-badge">{erDiagram?.cardinality || (sqlTables.length > 1 ? '1:N' : 'E-R')}</span>
                     </button>
                 )}
 

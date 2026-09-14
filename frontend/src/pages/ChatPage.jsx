@@ -40,6 +40,16 @@ class PanelErrorBoundary extends Component {
     }
 }
 
+export const BLANK_BOARD = {
+    type: 'er_diagram',
+    title: 'Tablero E-R (Lienzo en Blanco)',
+    description: 'Lienzo limpio. Se activará automáticamente cuando solicites un ejemplo, práctica o ingreses un problema.',
+    cardinality: '1:N',
+    tables: [],
+    relationships: [],
+    isEmpty: true
+};
+
 export default function ChatPage() {
     const user = getUser();
     const storageKey = user?.email ? `amy_active_conv_${user.email}` : 'amy_active_conv_guest';
@@ -70,10 +80,15 @@ export default function ChatPage() {
     }, [storageKey]);
 
     const handleExampleReceived = useCallback((example) => {
-        if (example) {
+        if (example && !example.isEmpty && example.tables?.length > 0) {
             lastActiveExample.current = example;
             setActiveExample(example);
         }
+    }, []);
+
+    const handleResetExample = useCallback(() => {
+        lastActiveExample.current = null;
+        setActiveExample(prev => (prev ? BLANK_BOARD : null));
     }, []);
 
     const handleSelectConversation = useCallback((id) => {
@@ -94,7 +109,11 @@ export default function ChatPage() {
     const handleTogglePanel = useCallback(() => {
         setActiveExample(prev => {
             if (prev) return null;
-            return lastActiveExample.current || null;
+            if (lastActiveExample.current && !lastActiveExample.current.isEmpty && lastActiveExample.current.tables?.length > 0) {
+                return lastActiveExample.current;
+            }
+            // Si la conversación no contiene un ejemplo solicitado, abrir el tablero limpio en blanco
+            return BLANK_BOARD;
         });
     }, []);
 
@@ -118,6 +137,7 @@ export default function ChatPage() {
                 key={conversationKey}
                 conversationId={currentConversationId}
                 onExampleReceived={handleExampleReceived}
+                onResetExample={handleResetExample}
                 onConversationCreated={updateCurrentConversationId}
                 isPanelOpen={!!activeExample}
                 onTogglePanel={handleTogglePanel}

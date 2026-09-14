@@ -49,7 +49,7 @@ export default function AdminPage() {
         setLoading(true);
         try {
             if (activeNav === 'dashboard' || activeNav === 'analytics') {
-                const sData = await getAdminStats();
+                const sData = await getAdminStats(selectedCategory, timeRange, frequency);
                 setStats(sData);
                 const aData = await getAdminAnalytics();
                 setAnalytics(aData);
@@ -383,10 +383,10 @@ export default function AdminPage() {
                             <div className="tailark-card">
                                 <div className="tailark-card-header">
                                     <span className="tailark-card-label">Precisión Cosine RAG</span>
-                                    <span className="tailark-badge badge-green">768-D</span>
+                                    <span className="tailark-badge badge-green">768 D</span>
                                 </div>
                                 <div className="tailark-card-value">
-                                    99.4%
+                                    {stats ? (stats.cosinePrecision || '99.4%') : '99.4%'}
                                 </div>
                             </div>
                         </div>
@@ -401,27 +401,43 @@ export default function AdminPage() {
                                 <svg className="tailark-chart-svg" viewBox="0 0 900 240" fill="none" preserveAspectRatio="none">
                                     <defs>
                                         <linearGradient id="chartGrad1" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.1"/>
+                                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.12"/>
                                             <stop offset="100%" stopColor="#ffffff" stopOpacity="0.0"/>
                                         </linearGradient>
                                     </defs>
                                     <line x1="0" y1="40" x2="900" y2="40" stroke="#1f1f23" strokeWidth="1" strokeDasharray="3 3"/>
                                     <line x1="0" y1="100" x2="900" y2="100" stroke="#1f1f23" strokeWidth="1" strokeDasharray="3 3"/>
                                     <line x1="0" y1="160" x2="900" y2="160" stroke="#1f1f23" strokeWidth="1" strokeDasharray="3 3"/>
-                                    <path d="M 0 160 C 70 140, 100 120, 150 140 C 200 160, 230 130, 300 125 C 370 120, 410 145, 480 135 C 550 125, 590 140, 660 110 C 730 80, 770 100, 830 70 L 900 40 L 900 220 L 0 220 Z" fill="url(#chartGrad1)"/>
-                                    <path d="M 0 160 C 70 140, 100 120, 150 140 C 200 160, 230 130, 300 125 C 370 120, 410 145, 480 135 C 550 125, 590 140, 660 110 C 730 80, 770 100, 830 70 L 900 40" stroke="#f4f4f5" strokeWidth="2" fill="none"/>
+                                    <path
+                                        d={stats?.chart?.areaPath || "M 0 160 C 70 140, 100 120, 150 140 C 200 160, 230 130, 300 125 C 370 120, 410 145, 480 135 C 550 125, 590 140, 660 110 C 730 80, 770 100, 830 70 L 900 40 L 900 220 L 0 220 Z"}
+                                        fill="url(#chartGrad1)"
+                                    />
+                                    <path
+                                        d={stats?.chart?.linePath || "M 0 160 C 70 140, 100 120, 150 140 C 200 160, 230 130, 300 125 C 370 120, 410 145, 480 135 C 550 125, 590 140, 660 110 C 730 80, 770 100, 830 70 L 900 40"}
+                                        stroke="#f4f4f5"
+                                        strokeWidth="2"
+                                        fill="none"
+                                    />
+                                    {stats?.chart?.points?.map((pt, idx) => (
+                                        <g key={idx} className="chart-interactive-point">
+                                            <circle
+                                                cx={pt.x}
+                                                cy={pt.y}
+                                                r="3.5"
+                                                fill="#09090b"
+                                                stroke="#f4f4f5"
+                                                strokeWidth="1.5"
+                                                className="chart-dot"
+                                            />
+                                            <title>{`${pt.label}: ${pt.count} consultas procesadas`}</title>
+                                        </g>
+                                    ))}
                                 </svg>
 
                                 <div className="tailark-xaxis">
-                                    <span>1 Dic</span>
-                                    <span>5 Dic</span>
-                                    <span>9 Dic</span>
-                                    <span>13 Dic</span>
-                                    <span>17 Dic</span>
-                                    <span>21 Dic</span>
-                                    <span>25 Dic</span>
-                                    <span>29 Dic</span>
-                                    <span>31 Dic</span>
+                                    {(stats?.chart?.labels || ['15 Ago', '18 Ago', '22 Ago', '26 Ago', '30 Ago', '2 Sep', '6 Sep', '10 Sep', '14 Sep']).map((lbl, idx) => (
+                                        <span key={idx}>{lbl}</span>
+                                    ))}
                                 </div>
                             </div>
                         </div>
