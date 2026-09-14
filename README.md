@@ -24,7 +24,7 @@ Sistema de tutoría inteligente para la materia de **Fundamentos de Bases de Dat
 - **backend** — FastAPI con pipeline RAG completo
 - **frontend** — React + Vite con interfaz de chat premium
 
-## 📋 Prerrequisitos
+##  Prerrequisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (v24+)
 - [Docker Compose](https://docs.docker.com/compose/) (incluido en Docker Desktop)
