@@ -1,8 +1,8 @@
-# 🎓 Tutor IA — Fundamentos de Base de Datos | UPEC
+#  Tutor IA — Fundamentos de Base de Datos | UPEC
 
 Sistema de tutoría inteligente para la materia de **Fundamentos de Bases de Datos** de la Universidad Politécnica Estatal del Carchi (UPEC). Utiliza **RAG (Retrieval-Augmented Generation)** con Ollama/Mistral para proveer asistencia pedagógica basada en el método socrático.
 
-## 🏗️ Arquitectura
+##  Arquitectura
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -31,7 +31,7 @@ Sistema de tutoría inteligente para la materia de **Fundamentos de Bases de Dat
 - **~8GB de RAM** disponibles (Mistral requiere ~4GB)
 - **~6GB de disco** para la imagen de Mistral
 
-## 🚀 Inicio Rápido
+##  Inicio Rápido
 
 ### 1. Clonar y configurar
 
@@ -61,7 +61,7 @@ docker compose up --build
 | API Docs  | http://localhost:8000/docs  |
 | Health    | http://localhost:8000/health|
 
-## 📚 Cargar Nuevos Documentos (Open Data)
+##  Cargar Nuevos Documentos (Open Data)
 
 El sistema permite ingestar documentos de texto al sistema de vectores vía la API REST:
 
@@ -108,7 +108,7 @@ Si ingestaste datos sin conexión a Ollama:
 curl -X POST http://localhost:8000/api/rag/generate-embeddings
 ```
 
-## 🛠️ Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 AMY-IA/
@@ -159,7 +159,7 @@ AMY-IA/
     └── entrypoint.sh
 ```
 
-## ⚙️ Variables de Entorno
+##  Variables de Entorno
 
 | Variable            | Descripción                        | Default                    |
 |--------------------|------------------------------------|----------------------------|
@@ -169,7 +169,7 @@ AMY-IA/
 | `OLLAMA_HOST`      | URL del servicio Ollama            | `http://ollama:11434`      |
 | `OLLAMA_MODEL`     | Modelo de IA a utilizar            | `mistral`                  |
 
-## 📖 Tecnologías
+##  Tecnologías
 
 - **PostgreSQL + pgvector** — Almacenamiento vectorial para RAG
 - **Ollama + Mistral** — Motor de IA local (sin dependencias en la nube)
