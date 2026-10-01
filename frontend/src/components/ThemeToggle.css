@@ -1,0 +1,110 @@
+/* ── ThemeToggle Component Styling (Interruptor Deslizador) ──────── */
+.theme-toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    border-radius: 9999px;
+}
+
+.theme-toggle-track {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    border-radius: 9999px;
+    background: var(--bg-card, #141417);
+    border: 1.5px solid var(--border-primary, #27272a);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 7px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle-switch:hover .theme-toggle-track {
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.theme-toggle-switch:focus-visible .theme-toggle-track {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+}
+
+/* Iconos de fondo en el track */
+.track-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim, #71717a);
+    transition: color 0.25s ease, opacity 0.25s ease;
+    z-index: 1;
+}
+
+.theme-toggle-switch.is-light .track-sun {
+    color: #f59e0b;
+    opacity: 0.3;
+}
+
+.theme-toggle-switch.is-dark .track-moon {
+    color: #38bdf8;
+    opacity: 0.3;
+}
+
+/* Pastilla Deslizante (Thumb) */
+.theme-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+    transition: transform 0.32s cubic-bezier(0.34, 1.45, 0.64, 1),
+                background-color 0.25s ease,
+                box-shadow 0.25s ease;
+    z-index: 2;
+}
+
+/* En Modo Oscuro: La pastilla se desliza hacia la derecha con tono celeste/azul */
+.theme-toggle-switch.is-dark .theme-toggle-thumb {
+    transform: translateX(23px);
+    background: #0284c7;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.55), 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* En Modo Claro: La pastilla permanece a la izquierda con tono sol/ámbar */
+.theme-toggle-switch.is-light .theme-toggle-thumb {
+    transform: translateX(0);
+    background: #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5), 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.thumb-icon {
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.theme-toggle-switch:hover .thumb-icon {
+    transform: scale(1.12);
+}
+
+.theme-toggle-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-secondary, #e4e4e7);
+    white-space: nowrap;
+}
