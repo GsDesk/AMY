@@ -35,7 +35,7 @@ function isExampleOrProblemQuery(query, attachment) {
     return false;
 }
 
-export default function ChatWindow({ conversationId, onExampleReceived, onResetExample, onConversationCreated, isPanelOpen, onTogglePanel, onToggleSidebar }) {
+export default function ChatWindow({ conversationId, onExampleReceived, onResetExample, onConversationCreated, isPanelOpen, onTogglePanel, onToggleSidebar, sidebarCollapsed }) {
     const {
         messages,
         isLoading,
@@ -133,17 +133,18 @@ export default function ChatWindow({ conversationId, onExampleReceived, onResetE
     return (
         <main className="chat-window panel">
             <div className="chat-header">
-                {/* Botón hamburger — solo visible en móvil via CSS */}
+                {/* En escritorio oculta/muestra el sidebar; en móvil abre el menú lateral */}
                 <button
-                    className="menu-toggle-btn icon-btn"
+                    className={`menu-toggle-btn icon-btn ${sidebarCollapsed ? 'is-collapsed' : ''}`}
                     onClick={onToggleSidebar}
-                    title="Abrir menú"
-                    aria-label="Abrir menú lateral"
+                    title={sidebarCollapsed ? 'Mostrar menú (Ctrl+B)' : 'Ocultar menú (Ctrl+B)'}
+                    aria-label={sidebarCollapsed ? 'Mostrar menú lateral' : 'Ocultar menú lateral'}
+                    aria-expanded={!sidebarCollapsed}
                 >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2"/>
+                        <line x1="9" y1="4" x2="9" y2="20"/>
+                        <polyline className="menu-toggle-chevron" points="15 10 13 12 15 14"/>
                     </svg>
                 </button>
                 <h2>Sesión Educativa</h2>

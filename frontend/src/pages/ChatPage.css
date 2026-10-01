@@ -30,6 +30,30 @@
     to   { opacity: 1; }
 }
 
+/* ── Sidebar plegable (escritorio) ────────────────── */
+@media (min-width: 901px) {
+    .chat-page .sidebar {
+        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.2s ease,
+                    visibility 0s linear 0s,
+                    background-color 0.25s ease, border-color 0.25s ease;
+    }
+
+    /* Se desliza fuera con margen negativo para que su contenido no se deforme */
+    .chat-page.sidebar-collapsed .sidebar {
+        margin-left: -280px;
+        opacity: 0;
+        visibility: hidden;
+        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.2s ease,
+                    visibility 0s linear 0.3s;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-page .sidebar { transition: none !important; }
+}
+
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 900px) {
     .chat-page {

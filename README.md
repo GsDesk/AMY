@@ -54,21 +54,27 @@ docker compose up --build
 
 ### 3. Acceder
 
-| Servicio  | URL                        |
-|-----------|----------------------------|
-| Frontend  | http://localhost:5173       |
-| Backend   | http://localhost:8000       |
-| API Docs  | http://localhost:8000/docs  |
-| Health    | http://localhost:8000/health|
+| Servicio  | URL                          |
+|-----------|------------------------------|
+| Aplicación | http://localhost             |
+| API        | http://localhost/api/...     |
+| Health     | http://localhost/health      |
+
+> Por seguridad el backend no publica el puerto 8000: solo es accesible a través de
+> nginx, que añade las cabeceras de seguridad y la IP real del cliente (límite de
+> peticiones). La documentación Swagger (`/docs`) solo está disponible dentro de la red
+> de Docker, por ejemplo con `docker compose exec backend curl localhost:8000/docs`.
 
 ##  Cargar Nuevos Documentos (Open Data)
 
-El sistema permite ingestar documentos de texto al sistema de vectores vía la API REST:
+La forma recomendada es el **Panel Admin → Gestión RAG**, que valida y sube archivos
+(.pdf, .txt, .docx). También se puede usar la API REST con el token de un administrador:
 
 ### Vía cURL
 
 ```bash
-curl -X POST http://localhost:8000/api/rag/ingest \
+curl -X POST http://localhost/api/rag/ingest \
+  -H "Authorization: Bearer <TOKEN_DE_ADMIN>" \
   -H "Content-Type: application/json" \
   -d '{
     "contenido": "El álgebra relacional define operaciones como selección, proyección y join...",
@@ -80,12 +86,6 @@ curl -X POST http://localhost:8000/api/rag/ingest \
     }
   }'
 ```
-
-### Vía Swagger UI
-
-1. Abre http://localhost:8000/docs
-2. Busca el endpoint `POST /api/rag/ingest`
-3. Completa el formulario con el contenido, categoría y metadata
 
 ### Categorías disponibles
 
@@ -105,7 +105,8 @@ curl -X POST http://localhost:8000/api/rag/ingest \
 Si ingestaste datos sin conexión a Ollama:
 
 ```bash
-curl -X POST http://localhost:8000/api/rag/generate-embeddings
+curl -X POST http://localhost/api/rag/generate-embeddings \
+  -H "Authorization: Bearer <TOKEN_DE_ADMIN>"
 ```
 
 ##  Estructura del Proyecto
@@ -168,6 +169,22 @@ AMY-IA/
 | `POSTGRES_DB`      | Nombre de la base de datos         | `tutor_bd_upec`            |
 | `OLLAMA_HOST`      | URL del servicio Ollama            | `http://ollama:11434`      |
 | `OLLAMA_MODEL`     | Modelo de IA a utilizar            | `mistral`                  |
+| `SMTP_HOST`        | Servidor SMTP para los códigos de recuperación | *(vacío: no se envían)* |
+| `SMTP_PORT`        | Puerto SMTP                        | `587`                      |
+| `SMTP_USER` / `SMTP_PASSWORD` | Credenciales SMTP       | *(vacío)*                  |
+| `SMTP_FROM` / `SMTP_FROM_NAME` | Remitente (si `SMTP_FROM` está vacío se usa `SMTP_USER`) | `AMY Tutor UPEC` |
+| `SMTP_SECURITY`    | `starttls` (587), `ssl` (465) o `none` | `starttls`             |
+
+### Correo (recuperación de contraseña)
+
+Con Gmail: activa la verificación en 2 pasos, crea una
+[contraseña de aplicación](https://myaccount.google.com/apppasswords) y en `.env` pon
+`SMTP_HOST=smtp.gmail.com`, `SMTP_USER=tu_correo@gmail.com` y `SMTP_PASSWORD=<contraseña de aplicación>`.
+Tras `docker compose up -d backend`, comprueba la configuración enviando un correo de prueba:
+
+```bash
+docker compose exec backend python -m app.core.mailer destinatario@correo.com
+```
 
 ##  Tecnologías
 

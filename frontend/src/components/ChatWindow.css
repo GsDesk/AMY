@@ -294,3 +294,18 @@ html[data-theme="light"] .chat-empty-state {
         gap: 0.4rem;
     }
 }
+
+/* El botón de menú está visible en todas las pantallas: en escritorio oculta/muestra el sidebar */
+.menu-toggle-btn {
+    display: flex;
+}
+
+.menu-toggle-chevron {
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 0.3s ease;
+}
+
+.menu-toggle-btn.is-collapsed .menu-toggle-chevron {
+    transform: rotate(180deg);
+}

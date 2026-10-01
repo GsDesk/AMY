@@ -36,16 +36,23 @@ async def evaluate_and_index_attachment(
     filename: str,
     mime_type: str,
     base64_data: str,
-    student_query: str = ""
+    student_query: str = "",
+    allow_indexing: bool = False,
 ) -> Tuple[bool, str, str]:
     """
     Evalúa si un documento o imagen adjunta aporta al aprendizaje formativo de Bases de Datos.
-    
+
+    Solo los administradores (allow_indexing=True) pueden añadir contenido a la base de
+    conocimiento compartida: el adjunto de un estudiante se usa para responder su consulta,
+    pero no se indexa (evita que cualquiera envenene el RAG que usan todos).
+
     Retorna:
         (is_learned: bool, reason: str, detected_topic: str)
     """
     if not base64_data:
         return False, "No se recibieron datos adjuntos.", "General"
+    if not allow_indexing:
+        return False, "El archivo se usó para responder tu consulta.", "General"
 
     logger.info("Iniciando evaluación pedagógica del adjunto: %s (%s)", filename, mime_type)
 

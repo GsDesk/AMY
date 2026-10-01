@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login, googleLogin, loginWithMicrosoft, getAuthConfig, forgotPassword, resetPassword } from '../services/api';
+import { login, googleLogin, getAuthConfig, forgotPassword, resetPassword } from '../services/api';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import { DEFAULT_GOOGLE_CLIENT_ID, getMsal } from '../services/sso';
+import { DEFAULT_GOOGLE_CLIENT_ID } from '../services/sso';
 import './AuthMotion.css';
 import ThemeToggle from '../components/ThemeToggle';
 import CubeLatticeAnimation from '../components/CubeLatticeAnimation';
@@ -43,29 +43,6 @@ export default function LoginPage() {
             .then(setAuthConfig)
             .catch((err) => console.error("Error al cargar la configuración de autenticación:", err));
     }, []);
-
-    const handleMicrosoftLogin = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const msal = await getMsal(authConfig?.azureClientId, authConfig?.azureTenantId);
-            const response = await msal.loginPopup({
-                scopes: ['User.Read', 'GroupMember.Read.All']
-            });
-
-            const data = await loginWithMicrosoft(response.accessToken);
-            if (data.user?.rol === 'admin') {
-                navigate('/admin');
-            } else {
-                navigate('/chat');
-            }
-        } catch (err) {
-            console.error("Falló la autenticación con Microsoft:", err);
-            setError(err.message || 'Error al autenticar con la cuenta institucional de la UPEC.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleGoogleSuccess = async (credentialResponse) => {
         setLoading(true);
@@ -159,8 +136,8 @@ export default function LoginPage() {
             return;
         }
 
-        if (!forgotNewPassword || forgotNewPassword.length < 6) {
-            setForgotError('La nueva contraseña debe tener al menos 6 caracteres.');
+        if (!forgotNewPassword || forgotNewPassword.length < 8) {
+            setForgotError('La nueva contraseña debe tener al menos 8 caracteres.');
             return;
         }
 
@@ -203,29 +180,6 @@ export default function LoginPage() {
 
                     {/* Botones SSO */}
                     <div className="login-sso-stack">
-                        <div className="sso-item-wrapper">
-                            <button
-                                type="button"
-                                className="sso-provider-btn"
-                                onClick={handleMicrosoftLogin}
-                                disabled={loading}
-                            >
-                                <svg className="sso-icon" viewBox="0 0 23 23" fill="none">
-                                    <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
-                                    <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
-                                    <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
-                                    <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
-                                </svg>
-                                <span>Continuar con Microsoft (UPEC)</span>
-                            </button>
-                            <div className="sso-note-caption">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-                                </svg>
-                                <span>Solo para docentes y administradores con acceso</span>
-                            </div>
-                        </div>
-
                         {googleClientId && (
                             <GoogleOAuthProvider clientId={googleClientId}>
                                 <div className="google-sso-wrapper">
@@ -419,7 +373,7 @@ export default function LoginPage() {
                                             type={showForgotNewPassword ? "text" : "password"}
                                             value={forgotNewPassword}
                                             onChange={(e) => setForgotNewPassword(e.target.value)}
-                                            placeholder="Mínimo 6 caracteres"
+                                            placeholder="Mínimo 8 caracteres"
                                             required
                                         />
                                         <button

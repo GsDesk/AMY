@@ -111,6 +111,9 @@ function MermaidDiagram({ code }) {
         try {
             mermaid.initialize({
                 startOnLoad: false,
+                // El código del diagrama lo genera la IA a partir del texto del estudiante:
+                // 'strict' sanea el SVG (sin HTML ni eventos) antes de insertarlo en la página
+                securityLevel: 'strict',
                 theme: 'dark',
                 themeVariables: {
                     background: '#09090b',

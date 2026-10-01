@@ -1,26 +1,27 @@
 # ── Core ─────────────────────────────────────
-fastapi==0.115.6
+fastapi==0.142.2
 uvicorn[standard]==0.32.1
 pydantic==2.10.3
 pydantic-settings==2.7.0
-python-dotenv==1.0.1
-python-multipart==0.0.18
+python-dotenv==1.2.4
+python-multipart==0.0.32
 
 # ── Base de Datos ────────────────────────────
 asyncpg==0.30.0
 
-# ── HTTP Client (Ollama) ────────────────────
+# ── HTTP Client (Ollama, Gemini, Groq) ──────
 httpx==0.28.1
 
 # ── Autenticacion ────────────────────────────
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+# JWT (HS256). Reemplaza a python-jose, sin mantenimiento y que arrastraba ecdsa vulnerable
+PyJWT==2.15.1
+# Fernet para cifrar las API keys guardadas desde el panel (core/api_keys.py)
+cryptography==50.0.2
+# security.py usa bcrypt directamente (antes llegaba como extra de passlib, que no se usaba)
+bcrypt==5.0.0
 
 # ── Servidor de Produccion ───────────────────
 gunicorn==22.0.0
-
-# ── Utilidades ───────────────────────────────
-uuid6==2024.7.10
 
 # ── Caché y Redis ────────────────────────────────────────────
 redis>=5.0.1
@@ -31,9 +32,8 @@ limits==3.9.0
 
 # ── Google OAuth ─────────────────────────────
 google-auth==2.29.0
-requests==2.32.3
+requests==2.34.2
 
-
-groq==0.9.0
-pypdf==5.1.0
+# ── Ingesta de documentos (admin) ────────────
+pypdf==6.19.0
 python-docx==1.1.2

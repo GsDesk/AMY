@@ -30,10 +30,6 @@ class Settings(BaseSettings):
     # ── Autenticacion ────────────────────────────
     SECRET_KEY: str
     JWT_EXPIRE_MINUTES: int = 480
-    # ── Autenticación Microsoft UPEC ─────────────
-    AZURE_CLIENT_ID: str = "b70d884c-ba19-48f3-ac91-a1e24f14e544"
-    AZURE_TENANT_ID: str = "0a42bec9-732b-45d1-977d-3b8d3ac98c2b"
-    AZURE_CLIENT_SECRET: str = ""
 
     # ── Caché (Redis) ────────────────────────────
     REDIS_URL: str = "redis://redis:6379/0"
@@ -48,6 +44,16 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GOOGLE_CLIENT_ID: str = ""
 
+    # ── Correo (SMTP) ────────────────────────────
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""            # Si se deja vacío se usa SMTP_USER
+    SMTP_FROM_NAME: str = "AMY Tutor UPEC"
+    SMTP_SECURITY: str = "starttls"  # starttls (587) | ssl (465) | none
+    SMTP_TIMEOUT: int = 15
+
     # ── Seguridad & CORS ─────────────────────────
     ALLOWED_ORIGINS: str
 
@@ -56,6 +62,9 @@ class Settings(BaseSettings):
         """Retorna la lista de orígenes permitidos para CORS."""
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
+    @property
+    def smtp_sender(self) -> str:
+        return self.SMTP_FROM or self.SMTP_USER
 
 
     @property

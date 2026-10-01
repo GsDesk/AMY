@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { register, googleLogin, loginWithMicrosoft, getAuthConfig } from '../services/api';
+import { register, googleLogin, getAuthConfig } from '../services/api';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import { DEFAULT_GOOGLE_CLIENT_ID, getMsal } from '../services/sso';
+import { DEFAULT_GOOGLE_CLIENT_ID } from '../services/sso';
 import './AuthMotion.css';
 import ThemeToggle from '../components/ThemeToggle';
 import CubeLatticeAnimation from '../components/CubeLatticeAnimation';
@@ -27,29 +27,6 @@ export default function RegisterPage() {
             .then(setAuthConfig)
             .catch((err) => console.error("Error al cargar la configuración de autenticación:", err));
     }, []);
-
-    const handleMicrosoftLogin = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const msal = await getMsal(authConfig?.azureClientId, authConfig?.azureTenantId);
-            const response = await msal.loginPopup({
-                scopes: ['User.Read', 'GroupMember.Read.All']
-            });
-
-            const data = await loginWithMicrosoft(response.accessToken);
-            if (data.user?.rol === 'admin') {
-                navigate('/admin');
-            } else {
-                navigate('/chat');
-            }
-        } catch (err) {
-            console.error("Falló la autenticación con Microsoft:", err);
-            setError(err.message || 'Error al autenticar con la cuenta institucional de la UPEC.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleGoogleSuccess = async (credentialResponse) => {
         setLoading(true);
@@ -94,8 +71,8 @@ export default function RegisterPage() {
             return;
         }
 
-        if (password.length < 6) {
-            setError('La contraseña debe tener al menos 6 caracteres.');
+        if (password.length < 8) {
+            setError('La contraseña debe tener al menos 8 caracteres.');
             return;
         }
 
@@ -133,34 +110,11 @@ export default function RegisterPage() {
                             <ThemeToggle className="auth-theme-toggle" />
                         </div>
                         <h1 className="register-main-title">Bienvenido a AMY</h1>
-                        <p className="register-main-subtitle">Crea tu cuenta institucional o personal</p>
+                        <p className="register-main-subtitle">Crea tu cuenta para empezar a aprender con AMY</p>
                     </div>
 
                     {/* Botones SSO */}
                     <div className="register-sso-stack">
-                        <div className="sso-item-wrapper">
-                            <button
-                                type="button"
-                                className="sso-provider-btn"
-                                onClick={handleMicrosoftLogin}
-                                disabled={loading}
-                            >
-                                <svg className="sso-icon" viewBox="0 0 23 23" fill="none">
-                                    <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
-                                    <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
-                                    <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
-                                    <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
-                                </svg>
-                                <span>Continuar con Microsoft (UPEC)</span>
-                            </button>
-                            <div className="sso-note-caption">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-                                </svg>
-                                <span>Solo para docentes y administradores con acceso</span>
-                            </div>
-                        </div>
-
                         {googleClientId && (
                             <GoogleOAuthProvider clientId={googleClientId}>
                                 <div className="google-sso-wrapper">
@@ -216,7 +170,7 @@ export default function RegisterPage() {
                                     type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Mínimo 6 caracteres"
+                                    placeholder="Mínimo 8 caracteres"
                                     autoComplete="new-password"
                                 />
                                 <button

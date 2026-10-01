@@ -64,7 +64,43 @@ export default function ChatPage() {
     });
     const [conversationKey, setConversationKey] = useState(0);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    // En escritorio el sidebar se puede ocultar; la preferencia se recuerda entre visitas
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        try {
+            return localStorage.getItem('amy_sidebar_collapsed') === '1';
+        } catch {
+            return false;
+        }
+    });
     const lastActiveExample = useRef(null);
+
+    const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
+
+    const handleToggleSidebar = useCallback(() => {
+        if (isMobile()) {
+            setSidebarOpen(o => !o);
+            return;
+        }
+        setSidebarCollapsed(prev => {
+            const next = !prev;
+            try {
+                localStorage.setItem('amy_sidebar_collapsed', next ? '1' : '0');
+            } catch { /* almacenamiento no disponible */ }
+            return next;
+        });
+    }, []);
+
+    // Atajo Ctrl/Cmd + B para mostrar u ocultar el menú lateral
+    useEffect(() => {
+        const onKey = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+                e.preventDefault();
+                handleToggleSidebar();
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [handleToggleSidebar]);
 
     const updateCurrentConversationId = useCallback((id) => {
         setCurrentConversationId(id);
@@ -118,7 +154,7 @@ export default function ChatPage() {
     }, []);
 
     return (
-        <div className={`chat-page ${activeExample ? 'with-panel' : ''} ${sidebarOpen ? 'sidebar-open' : ''}`}>
+        <div className={`chat-page ${activeExample ? 'with-panel' : ''} ${sidebarOpen ? 'sidebar-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
             {sidebarOpen && (
                 <div
                     className="sidebar-overlay"
@@ -141,7 +177,8 @@ export default function ChatPage() {
                 onConversationCreated={updateCurrentConversationId}
                 isPanelOpen={!!activeExample}
                 onTogglePanel={handleTogglePanel}
-                onToggleSidebar={() => setSidebarOpen(o => !o)}
+                onToggleSidebar={handleToggleSidebar}
+                sidebarCollapsed={sidebarCollapsed}
             />
             {activeExample && (
                 <PanelErrorBoundary onClose={() => setActiveExample(null)}>

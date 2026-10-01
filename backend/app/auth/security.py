@@ -5,7 +5,8 @@ Hashing de contrasenas y generacion/verificacion de tokens JWT.
 
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError as JWTError
 import bcrypt
 
 from app.config import settings

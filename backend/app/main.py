@@ -12,9 +12,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Request, Depends, status as http_status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import asyncio
 
@@ -24,6 +22,7 @@ from app.database.connection import db
 from app.integrations.ollama_client import ollama_client
 from app.core.brain import brain
 from app.core.api_keys import api_keys
+from app.core.rate_limit import limiter
 from app.rag.embeddings import compute_missing_embeddings, generate_embedding
 from app.rag.chunker import chunk_text
 from app.rag.retriever import get_fragment_count
@@ -31,8 +30,7 @@ from app.models.schemas import (
     ChatRequest, ChatResponse, IngestRequest, IngestResponse, HealthResponse
 )
 from app.auth.router import router as auth_router
-from app.auth.security import decode_token
-from app.auth.dependencies import get_current_admin_user
+from app.auth.dependencies import get_current_admin_user, get_current_user
 from app.chat.router import router as chat_router
 from app.admin.router import router as admin_router
 from app.rag.dmz_validator import validate_document_dmz
@@ -40,12 +38,8 @@ from app.rag.dmz_validator import validate_document_dmz
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Rate Limiting con slowapi + Redis ────────────────────────────────
-# Usa Redis como backend para funcionar correctamente con múltiples workers Gunicorn.
-_redis_url = getattr(settings, "REDIS_URL", "redis://redis:6379/0")
-limiter = Limiter(key_func=get_remote_address, storage_uri=_redis_url)
+# Rate limiting (slowapi + Redis): definido en app/core/rate_limit.py
 
-_optional_bearer = HTTPBearer(auto_error=False)
 
 
 @asynccontextmanager
@@ -124,17 +118,27 @@ app.include_router(admin_router)
 # ── Helpers ──────────────────────────────────────────────────
 
 
-async def _get_optional_user_id(request: Request) -> str | None:
-    """Intenta extraer el user id del token Bearer si existe. No falla si no hay token."""
-    auth_header = request.headers.get("authorization", "")
-    if not auth_header.lower().startswith("bearer "):
+async def _load_owned_history(conversation_id: str | None, user_id: str, limit: int) -> list[dict] | None:
+    """
+    Historial reciente de una conversación SOLO si pertenece al usuario.
+    Una conversación ajena se ignora (antes se cargaba cualquier conversation_id
+    y su contenido llegaba al modelo, permitiendo leer chats de otros).
+    """
+    if not conversation_id:
         return None
-    token = auth_header[7:]
-    try:
-        payload = decode_token(token)
-        return payload.get("sub")
-    except Exception:
+    owner = await db.fetchval("SELECT usuario_id FROM conversaciones WHERE id = $1", conversation_id)
+    if owner is None:
         return None
+    if str(owner) != user_id:
+        logger.warning("Intento de leer historial ajeno: conv=%s user=%s", conversation_id, user_id)
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta conversacion.")
+    rows = await db.fetch(
+        """SELECT sender, content FROM mensajes
+           WHERE conversacion_id = $1
+           ORDER BY created_at ASC LIMIT $2""",
+        conversation_id, limit,
+    )
+    return [{"role": "user" if r["sender"] == "user" else "assistant", "content": r["content"]} for r in rows] or None
 
 
 async def _save_chat_messages(
@@ -248,34 +252,21 @@ async def _save_chat_messages(
 
 @app.post("/api/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")
-async def chat_endpoint(request_body: ChatRequest, request: Request):
+async def chat_endpoint(
+    request_body: ChatRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
     if not request_body.student_query.strip() and not request_body.attachment:
         raise HTTPException(status_code=400, detail="La consulta o el adjunto no pueden estar vacíos.")
+    user_id = current_user["id"]
     try:
-        chat_history = None
-        
-        # Obtener historial de la conversación si existe
-        if request_body.conversation_id:
-            user_id = await _get_optional_user_id(request)
-            if user_id:
-                # Recuperar los últimos 10 mensajes de esta conversación para dar contexto
-                rows = await db.fetch(
-                    """SELECT sender, content 
-                       FROM mensajes 
-                       WHERE conversacion_id = $1 
-                       ORDER BY created_at ASC 
-                       LIMIT 10""",
-                    request_body.conversation_id
-                )
-                if rows:
-                    chat_history = []
-                    for r in rows:
-                        role = "user" if r["sender"] == "user" else "assistant"
-                        chat_history.append({"role": role, "content": r["content"]})
+        # Últimos 10 mensajes, solo si la conversación es del usuario
+        chat_history = await _load_owned_history(request_body.conversation_id, user_id, 10)
 
         attachment_dict = request_body.attachment.model_dump() if request_body.attachment else None
-        
-        # Evaluación pedagógica del adjunto
+
+        # Evaluación pedagógica del adjunto (solo un admin puede añadirlo a la base de conocimiento)
         is_learned, learn_reason = False, None
         if attachment_dict:
             from app.rag.knowledge_evaluator import evaluate_and_index_attachment
@@ -283,7 +274,8 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
                 filename=attachment_dict["filename"],
                 mime_type=attachment_dict["mime_type"],
                 base64_data=attachment_dict["base64_data"],
-                student_query=request_body.student_query
+                student_query=request_body.student_query,
+                allow_indexing=current_user.get("rol") == "admin",
             )
 
         query_text = request_body.student_query.strip() or f"Analiza el archivo adjunto: {attachment_dict.get('filename') if attachment_dict else ''}"
@@ -298,21 +290,19 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
         result["rag_learned"] = is_learned
         result["rag_learned_reason"] = learn_reason
 
-        # Persistir mensajes si hay conversation_id y usuario autenticado
+        # Persistir mensajes en la conversación del usuario
         if request_body.conversation_id:
-            user_id = await _get_optional_user_id(request)
-            if user_id:
-                try:
-                    await _save_chat_messages(
-                        request_body.conversation_id,
-                        user_id,
-                        request_body.student_query,
-                        result,
-                        attachment=attachment_dict,
-                        rag_learned=is_learned
-                    )
-                except Exception as e:
-                    logger.error("Error al persistir mensajes del chat: %s", e)
+            try:
+                await _save_chat_messages(
+                    request_body.conversation_id,
+                    user_id,
+                    request_body.student_query,
+                    result,
+                    attachment=attachment_dict,
+                    rag_learned=is_learned
+                )
+            except Exception as e:
+                logger.error("Error al persistir mensajes del chat: %s", e)
 
         return result
     except HTTPException:
@@ -324,7 +314,11 @@ async def chat_endpoint(request_body: ChatRequest, request: Request):
 
 @app.post("/api/chat/stream")
 @limiter.limit("30/minute")
-async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
+async def chat_stream_endpoint(
+    request_body: ChatRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
     """
     Endpoint SSE: emite tokens del LLM en tiempo real.
     El cliente recibe 'data: <token>\n\n' mientras Gemini genera la respuesta.
@@ -333,28 +327,14 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
     if not request_body.student_query.strip() and not request_body.attachment:
         raise HTTPException(status_code=400, detail="La consulta o el adjunto no pueden estar vacíos.")
 
+    user_id = current_user["id"]
     attachment_dict = request_body.attachment.model_dump() if request_body.attachment else None
+    # Se valida antes de abrir el stream para que una conversación ajena responda 403
+    chat_history = await _load_owned_history(request_body.conversation_id, user_id, 8)
 
     async def generate_sse():
         try:
-            # Recuperar historial si existe
-            chat_history = None
-            if request_body.conversation_id:
-                user_id = await _get_optional_user_id(request)
-                if user_id:
-                    rows = await db.fetch(
-                        """SELECT sender, content FROM mensajes
-                           WHERE conversacion_id = $1
-                           ORDER BY created_at ASC LIMIT 8""",
-                        request_body.conversation_id
-                    )
-                    if rows:
-                        chat_history = [
-                            {"role": "user" if r["sender"] == "user" else "assistant", "content": r["content"]}
-                            for r in rows
-                        ]
-
-            # Iniciar evaluación pedagógica del adjunto en segundo plano si existe
+            # Evaluación pedagógica del adjunto en segundo plano (solo un admin puede indexarlo)
             learn_task = None
             if attachment_dict:
                 from app.rag.knowledge_evaluator import evaluate_and_index_attachment
@@ -363,7 +343,8 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                         filename=attachment_dict["filename"],
                         mime_type=attachment_dict["mime_type"],
                         base64_data=attachment_dict["base64_data"],
-                        student_query=request_body.student_query
+                        student_query=request_body.student_query,
+                        allow_indexing=current_user.get("rol") == "admin",
                     )
                 )
 
@@ -375,17 +356,15 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
                 cached = await redis_cache.get_cached_response(request_body.student_query, context=history_context)
                 if cached:
                     if request_body.conversation_id:
-                        user_id = await _get_optional_user_id(request)
-                        if user_id:
-                            try:
-                                await _save_chat_messages(
-                                    request_body.conversation_id,
-                                    user_id,
-                                    request_body.student_query,
-                                    cached,
-                                )
-                            except Exception as e:
-                                logger.error("Error al guardar mensaje en cache stream: %s", e)
+                        try:
+                            await _save_chat_messages(
+                                request_body.conversation_id,
+                                user_id,
+                                request_body.student_query,
+                                cached,
+                            )
+                        except Exception as e:
+                            logger.error("Error al guardar mensaje en cache stream: %s", e)
                     yield f"data: {json.dumps({'type': 'result', 'data': cached})}\n\n"
                     return
 
@@ -438,19 +417,17 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
 
                     # Persistir mensaje en la base de datos si hay conversación
                     if request_body.conversation_id:
-                        user_id = await _get_optional_user_id(request)
-                        if user_id:
-                            try:
-                                await _save_chat_messages(
-                                    request_body.conversation_id,
-                                    user_id,
-                                    request_body.student_query,
-                                    result,
-                                    attachment=attachment_dict,
-                                    rag_learned=is_learned
-                                )
-                            except Exception as e:
-                                logger.error("Error al guardar mensaje en stream: %s", e)
+                        try:
+                            await _save_chat_messages(
+                                request_body.conversation_id,
+                                user_id,
+                                request_body.student_query,
+                                result,
+                                attachment=attachment_dict,
+                                rag_learned=is_learned
+                            )
+                        except Exception as e:
+                            logger.error("Error al guardar mensaje en stream: %s", e)
 
                     yield f"data: {json.dumps({'type': 'done', 'data': result})}\n\n"
                     return
@@ -476,25 +453,24 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
 
             # Persistir mensaje en la base de datos si hay conversación
             if request_body.conversation_id:
-                user_id = await _get_optional_user_id(request)
-                if user_id:
-                    try:
-                        await _save_chat_messages(
-                            request_body.conversation_id,
-                            user_id,
-                            request_body.student_query,
-                            result,
-                            attachment=attachment_dict,
-                            rag_learned=is_learned
-                        )
-                    except Exception as e:
-                        logger.error("Error al guardar mensaje en fallback stream: %s", e)
+                try:
+                    await _save_chat_messages(
+                        request_body.conversation_id,
+                        user_id,
+                        request_body.student_query,
+                        result,
+                        attachment=attachment_dict,
+                        rag_learned=is_learned
+                    )
+                except Exception as e:
+                    logger.error("Error al guardar mensaje en fallback stream: %s", e)
 
             yield f"data: {json.dumps({'type': 'result', 'data': result})}\n\n"
 
         except Exception as e:
+            # El detalle queda en el log del servidor; al navegador solo un mensaje genérico
             logger.error("Error en SSE stream: %s", e)
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': 'El tutor no pudo responder en este momento. Inténtalo de nuevo.'})}\n\n"
 
     return StreamingResponse(
         generate_sse(),
@@ -558,7 +534,7 @@ async def ingest_document(
         raise
     except Exception as e:
         logger.error("Error en ingesta: %s", e)
-        raise HTTPException(status_code=500, detail=f"Error al ingestar documento: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error al ingestar el documento. Revisa el registro del servidor.")
 
 
 
@@ -600,4 +576,5 @@ async def generate_embeddings_endpoint(
         logger.info("Admin %s ejecuto generacion de embeddings (%d procesados)", current_admin.get("email"), processed)
         return {"processed": processed, "message": f"{processed} embeddings generados."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error generando embeddings: %s", e)
+        raise HTTPException(status_code=500, detail="Error al generar los embeddings. Revisa el registro del servidor.")

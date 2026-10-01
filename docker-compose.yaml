@@ -54,8 +54,10 @@ services:
     build: ./backend
     container_name: tutor-backend
     restart: always
-    ports:
-      - "8000:8000"
+    # Sin "ports": la API solo es accesible a través de nginx (frontend), que añade
+    # las cabeceras de seguridad y la IP real del cliente para el límite de peticiones.
+    expose:
+      - "8000"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-tutor_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tutor_secure_password_2024}
@@ -66,15 +68,20 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
       REDIS_URL: redis://redis:6379/0
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
-      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
-      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       SECRET_KEY: ${SECRET_KEY:?Define SECRET_KEY in .env}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?Define ALLOWED_ORIGINS in .env}
+      # Correo saliente (códigos de recuperación de contraseña)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-AMY Tutor UPEC}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
       # Umbral mínimo de similitud coseno para el retriever híbrido (0.0 - 1.0)
       SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.55}
     depends_on:

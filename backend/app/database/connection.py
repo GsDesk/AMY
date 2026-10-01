@@ -89,6 +89,8 @@ class Database:
                     expira_en TIMESTAMP WITH TIME ZONE NOT NULL
                 );
             """)
+            # Intentos fallidos por código de recuperación (limita la fuerza bruta)
+            await conn.execute("ALTER TABLE codigos_recuperacion ADD COLUMN IF NOT EXISTS intentos INT NOT NULL DEFAULT 0;")
 
             # API keys de proveedores de IA renovables desde el panel admin (valor cifrado)
             await conn.execute("""

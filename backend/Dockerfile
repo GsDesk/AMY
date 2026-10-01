@@ -24,7 +24,10 @@ USER appuser
 EXPOSE 8000
 
 # Servidor de producción: Gunicorn con trabajadores Uvicorn asíncronos (4 workers)
-CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "300", "--keep-alive", "5", "--graceful-timeout", "30"]
+# --forwarded-allow-ips: confía en X-Forwarded-For para conocer la IP real del cliente.
+# Es seguro porque el puerto 8000 no se publica: solo nginx (red interna de Docker) llega
+# al backend, y nginx sobrescribe ese encabezado con la IP de la conexión.
+CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--forwarded-allow-ips", "*", "--timeout", "300", "--keep-alive", "5", "--graceful-timeout", "30"]
 
 
 

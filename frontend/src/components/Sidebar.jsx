@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusIndicator from './StatusIndicator';
 import { getConversations, deleteConversation, getUser, logout, getSavedAccounts, removeSavedAccount, switchAccountSession } from '../services/api';
@@ -23,6 +23,7 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
     const [showSessionModal, setShowSessionModal] = useState(false);
     const [showAccountsCard, setShowAccountsCard] = useState(false);
     const [savedAccounts, setSavedAccounts] = useState([]);
+    const [search, setSearch] = useState('');
 
     // Obtener conversaciones desde la API de FastAPI y sincronizar con localStorage del usuario
     const fetchConversations = useCallback(async () => {
@@ -136,6 +137,27 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
         }
     };
 
+    // Filtra por título y agrupa por antigüedad (Hoy, Ayer, 7 días, 30 días, Anteriores)
+    const groups = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const day = 24 * 60 * 60 * 1000;
+        const buckets = [
+            { label: 'Hoy', from: startOfToday.getTime(), items: [] },
+            { label: 'Ayer', from: startOfToday.getTime() - day, items: [] },
+            { label: 'Últimos 7 días', from: startOfToday.getTime() - 7 * day, items: [] },
+            { label: 'Últimos 30 días', from: startOfToday.getTime() - 30 * day, items: [] },
+            { label: 'Anteriores', from: -Infinity, items: [] },
+        ];
+        for (const conv of conversations) {
+            if (term && !(conv.titulo || 'Sin título').toLowerCase().includes(term)) continue;
+            const t = conv.created_at ? new Date(conv.created_at).getTime() : -Infinity;
+            buckets.find(b => t >= b.from).items.push(conv);
+        }
+        return buckets.filter(b => b.items.length > 0);
+    }, [conversations, search]);
+
     return (
         <>
             <aside className="sidebar panel">
@@ -179,43 +201,60 @@ export default function Sidebar({ onSelectConversation, onNewConversation, activ
                         </button>
                     </div>
 
+                    {conversations.length > 0 && (
+                        <div className="conv-search">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Buscar conversación..."
+                                aria-label="Buscar conversación"
+                            />
+                            {search && (
+                                <button className="conv-search-clear" onClick={() => setSearch('')} aria-label="Limpiar búsqueda">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                </button>
+                            )}
+                        </div>
+                    )}
+
                     {conversations.length === 0 && (
                         <p className="conv-empty">Sin conversaciones previas</p>
                     )}
+                    {conversations.length > 0 && groups.length === 0 && (
+                        <p className="conv-empty">Sin resultados para “{search.trim()}”</p>
+                    )}
 
-                    <ul className="conv-list">
-                        {conversations.map(conv => (
-                            <li
-                                key={conv.id}
-                                className={`conv-item ${activeConversationId === conv.id ? 'active' : ''}`}
-                                onClick={() => handleSelectConversation(conv.id)}
-                            >
-                                <div className="conv-info">
-                                    <span className="conv-title">{conv.titulo || 'Sin título'}</span>
-                                    <span className="conv-date">{formatDate(conv.created_at)}</span>
-                                </div>
-                                <button
-                                    className="conv-delete"
-                                    onClick={(e) => handleDelete(e, conv.id)}
-                                    title="Eliminar conversación"
-                                >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                                </button>
-                            </li>
+                    <div className="conv-scroll">
+                        {groups.map(group => (
+                            <div key={group.label} className="conv-group">
+                                <span className="conv-group-label">{group.label}</span>
+                                <ul className="conv-list">
+                                    {group.items.map(conv => (
+                                        <li
+                                            key={conv.id}
+                                            className={`conv-item ${activeConversationId === conv.id ? 'active' : ''}`}
+                                            onClick={() => handleSelectConversation(conv.id)}
+                                            title={conv.titulo || 'Sin título'}
+                                        >
+                                            <div className="conv-info">
+                                                <span className="conv-title">{conv.titulo || 'Sin título'}</span>
+                                                <span className="conv-date">{formatDate(conv.created_at)}</span>
+                                            </div>
+                                            <button
+                                                className="conv-delete"
+                                                onClick={(e) => handleDelete(e, conv.id)}
+                                                title="Eliminar conversación"
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         ))}
-                    </ul>
-                </div>
-
-                <div className="instructions">
-                    <h3>Temas disponibles:</h3>
-                    <ul>
-                        <li>SQL (SELECT, JOIN, DDL, DML)</li>
-                        <li>Normalización (1NF-BCNF)</li>
-                        <li>Modelo Entidad-Relación</li>
-                        <li>Álgebra Relacional</li>
-                        <li>Transacciones (ACID)</li>
-                        <li>Índices y Optimización</li>
-                    </ul>
+                    </div>
                 </div>
 
                 <div className="sidebar-footer">

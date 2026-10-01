@@ -7,7 +7,7 @@ import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+from app.auth.security import JWTError
 
 from app.auth.security import decode_token
 from app.database.connection import db
