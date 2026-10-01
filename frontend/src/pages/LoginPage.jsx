@@ -2,28 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, googleLogin, loginWithMicrosoft, getAuthConfig, forgotPassword, resetPassword } from '../services/api';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import { PublicClientApplication } from '@azure/msal-browser';
+import { DEFAULT_GOOGLE_CLIENT_ID, getMsal } from '../services/sso';
+import './AuthMotion.css';
+import ThemeToggle from '../components/ThemeToggle';
+import CubeLatticeAnimation from '../components/CubeLatticeAnimation';
 import './LoginPage.css';
-
-const DEFAULT_GOOGLE_CLIENT_ID = '622335356967-1ff87v5nvi4mh4egfpt12ngnochn32t5.apps.googleusercontent.com';
-let msalInstance = null;
-
-async function getMsal(azureClientId, azureTenantId) {
-    if (!msalInstance) {
-        msalInstance = new PublicClientApplication({
-            auth: {
-                clientId: azureClientId || 'b70d884c-ba19-48f3-ac91-a1e24f14e544',
-                authority: `https://login.microsoftonline.com/${azureTenantId || '0a42bec9-732b-45d1-977d-3b8d3ac98c2b'}`,
-                redirectUri: window.location.origin
-            },
-            cache: {
-                cacheLocation: 'sessionStorage'
-            }
-        });
-        await msalInstance.initialize();
-    }
-    return msalInstance;
-}
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -208,9 +191,12 @@ export default function LoginPage() {
             <div className="login-form-pane">
                 <div className="login-form-container">
                     <div className="login-pane-header">
-                        <Link to="/" className="login-geometric-logo" title="Volver al inicio">
-                            <img src="/amy-logo.png" alt="AMY Logo" className="login-logo-img" />
-                        </Link>
+                        <div className="login-header-top-bar">
+                            <Link to="/" className="login-geometric-logo" title="Volver al inicio">
+                                <img src="/amy-logo.png" alt="AMY Logo" className="login-logo-img" />
+                            </Link>
+                            <ThemeToggle className="auth-theme-toggle" />
+                        </div>
                         <h1 className="login-main-title">Bienvenido de Nuevo</h1>
                         <p className="login-main-subtitle">Ingresa a tu cuenta para continuar con tu tutor socrático</p>
                     </div>
@@ -307,7 +293,6 @@ export default function LoginPage() {
                                     className="toggle-password-btn"
                                     onClick={() => setShowPassword(!showPassword)}
                                     title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                                    tabIndex="-1"
                                 >
                                     {showPassword ? (
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -324,7 +309,7 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {error && <div className="login-error-alert">{error}</div>}
+                        {error && <div className="login-error-alert" role="alert">{error}</div>}
 
                         <button
                             type="submit"
@@ -337,13 +322,6 @@ export default function LoginPage() {
 
                     <div className="login-switch-footer">
                         <span>¿No tienes una cuenta? <Link to="/register" className="login-link-highlight">Regístrate</Link></span>
-                    </div>
-
-                    <div className="login-legal-footer">
-                        <a href="#privacy">Privacidad</a>
-                        <a href="#terms">Términos</a>
-                        <a href="#cookies">Cookies</a>
-                        <span>UPEC</span>
                     </div>
                 </div>
             </div>
@@ -360,7 +338,12 @@ export default function LoginPage() {
                                 </svg>
                                 <span>Recuperación Segura</span>
                             </div>
-                            <button className="forgot-modal-close" onClick={() => setShowForgotModal(false)}>✕</button>
+                            <button className="forgot-modal-close" onClick={() => setShowForgotModal(false)} aria-label="Cerrar modal">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
                         </div>
 
                         <h3 className="forgot-modal-title">
@@ -380,7 +363,7 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        {forgotError && <div className="login-error-alert">{forgotError}</div>}
+                        {forgotError && <div className="login-error-alert" role="alert">{forgotError}</div>}
                         {forgotSuccess && <div className="forgot-success-alert">{forgotSuccess}</div>}
 
                         {forgotStep === 1 ? (
@@ -443,8 +426,7 @@ export default function LoginPage() {
                                             type="button"
                                             className="toggle-password-btn"
                                             onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
-                                            tabIndex="-1"
-                                        >
+                                                >
                                             {showForgotNewPassword ? 'Ocultar' : 'Ver'}
                                         </button>
                                     </div>
@@ -464,8 +446,7 @@ export default function LoginPage() {
                                             type="button"
                                             className="toggle-password-btn"
                                             onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
-                                            tabIndex="-1"
-                                        >
+                                                >
                                             {showForgotConfirmPassword ? 'Ocultar' : 'Ver'}
                                         </button>
                                     </div>
@@ -493,33 +474,9 @@ export default function LoginPage() {
                 </div>
             )}
 
-            {/* Columna Derecha: Showcase Visual & Testimonial Académico */}
+            {/* Columna Derecha: Showcase Visual con Animación 3D Anime.js */}
             <div className="login-showcase-pane">
-                <div className="showcase-atmosphere"></div>
-                <div className="showcase-content-box">
-                    <div className="showcase-quote-wrapper">
-                        <p className="showcase-quote">
-                            "El método socrático transforma la intuición en maestría técnica de Bases de Datos."
-                        </p>
-                        <div className="showcase-author-card">
-                            <div className="showcase-avatar">
-                                <img src="/amy-logo.png" alt="AMY" className="showcase-avatar-img" />
-                            </div>
-                            <div className="showcase-author-info">
-                                <span className="showcase-name">AMY Socrático</span>
-                                <span className="showcase-role">Tutor IA · Universidad Politécnica Estatal del Carchi</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="showcase-tech-cloud">
-                        <span className="tech-badge">PostgreSQL</span>
-                        <span className="tech-badge">pgvector</span>
-                        <span className="tech-badge">Redis</span>
-                        <span className="tech-badge">Mistral 7B</span>
-                        <span className="tech-badge">FastAPI</span>
-                    </div>
-                </div>
+                <CubeLatticeAnimation className="login-showcase-lattice" interactive={true} />
             </div>
         </div>
     );

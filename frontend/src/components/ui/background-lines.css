@@ -1,13 +1,24 @@
 /* BackgroundLines Component Styling */
 .bg-lines-container {
+    --line-purple-start: #8b5cf6;
+    --line-purple-mid: #c084fc;
+    --line-purple-end: #6366f1;
+    --line-cyan-start: #38bdf8;
+    --line-cyan-end: #a855f7;
+    --line-opacity-start: .8;
+    --line-opacity-mid: .4;
+    --line-opacity-end: .1;
+    --line-opacity-cyan: .6;
     position: relative;
     width: 100%;
-    overflow: hidden;
-    background-color: #09090b;
+    overflow-x: hidden;
+    overflow-y: visible;
+    background-color: var(--bg-primary);
     min-height: 80vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    transition: background-color 0.25s ease;
 }
 
 .bg-lines-svg {
@@ -23,10 +34,29 @@
 .bg-lines-gradient {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.03) 0%, rgba(9, 9, 11, 0.95) 75%);
+    background: radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.03) 0%, var(--bg-primary) 75%);
     pointer-events: none;
     z-index: 2;
+    transition: background 0.25s ease;
 }
+
+[data-theme="light"] .bg-lines-container {
+    --line-purple-start: #6d28d9;
+    --line-purple-mid: #7c3aed;
+    --line-purple-end: #4338ca;
+    --line-cyan-start: #0369a1;
+    --line-cyan-end: #6d28d9;
+    --line-opacity-start: .7;
+    --line-opacity-mid: .5;
+    --line-opacity-end: .3;
+    --line-opacity-cyan: .6;
+}
+
+[data-theme="light"] .bg-lines-gradient {
+    background: radial-gradient(ellipse at 50% 30%, transparent 0%, rgba(255, 255, 255, .55) 75%);
+}
+
+[data-theme="light"] .bg-lines-svg { opacity: .8; }
 
 /* Path stroke animation */
 .animated-path {

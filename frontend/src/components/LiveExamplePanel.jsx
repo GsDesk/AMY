@@ -1593,15 +1593,27 @@ export default function LiveExamplePanel({ example, onClose }) {
                                     </p>
                                     <div className="er-empty-board-features">
                                         <div className="er-empty-feat-item">
-                                            <span className="er-feat-dot">✦</span>
+                                            <span className="er-feat-dot">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="er-feat-sparkle">
+                                                    <polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9" />
+                                                </svg>
+                                            </span>
                                             <span>Pídele a AMY: <em>"Dame un ejemplo de diagrama E-R con tablas"</em>.</span>
                                         </div>
                                         <div className="er-empty-feat-item">
-                                            <span className="er-feat-dot">✦</span>
+                                            <span className="er-feat-dot">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="er-feat-sparkle">
+                                                    <polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9" />
+                                                </svg>
+                                            </span>
                                             <span>Plantea un ejercicio o caso de estudio relacional en el chat.</span>
                                         </div>
                                         <div className="er-empty-feat-item">
-                                            <span className="er-feat-dot">✦</span>
+                                            <span className="er-feat-dot">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="er-feat-sparkle">
+                                                    <polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9" />
+                                                </svg>
+                                            </span>
                                             <span>O adjunta un archivo con esquema SQL para modelarlo automáticamente.</span>
                                         </div>
                                     </div>
@@ -1731,7 +1743,12 @@ export default function LiveExamplePanel({ example, onClose }) {
                                                 <strong>{activeRelationship.toTable}</strong>.{activeRelationship.toCol} (FK)
                                             </span>
                                         </div>
-                                        <button className="er-rel-close" onClick={() => setActiveRelationship(null)}>✕</button>
+                                        <button className="er-rel-close" onClick={() => setActiveRelationship(null)} aria-label="Cerrar detalle">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 )}
                             </>

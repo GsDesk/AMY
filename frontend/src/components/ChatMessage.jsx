@@ -6,6 +6,16 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MorphThinkingAnimation from './MorphThinkingAnimation';
 import './ChatMessage.css';
 
+// ── Helper: Eliminar emojis y convertir numeración con keycaps a formato estándar ──
+function cleanTextEmojisAndKeycaps(text) {
+    if (!text) return '';
+    // 1. Convertir números con keycaps a números arábigos estándar (1., 2.)
+    let cleaned = text.replace(/([0-9#*])\ufe0f?\u20e3/g, '$1. ');
+    // 2. Eliminar cualquier otro emoji Unicode
+    cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}\u{1FA00}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}\u{20E3}\u{23E9}-\u{23FA}\u{2B50}-\u{2B55}]/gu, '');
+    return cleaned;
+}
+
 // ── Helper: Desenvolver texto si viene envuelto en JSON crudo ─────────────────
 function unwrapText(text) {
     if (!text) return '';
@@ -33,8 +43,8 @@ function unwrapText(text) {
         }
     }
 
-    // Convertir saltos de línea literales escapados (\n) a saltos de línea reales
-    return str.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    // Convertir saltos de línea literales escapados (\n) a saltos de línea reales y sanitizar emojis
+    return cleanTextEmojisAndKeycaps(str.replace(/\\n/g, '\n').replace(/\\"/g, '"'));
 }
 
 
@@ -435,7 +445,7 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                                     )}
                                 </div>
                             )}
-                            {message.text && <p className="user-text-body">{message.text}</p>}
+                            {message.text && <p className="user-text-body">{cleanTextEmojisAndKeycaps(message.text)}</p>}
                         </div>
                     )}
                 </div>
@@ -446,7 +456,12 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                         <div className="lightbox-content" onClick={e => e.stopPropagation()}>
                             <div className="lightbox-header">
                                 <span>{message.attachment.filename}</span>
-                                <button className="lightbox-close-btn" onClick={() => setLightboxOpen(false)}>✕</button>
+                                <button className="lightbox-close-btn" onClick={() => setLightboxOpen(false)} aria-label="Cerrar vista previa">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </button>
                             </div>
                             <img
                                 src={message.attachment.base64Data || message.attachment.base64_data || message.attachment.previewUrl}

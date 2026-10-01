@@ -1,0 +1,29 @@
+.full-container,
+.anime-cube-lattice {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: auto;
+    z-index: 1;
+
+    /* Palette variables for utils.get($container, '--hex-${name}-1') */
+    --hex-red-1: #f43f5e;
+    --hex-orange-1: #fb923c;
+    --hex-yellow-1: #facc15;
+    --hex-green-1: #4ade80;
+    --hex-sky-1: #38bdf8;
+    --hex-purple-1: #a855f7;
+    --hex-pink-1: #f472b6;
+}
+
+.full-container canvas,
+.anime-cube-lattice canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    outline: none;
+}
+
+.anime-cube-lattice.webgl-unavailable::after { content: ''; position: absolute; width: 220px; height: 220px; top: calc(50% - 110px); left: calc(50% - 110px); border-radius: 32px; transform: rotate(30deg); background: linear-gradient(135deg, #38bdf8, #8b5cf6); box-shadow: 30px 30px 0 #38bdf825, -30px -30px 0 #8b5cf625; }

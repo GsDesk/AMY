@@ -7,19 +7,20 @@ export function BackgroundLines({ children, className = '' }) {
             <div className="bg-lines-gradient" />
             <svg
                 className="bg-lines-svg"
+                aria-hidden="true"
                 viewBox="0 0 1440 900"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
             >
                 <defs>
                     <linearGradient id="purple-line" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.8" />
-                        <stop offset="50%" stopColor="#c084fc" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0.1" />
+                        <stop offset="0%" stopColor="var(--line-purple-start)" stopOpacity="var(--line-opacity-start)" />
+                        <stop offset="50%" stopColor="var(--line-purple-mid)" stopOpacity="var(--line-opacity-mid)" />
+                        <stop offset="100%" stopColor="var(--line-purple-end)" stopOpacity="var(--line-opacity-end)" />
                     </linearGradient>
                     <linearGradient id="cyan-line" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.6" />
-                        <stop offset="100%" stopColor="#a855f7" stopOpacity="0.1" />
+                        <stop offset="0%" stopColor="var(--line-cyan-start)" stopOpacity="var(--line-opacity-cyan)" />
+                        <stop offset="100%" stopColor="var(--line-cyan-end)" stopOpacity="var(--line-opacity-end)" />
                     </linearGradient>
                 </defs>
 

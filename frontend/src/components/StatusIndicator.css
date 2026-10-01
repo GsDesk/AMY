@@ -1,6 +1,6 @@
 .status-indicator {
-    background: #141417;
-    border: 1px solid #27272a;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     padding: 0.8rem;
     display: flex;
@@ -8,6 +8,8 @@
     gap: 0.5rem;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .status-indicator--header {
@@ -15,13 +17,14 @@
     border: none;
     padding: 0;
     min-width: 180px;
+    box-shadow: none;
 }
 
 .status-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #e4e4e7;
+    color: var(--text-secondary);
 }
 
 .status-dot {
@@ -33,24 +36,71 @@
 
 .status-dot.online {
     background-color: var(--success);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: status-online-glow 3s infinite cubic-bezier(0.66, 0, 0, 1);
 }
 
 .status-dot.offline {
     background-color: var(--error);
 }
 
+.status-dot.downloading {
+    background-color: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+    animation: status-download-pulse 1.4s infinite ease-in-out;
+}
+
+.status-sub {
+    font-size: 0.65rem;
+    color: #f59e0b;
+    font-weight: 500;
+}
+
+.status-sub.offline-text {
+    color: var(--error);
+}
+
+.status-sub.ready-text {
+    color: var(--success);
+}
+
+@keyframes status-online-glow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+@keyframes status-download-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    }
+    50% {
+        transform: scale(1.35);
+        opacity: 0.75;
+        box-shadow: 0 0 0 5px rgba(245, 158, 11, 0);
+    }
+}
+
 .status-fragments {
-    color: #71717a;
+    color: var(--text-dim);
     font-size: 0.7rem;
     padding-top: 0.3rem;
-    border-top: 1px solid #27272a;
+    border-top: 1px solid var(--border-primary);
 }
 
 /* ── Pipeline Stage Display ────────────────────────────────────────────────── */
 
 .pipeline-stage {
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #27272a;
+    border-bottom: 1px solid var(--border-primary);
     animation: pipeline-appear 0.2s ease-out;
 }
 
@@ -60,20 +110,20 @@
     justify-content: space-between;
     margin-bottom: 0.4rem;
     font-size: 0.72rem;
-    color: #ffffff;
+    color: var(--text-primary);
     gap: 0.5rem;
 }
 
 .pipeline-stage-pct {
     font-size: 0.65rem;
-    color: #38bdf8;
+    color: var(--accent-cyan);
     flex-shrink: 0;
 }
 
 .pipeline-bar {
     width: 100%;
     height: 3px;
-    background: #27272a;
+    background: var(--border-primary);
     border-radius: 2px;
     overflow: hidden;
     position: relative;

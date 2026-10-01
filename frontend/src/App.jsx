@@ -1,11 +1,11 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { isAuthenticated, getUser } from './services/api';
 import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ChatPage from './pages/ChatPage';
-import AdminPage from './pages/AdminPage';
-import './App.css';
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 function ProtectedRoute({ children }) {
     if (!isAuthenticated()) return <Navigate to="/login" replace />;
@@ -22,6 +22,7 @@ function AdminProtectedRoute({ children }) {
 export default function App() {
     return (
         <BrowserRouter>
+            <Suspense fallback={<div role="status" className="route-loading">Cargando AMY…</div>}>
             <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -37,6 +38,7 @@ export default function App() {
                     </AdminProtectedRoute>
                 } />
             </Routes>
+            </Suspense>
         </BrowserRouter>
     );
 }

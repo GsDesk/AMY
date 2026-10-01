@@ -1,33 +1,36 @@
 /* ── Chat Input Area ─────────────────────────────────── */
 .chat-input-area {
     padding: 0.75rem 1rem;
-    border-top: 1px solid #27272a;
-    background: #0d0d10;
+    border-top: 1px solid var(--border-primary);
+    background: var(--panel-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     flex-shrink: 0;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .input-wrapper {
     display: flex;
     flex-direction: column;
-    background: #141417;
-    border: 1px solid #27272a;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
     border-radius: 10px;
     padding: 0.35rem 0.45rem 0.35rem 0.6rem;
     transition: all 0.15s ease;
     gap: 0.35rem;
     position: relative;
+    box-shadow: var(--shadow-sm);
 }
 
 .input-wrapper.input-dragging {
-    border-color: #ffffff;
-    background: #18181b;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+    border-color: var(--accent);
+    background: var(--bg-tertiary);
+    box-shadow: 0 0 0 2px var(--border-focus);
 }
 
 .input-wrapper:focus-within {
-    border-color: #3f3f46;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px #38bdf8, 0 0 12px rgba(56, 189, 248, 0.15);
 }
 
 .input-wrapper.input-disabled {
@@ -39,8 +42,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
-    background: #18181b;
-    border: 1px solid #27272a;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     padding: 0.35rem 0.6rem;
     max-width: 100%;
@@ -63,15 +66,15 @@
     height: 28px;
     object-fit: cover;
     border-radius: 4px;
-    border: 1px solid #3f3f46;
+    border: 1px solid var(--border-secondary);
 }
 
 .preview-doc-badge {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    background: #27272a;
-    color: #ffffff;
+    background: var(--border-primary);
+    color: var(--text-primary);
     padding: 0.2rem 0.45rem;
     border-radius: 4px;
     font-size: 0.68rem;
@@ -88,7 +91,7 @@
 
 .attachment-name {
     font-size: 0.76rem;
-    color: #ffffff;
+    color: var(--text-primary);
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
@@ -98,14 +101,14 @@
 
 .attachment-size {
     font-size: 0.66rem;
-    color: #a1a1aa;
+    color: var(--text-muted);
     font-family: 'JetBrains Mono', monospace;
 }
 
 .attachment-remove-btn {
     background: transparent;
     border: none;
-    color: #71717a;
+    color: var(--text-dim);
     width: 20px;
     height: 20px;
     border-radius: 4px;
@@ -118,8 +121,8 @@
 }
 
 .attachment-remove-btn:hover {
-    background: #27272a;
-    color: #ffffff;
+    background: var(--btn-hover);
+    color: var(--text-primary);
 }
 
 /* ── Fila Principal del Input (Clip + Textarea + Controles) ──── */
@@ -134,7 +137,7 @@
 .attach-clip-btn {
     background: transparent;
     border: none;
-    color: #71717a;
+    color: var(--text-dim);
     width: 32px;
     height: 32px;
     border-radius: 6px;
@@ -148,8 +151,8 @@
 }
 
 .attach-clip-btn:hover:not(:disabled) {
-    background: #1f1f23;
-    color: #ffffff;
+    background: var(--btn-hover);
+    color: var(--text-primary);
 }
 
 .attach-clip-btn:disabled {
@@ -161,7 +164,7 @@
     flex: 1;
     background: transparent;
     border: none;
-    color: #ffffff;
+    color: var(--text-primary);
     font-family: 'Outfit', sans-serif;
     font-size: 0.88rem;
     resize: none;
@@ -173,7 +176,7 @@
 }
 
 .input-row-main textarea::placeholder {
-    color: #71717a;
+    color: var(--text-dim);
     font-size: 0.84rem;
 }
 
@@ -195,9 +198,9 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    background: #18181b;
-    border: 1px solid #27272a;
-    color: #ffffff;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
     padding: 0.28rem 0.55rem;
     border-radius: 6px;
     font-size: 0.7rem;
@@ -210,9 +213,9 @@
 }
 
 .model-toggle-btn:hover {
-    background: #27272a;
-    border-color: #3f3f46;
-    color: #ffffff;
+    background: var(--btn-hover);
+    border-color: var(--border-secondary);
+    color: var(--text-primary);
 }
 
 /* ── Dropdown ────────────────────────────────────────── */
@@ -221,13 +224,13 @@
     bottom: 80px;      /* por encima del input */
     right: 1rem;
     width: min(280px, calc(100vw - 2rem));
-    background: #141417;
+    background: var(--panel-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid #27272a;
+    border: 1px solid var(--border-primary);
     border-radius: 10px;
     padding: 0.4rem;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+    box-shadow: var(--shadow-lg);
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
@@ -237,7 +240,7 @@
 .menu-header {
     font-size: 0.65rem;
     font-weight: 700;
-    color: #a1a1aa;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.07em;
     font-family: 'JetBrains Mono', monospace;
@@ -259,22 +262,22 @@
     width: 100%;
 }
 
-.menu-item:hover { background: #18181b; }
+.menu-item:hover { background: var(--bg-tertiary); }
 .menu-item.active {
-    background: #1f1f23;
-    border-left: 2px solid #ffffff;
+    background: var(--bg-tertiary);
+    border-left: 2px solid var(--accent);
     padding-left: calc(0.65rem - 2px);
 }
 
 .item-title {
     font-size: 0.78rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .item-desc {
     font-size: 0.68rem;
-    color: #a1a1aa;
+    color: var(--text-muted);
     line-height: 1.3;
 }
 
@@ -283,9 +286,9 @@
     width: 32px;
     height: 32px;
     border-radius: 6px;
-    border: 1px solid #ffffff;
-    background: #ffffff;
-    color: #09090b;
+    border: 1px solid var(--text-primary);
+    background: var(--text-primary);
+    color: var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -295,8 +298,8 @@
 }
 
 .send-btn:hover:not(:disabled) {
-    background: #e4e4e7;
-    border-color: #e4e4e7;
+    background: var(--text-secondary);
+    border-color: var(--text-secondary);
 }
 
 .send-btn:disabled {

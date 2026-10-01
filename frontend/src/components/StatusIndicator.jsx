@@ -20,7 +20,7 @@ export default function StatusIndicator({ pipelineStage = null }) {
             setHealth(data);
         };
         fetchHealth();
-        const interval = setInterval(fetchHealth, 30000);
+        const interval = setInterval(fetchHealth, 10000);
         return () => clearInterval(interval);
     }, []);
 
@@ -46,15 +46,38 @@ export default function StatusIndicator({ pipelineStage = null }) {
     // Modo por defecto (Sidebar): Salud de la infraestructura
     if (!health) return null;
 
+    const ollamaDotClass = health.ollama === 'connected'
+        ? 'online'
+        : health.ollama === 'downloading'
+            ? 'downloading'
+            : 'offline';
+
     return (
         <div className="status-indicator">
             <div className="status-row">
                 <span className={`status-dot ${health.database === 'connected' ? 'online' : 'offline'}`} />
                 <span className="status-label">PostgreSQL</span>
             </div>
+            {health.gemini === 'connected' && (
+                <div className="status-row">
+                    <span className="status-dot online" />
+                    <span className="status-label">Gemini 2.5 Flash</span>
+                </div>
+            )}
+            {health.groq === 'connected' && (
+                <div className="status-row">
+                    <span className="status-dot online" />
+                    <span className="status-label">Groq LPU (Respaldo)</span>
+                </div>
+            )}
             <div className="status-row">
-                <span className={`status-dot ${health.ollama === 'connected' ? 'online' : 'offline'}`} />
-                <span className="status-label">Ollama ({health.model})</span>
+                <span className={`status-dot ${ollamaDotClass}`} />
+                <span className="status-label">
+                    Ollama ({health.model || 'mistral'}){' '}
+                    {health.ollama === 'downloading' && <span className="status-sub">(descargando...)</span>}
+                    {health.ollama === 'connected' && <span className="status-sub ready-text">(listo)</span>}
+                    {health.ollama === 'disconnected' && <span className="status-sub offline-text">(sin conexión)</span>}
+                </span>
             </div>
             {health.fragments_count > 0 && (
                 <div className="status-fragments">

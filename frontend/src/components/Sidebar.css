@@ -7,11 +7,12 @@
     padding: 1.2rem;
     gap: 1rem;
     overflow-y: auto;
-    border-right: 1px solid #27272a;
+    border-right: 1px solid var(--border-primary);
     border-radius: 0;
     flex-shrink: 0;
     height: 100vh;
-    background: #0d0d10;
+    background: var(--panel-bg);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 /* ── Brand ────────────────────────────────────────── */
@@ -22,21 +23,23 @@
     align-items: center;
     gap: 0.3rem;
     padding-bottom: 0.9rem;
-    border-bottom: 1px solid #27272a;
+    border-bottom: 1px solid var(--border-primary);
 }
 
 .amy-mark {
     width: 44px;
     height: 44px;
     border-radius: 10px;
-    background: #000000;
-    border: 1px solid #27272a;
+    background: var(--bg-card);
+    border: 1px solid rgba(56, 189, 248, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 0.3rem;
     overflow: hidden;
     padding: 3px;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .amy-brand-logo-img {
@@ -49,11 +52,11 @@
     font-size: 1.4rem;
     font-weight: 800;
     letter-spacing: 4px;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .subtitle {
-    color: #71717a;
+    color: var(--text-dim);
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 1.5px;
@@ -87,20 +90,22 @@
     flex-direction: column;
     gap: 0.15rem;
     padding: 0.65rem 0.85rem;
-    background: #141417;
-    border: 1px solid #27272a;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .user-name {
     font-size: 0.82rem;
-    color: #ffffff;
+    color: var(--text-primary);
     font-weight: 600;
 }
 
 .user-email {
     font-size: 0.7rem;
-    color: #a1a1aa;
+    color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -109,9 +114,9 @@
 .admin-link-btn {
     margin-top: 0.4rem;
     width: 100%;
-    background: #18181b;
-    border: 1px solid #27272a;
-    color: #ffffff;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
     padding: 0.45rem 0.6rem;
     border-radius: 6px;
     font-size: 0.76rem;
@@ -126,9 +131,9 @@
 }
 
 .admin-link-btn:hover {
-    background: #27272a;
-    border-color: #3f3f46;
-    color: #ffffff;
+    background: var(--btn-hover);
+    border-color: var(--border-secondary);
+    color: var(--text-primary);
 }
 
 /* ── Conversations ────────────────────────────────── */
@@ -146,7 +151,7 @@
 
 .conversations-header h3 {
     font-size: 0.75rem;
-    color: #a1a1aa;
+    color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -159,18 +164,18 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    background: #18181b;
-    border: 1px solid #27272a;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-primary);
     border-radius: 6px;
-    color: #ffffff;
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .new-conv-btn:hover {
-    background: #27272a;
-    border-color: #3f3f46;
-    color: #ffffff;
+    background: var(--btn-hover);
+    border-color: var(--border-secondary);
+    color: var(--text-primary);
 }
 
 .conv-list {
@@ -185,7 +190,7 @@
 
 .conv-empty {
     font-size: 0.73rem;
-    color: #71717a;
+    color: var(--text-dim);
     text-align: center;
     padding: 0.5rem 0;
 }
@@ -203,13 +208,14 @@
 }
 
 .conv-item:hover {
-    background: #18181b;
-    border-color: #27272a;
+    background: var(--bg-tertiary);
+    border-color: var(--border-primary);
 }
 
 .conv-item.active {
-    background: #18181b;
-    border: 1px solid #3f3f46;
+    background: var(--bg-tertiary);
+    border: 1px solid #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
 }
 
 .conv-info {
@@ -222,7 +228,7 @@
 
 .conv-title {
     font-size: 0.78rem;
-    color: #ffffff;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -231,7 +237,7 @@
 
 .conv-date {
     font-size: 0.66rem;
-    color: #71717a;
+    color: var(--text-dim);
     font-family: 'JetBrains Mono', monospace;
 }
 
@@ -244,7 +250,7 @@
     background: none;
     border: none;
     border-radius: 4px;
-    color: #71717a;
+    color: var(--text-dim);
     cursor: pointer;
     opacity: 0;
     transition: all 0.15s;
@@ -254,7 +260,7 @@
 .conv-item:hover .conv-delete { opacity: 1; }
 .conv-delete:hover {
     background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    color: #ef4444;
 }
 
 /* En móvil el botón delete siempre visible (no hay hover) */
@@ -264,15 +270,17 @@
 
 /* ── Info sections ────────────────────────────────── */
 .instructions {
-    background: #141417;
-    border: 1px solid #27272a;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     padding: 0.8rem;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .instructions h3 {
     font-size: 0.76rem;
-    color: #ffffff;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -289,7 +297,7 @@
 }
 
 .instructions li {
-    color: #a1a1aa;
+    color: var(--text-muted);
     font-size: 0.76rem;
     padding-left: 0.75rem;
     position: relative;
@@ -300,7 +308,7 @@
     content: '-';
     position: absolute;
     left: 0;
-    color: #71717a;
+    color: var(--text-dim);
 }
 
 /* ── Footer ───────────────────────────────────────── */
@@ -317,9 +325,9 @@
     font-family: 'Outfit', sans-serif;
     font-weight: 500;
     padding: 0.55rem 0.85rem;
-    background: #141417;
-    border: 1px solid #27272a;
-    color: #e4e4e7;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
     border-radius: 8px;
     cursor: pointer;
     display: flex;
@@ -330,9 +338,9 @@
 }
 
 .logout-trigger-btn:hover {
-    background: #18181b;
-    border-color: #3f3f46;
-    color: #ffffff;
+    background: var(--bg-tertiary);
+    border-color: var(--border-secondary);
+    color: var(--text-primary);
 }
 
 /* ── Modal de Gestión de Sesión & Cambio de Cuenta ── */
@@ -356,16 +364,17 @@
 }
 
 .session-modal-card {
-    background: #0d0d10;
-    border: 1px solid #27272a;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-primary);
     border-radius: 14px;
     width: 100%;
     max-width: 420px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     animation: sessionSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 @keyframes sessionSlideUp {
@@ -375,8 +384,8 @@
 
 .session-modal-header {
     padding: 1.1rem 1.25rem;
-    background: #141417;
-    border-bottom: 1px solid #27272a;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-primary);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -394,9 +403,9 @@
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: #18181b;
-    border: 1px solid #3f3f46;
-    color: #ffffff;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    color: var(--text-primary);
     font-weight: 700;
     font-size: 0.95rem;
     display: flex;
@@ -414,7 +423,7 @@
 .session-modal-name {
     font-size: 0.88rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -422,7 +431,7 @@
 
 .session-modal-email {
     font-size: 0.74rem;
-    color: #a1a1aa;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -431,7 +440,7 @@
 .session-modal-close-btn {
     background: transparent;
     border: none;
-    color: #71717a;
+    color: var(--text-dim);
     width: 28px;
     height: 28px;
     border-radius: 6px;
@@ -443,8 +452,8 @@
 }
 
 .session-modal-close-btn:hover {
-    background: #27272a;
-    color: #ffffff;
+    background: var(--btn-hover);
+    color: var(--text-primary);
 }
 
 .session-modal-body {
@@ -457,10 +466,10 @@
 .session-action-btn {
     width: 100%;
     padding: 0.75rem 0.9rem;
-    background: #141417;
-    border: 1px solid #27272a;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
     border-radius: 10px;
-    color: #f4f4f5;
+    color: var(--text-primary);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -470,13 +479,13 @@
 }
 
 .session-action-btn:hover {
-    background: #18181b;
-    border-color: #3f3f46;
+    background: var(--bg-tertiary);
+    border-color: var(--border-secondary);
 }
 
 .session-action-btn.active {
-    border-color: #38bdf8;
-    background: #141820;
+    border-color: var(--accent-cyan);
+    background: var(--bg-tertiary);
 }
 
 .session-action-left {
@@ -488,7 +497,7 @@
 
 .session-action-left svg {
     flex-shrink: 0;
-    color: #38bdf8;
+    color: var(--accent-cyan);
 }
 
 .session-action-text {
@@ -500,12 +509,12 @@
 .session-action-title {
     font-size: 0.82rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .session-action-subtitle {
     font-size: 0.7rem;
-    color: #71717a;
+    color: var(--text-muted);
 }
 
 .session-chevron {
@@ -533,14 +542,15 @@
 
 /* ── Tarjeta de Cuentas Guardadas (Subcard) ───────── */
 .session-accounts-subcard {
-    background: #09090b;
-    border: 1px solid #27272a;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
     border-radius: 10px;
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     animation: sessionSubcardSlide 0.2s ease-out;
+    box-shadow: var(--shadow-sm);
 }
 
 @keyframes sessionSubcardSlide {
@@ -561,29 +571,29 @@
     align-items: center;
     gap: 0.65rem;
     padding: 0.5rem 0.65rem;
-    background: #141417;
-    border: 1px solid #27272a;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .session-account-item:hover {
-    background: #18181b;
-    border-color: #3f3f46;
+    background: var(--btn-hover);
+    border-color: var(--border-secondary);
 }
 
 .session-account-item.current-active {
-    border-color: #38bdf8;
-    background: #0e1a24;
+    border-color: var(--accent-cyan);
+    background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
 }
 
 .account-item-avatar {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #27272a;
-    color: #ffffff;
+    background: var(--border-primary);
+    color: var(--text-primary);
     font-size: 0.74rem;
     font-weight: 700;
     display: flex;
@@ -602,7 +612,7 @@
 .account-item-name {
     font-size: 0.78rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -610,7 +620,7 @@
 
 .account-item-email {
     font-size: 0.68rem;
-    color: #71717a;
+    color: var(--text-dim);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -619,7 +629,7 @@
 .account-active-tag {
     font-size: 0.64rem;
     font-weight: 700;
-    color: #38bdf8;
+    color: var(--accent-cyan);
     background: rgba(56, 189, 248, 0.12);
     border: 1px solid rgba(56, 189, 248, 0.3);
     padding: 0.15rem 0.45rem;
@@ -629,7 +639,7 @@
 .account-remove-btn {
     background: transparent;
     border: none;
-    color: #71717a;
+    color: var(--text-dim);
     width: 24px;
     height: 24px;
     border-radius: 4px;
@@ -648,10 +658,10 @@
 .add-account-btn {
     width: 100%;
     padding: 0.5rem 0.75rem;
-    background: #141417;
-    border: 1px dashed #3f3f46;
+    background: var(--bg-tertiary);
+    border: 1px dashed var(--border-secondary);
     border-radius: 8px;
-    color: #a1a1aa;
+    color: var(--text-muted);
     font-size: 0.74rem;
     font-weight: 500;
     cursor: pointer;
@@ -663,9 +673,9 @@
 }
 
 .add-account-btn:hover {
-    background: #18181b;
-    border-color: #38bdf8;
-    color: #ffffff;
+    background: var(--btn-hover);
+    border-color: var(--accent-cyan);
+    color: var(--text-primary);
 }
 
 /* ── RESPONSIVE: Sidebar como drawer en móvil ─────── */

@@ -4,8 +4,9 @@
    ============================================================ */
 
 :root {
-    /* -- Backgrounds --------------------------------- */
+    /* -- Backgrounds (Negro Clásico & Zinc Oscuro) --- */
     --bg-primary: #09090b;
+    --bg-primary-rgb: 9, 9, 11;
     --bg-secondary: #0f0f12;
     --bg-tertiary: #18181b;
     --bg-card: #141417;
@@ -14,7 +15,7 @@
     /* -- Borders ------------------------------------ */
     --border-primary: #27272a;
     --border-secondary: #3f3f46;
-    --border-focus: #52525b;
+    --border-focus: #38bdf8;
 
     /* -- Text --------------------------------------- */
     --text-primary: #ffffff;
@@ -44,7 +45,7 @@
 
     /* -- Chat Bubbles ------------------------------- */
     --amy-msg-bg: #121215;
-    --amy-msg-border: #27272a;
+    --amy-msg-border: rgba(56, 189, 248, 0.25);
     --amy-msg-accent: #38bdf8;
     --user-msg-bg: #18181b;
     --user-msg-border: #27272a;
@@ -52,6 +53,115 @@
     /* -- Panel -------------------------------------- */
     --panel-bg: #0d0d10;
     --panel-border: #27272a;
+
+    /* -- Shadows ------------------------------------ */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="dark"],
+[data-theme="dark"] {
+    --bg-primary: #09090b;
+    --bg-primary-rgb: 9, 9, 11;
+    --bg-secondary: #0f0f12;
+    --bg-tertiary: #18181b;
+    --bg-card: #141417;
+    --bg-elevated: #1f1f23;
+
+    --border-primary: #27272a;
+    --border-secondary: #3f3f46;
+    --border-focus: #38bdf8;
+
+    --text-primary: #ffffff;
+    --text-secondary: #e4e4e7;
+    --text-muted: #a1a1aa;
+    --text-dim: #71717a;
+
+    --accent: #ffffff;
+    --accent-violet: #ffffff;
+    --accent-cyan: #38bdf8;
+    --accent-muted: #d4d4d8;
+    --accent-dim: #27272a;
+    --accent-gradient: none;
+    --accent-gradient-btn: #ffffff;
+    --accent-gradient-btn-hover: #e4e4e7;
+
+    --btn-bg: #18181b;
+    --btn-hover: #27272a;
+    --btn-active: #3f3f46;
+
+    --amy-msg-bg: #121215;
+    --amy-msg-border: rgba(56, 189, 248, 0.25);
+    --amy-msg-accent: #38bdf8;
+    --user-msg-bg: #18181b;
+    --user-msg-border: #27272a;
+
+    --panel-bg: #0d0d10;
+    --panel-border: #27272a;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="light"],
+[data-theme="light"] {
+    /* -- Backgrounds (Blanco Puro & Grises Suaves) --- */
+    --bg-primary: #ffffff;
+    --bg-primary-rgb: 255, 255, 255;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-elevated: #ffffff;
+
+    /* -- Borders ------------------------------------ */
+    --border-primary: #e2e8f0;
+    --border-secondary: #cbd5e1;
+    --border-focus: #38bdf8;
+
+    /* -- Text (Negro Nítido & Grafito) -------------- */
+    --text-primary: #09090b;
+    --text-secondary: #1e293b;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+
+    /* -- Accent (Negro Clásico & Azul Técnico) ------- */
+    --accent: #09090b;
+    --accent-violet: #09090b;
+    /* Conservar el color cyan/azul técnico del tema oscuro (#38bdf8) */
+    --accent-cyan: #38bdf8;
+    --accent-muted: #475569;
+    --accent-dim: #e2e8f0;
+    --accent-gradient: none;
+    --accent-gradient-btn: #09090b;
+    --accent-gradient-btn-hover: #1e293b;
+
+    /* -- Semantic ----------------------------------- */
+    --success: #059669;
+    --warning: #d97706;
+    --error: #dc2626;
+
+    /* -- Interactive -------------------------------- */
+    --btn-bg: #f1f5f9;
+    --btn-hover: #e2e8f0;
+    --btn-active: #cbd5e1;
+
+    /* -- Chat Bubbles (Borde azul del tema oscuro conservado) --- */
+    --amy-msg-bg: #f8fafc;
+    --amy-msg-border: rgba(56, 189, 248, 0.35);
+    --amy-msg-accent: #38bdf8;
+    --user-msg-bg: #f1f5f9;
+    --user-msg-border: #e2e8f0;
+
+    /* -- Panel -------------------------------------- */
+    --panel-bg: #ffffff;
+    --panel-border: #e2e8f0;
+
+    /* -- Shadows ------------------------------------ */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08);
 }
 
 /* -- Reset ------------------------------------------- */
@@ -76,6 +186,7 @@ body {
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 #root {
@@ -91,6 +202,8 @@ body {
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--panel-border);
     border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 /* -- Typography -------------------------------------- */
@@ -118,17 +231,17 @@ a:hover {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: #27272a;
+    background: var(--border-secondary);
     border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #3f3f46;
+    background: var(--border-focus);
 }
 
 /* -- Selection --------------------------------------- */
 ::selection {
-    background: #27272a;
-    color: #ffffff;
+    background: var(--border-primary);
+    color: var(--text-primary);
 }
 
 /* -- Focus ------------------------------------------- */
@@ -161,19 +274,44 @@ a:hover {
 }
 
 .btn-primary {
-    background: #ffffff;
-    color: #09090b;
-    border: 1px solid #ffffff;
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border: 1px solid var(--text-primary);
     font-weight: 600;
 }
 
 .btn-primary:hover {
-    background: #e4e4e7;
-    border-color: #e4e4e7;
+    background: var(--text-secondary);
+    border-color: var(--text-secondary);
     transform: translateY(-1px);
 }
 
 .btn-lg {
     padding: 0.9rem 2rem;
     font-size: 1rem;
+}
+
+/* ── Light Mode Logo Emblem Inversion ──────────────── */
+html[data-theme="light"] .msg-avatar-logo-img,
+html[data-theme="light"] .amy-brand-logo-img,
+html[data-theme="light"] .landing-logo-img,
+html[data-theme="light"] .login-logo-img,
+html[data-theme="light"] .register-logo-img,
+html[data-theme="light"] .showcase-avatar-img,
+[data-theme="light"] .msg-avatar-logo-img,
+[data-theme="light"] .amy-brand-logo-img,
+[data-theme="light"] .landing-logo-img,
+[data-theme="light"] .login-logo-img,
+[data-theme="light"] .register-logo-img,
+[data-theme="light"] .showcase-avatar-img {
+    filter: invert(1);
+    mix-blend-mode: multiply;
+}
+
+
+:where(a, button, input, select, textarea):focus-visible { outline: 2px solid #0284c7; outline-offset: 4px; }
+.route-loading { min-height: 100dvh; display: grid; place-items: center; color: var(--text-primary); background: var(--bg-primary); }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    .reveal-ready { opacity: 1 !important; transform: none !important; }
 }

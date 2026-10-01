@@ -3,6 +3,7 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import WorkflowSourceVisualizer from './WorkflowSourceVisualizer';
 import MorphThinkingAnimation from './MorphThinkingAnimation';
+import ThemeToggle from './ThemeToggle';
 import { useChat } from '../hooks/useChat';
 import './ChatWindow.css';
 
@@ -177,6 +178,8 @@ export default function ChatWindow({ conversationId, onExampleReceived, onResetE
                             <span>Detener</span>
                         </button>
                     )}
+
+                    <ThemeToggle className="header-theme-toggle" />
 
                     <button className="icon-btn" onClick={clearChat} title="Limpiar conversación" id="clear-chat-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/></svg>
