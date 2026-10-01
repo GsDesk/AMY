@@ -30,7 +30,11 @@ class Database:
         Se ejecuta en cada arranque del backend como garantia de consistencia,
         sin importar si el volumen de PostgreSQL fue reiniciado o es nuevo.
         """
-        async with self.pool.acquire() as conn:
+        async with self.pool.acquire() as conn, conn.transaction():
+            # Los workers de Gunicorn arrancan a la vez: serializar el DDL evita
+            # colisiones de CREATE TABLE IF NOT EXISTS concurrentes en PostgreSQL.
+            await conn.execute("SELECT pg_advisory_xact_lock(727001);")
+
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id VARCHAR(100) PRIMARY KEY,
@@ -83,6 +87,16 @@ class Database:
                     email VARCHAR(150) PRIMARY KEY,
                     codigo VARCHAR(10) NOT NULL,
                     expira_en TIMESTAMP WITH TIME ZONE NOT NULL
+                );
+            """)
+
+            # API keys de proveedores de IA renovables desde el panel admin (valor cifrado)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS configuracion_api (
+                    proveedor VARCHAR(30) PRIMARY KEY,
+                    valor_cifrado TEXT NOT NULL,
+                    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    actualizado_por VARCHAR(150)
                 );
             """)
 

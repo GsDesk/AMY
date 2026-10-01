@@ -23,6 +23,7 @@ from app.config import settings
 from app.database.connection import db
 from app.integrations.ollama_client import ollama_client
 from app.core.brain import brain
+from app.core.api_keys import api_keys
 from app.rag.embeddings import compute_missing_embeddings, generate_embedding
 from app.rag.chunker import chunk_text
 from app.rag.retriever import get_fragment_count
@@ -62,6 +63,9 @@ async def lifespan(app: FastAPI):
     from app.cache.redis_cache import redis_cache
     await redis_cache.connect()
 
+    # Cargar las API keys renovadas desde el panel admin (y mantenerlas sincronizadas entre workers)
+    await api_keys.start()
+
     try:
 
         ollama_ok = await ollama_client.is_healthy()
@@ -79,6 +83,7 @@ async def lifespan(app: FastAPI):
     logger.info("Backend listo para recibir consultas")
     yield
 
+    await api_keys.stop()
     await db.disconnect()
     
     # Desconectarse del caché de Redis
@@ -403,8 +408,7 @@ async def chat_stream_endpoint(request_body: ChatRequest, request: Request):
             fecha_actual = datetime.now(ecuador).strftime('%A %d de %B del %Y, %H:%M')
             system_ctx = SYSTEM_PROMPT + f' La fecha y hora actual en Ecuador es: {fecha_actual}.'
 
-            from app.config import settings as _s
-            if _s.GEMINI_API_KEY and _s.GEMINI_API_KEY.strip():
+            if api_keys.get("gemini"):
                 full_text = ""
                 try:
                     async for token in gemini_client.stream(enriched_prompt, system_ctx, attachment=attachment_dict):
@@ -566,8 +570,8 @@ async def health_check():
 
     ollama_status = await ollama_client.get_status()
 
-    gemini_active = bool(getattr(settings, "GEMINI_API_KEY", "").strip())
-    groq_active = bool(getattr(settings, "GROQ_API_KEY", "").strip())
+    gemini_active = bool(api_keys.get("gemini"))
+    groq_active = bool(api_keys.get("groq"))
 
     fragments = await get_fragment_count()
     is_ai_ready = gemini_active or groq_active or (ollama_status == "connected")

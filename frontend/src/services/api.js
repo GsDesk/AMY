@@ -422,11 +422,10 @@ export async function deleteConversation(id, signal = null) {
 
 /* ── Admin & DMZ Ingestion ────────────────────────────── */
 
-export async function getAdminStats(category = 'all', timeRange = '30days', frequency = 'diario') {
+export async function getAdminStats(category = 'all', timeRange = '30days') {
     const params = new URLSearchParams({
         category,
-        time_range: timeRange,
-        frequency
+        time_range: timeRange
     });
     const response = await fetch(`${API_BASE}/api/admin/stats?${params.toString()}`, {
         headers: authHeaders()
@@ -441,6 +440,42 @@ export async function getAdminStats(category = 'all', timeRange = '30days', freq
         throw new Error(`Error al obtener estadísticas: ${response.status}`);
     }
     return await response.json();
+}
+
+// ── API Keys de proveedores de IA (Groq / Gemini) ───────────
+
+async function adminKeyRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE}/api/admin/api-keys${path}`, {
+        ...options,
+        headers: authHeaders()
+    });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Error en la gestión de claves: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export function getApiKeys() {
+    return adminKeyRequest('');
+}
+
+export function updateApiKey(provider, apiKey) {
+    return adminKeyRequest(`/${provider}`, { method: 'PUT', body: JSON.stringify({ apiKey }) });
+}
+
+export function testApiKey(provider) {
+    return adminKeyRequest(`/${provider}/test`, { method: 'POST' });
+}
+
+export function resetApiKey(provider) {
+    return adminKeyRequest(`/${provider}`, { method: 'DELETE' });
 }
 
 export async function getAdminUsers() {

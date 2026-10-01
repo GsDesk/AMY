@@ -8,7 +8,7 @@ import logging
 import json
 import httpx
 from typing import AsyncIterator
-from app.config import settings
+from app.core.api_keys import api_keys
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +32,23 @@ class GeminiClient:
         self._client: httpx.AsyncClient | None = None
 
     def _api_key(self) -> str:
-        key = (settings.GEMINI_API_KEY or "").strip()
+        key = api_keys.get("gemini")
         if not key:
-            raise ValueError("GEMINI_API_KEY no esta configurada en .env")
+            raise ValueError("GEMINI_API_KEY no esta configurada.")
         return key
+
+    async def validate_key(self, key: str) -> tuple[bool, str]:
+        """Comprueba una API key contra Google AI Studio sin guardarla."""
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                r = await client.get(GEMINI_API_BASE, params={"key": key, "pageSize": 1})
+        except Exception as e:
+            return False, f"No se pudo contactar con Google Gemini: {e}"
+        if r.status_code == 200:
+            return True, "Clave válida: Google Gemini respondió correctamente."
+        if r.status_code in (400, 401, 403):
+            return False, "Google rechazó la clave (inválida, restringida o caducada)."
+        return False, f"Google Gemini respondió con un error inesperado ({r.status_code})."
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:

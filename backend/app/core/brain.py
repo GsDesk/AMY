@@ -15,17 +15,17 @@ from app.core.guardrails import SYSTEM_PROMPT, validate_response, sanitize_rag_c
 from app.core.prompts import build_rag_prompt
 from app.core.examples import detect_example
 from app.cache.redis_cache import redis_cache
-from app.config import settings
+from app.core.api_keys import api_keys
 
 logger = logging.getLogger(__name__)
 
 
 def _has_gemini() -> bool:
-    return bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
+    return bool(api_keys.get("gemini"))
 
 
 def _has_groq() -> bool:
-    return bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
+    return bool(api_keys.get("groq"))
 
 
 async def _try_gemini(prompt: str, system: str) -> tuple[str, bool]:

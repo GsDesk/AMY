@@ -14,7 +14,11 @@ from pydantic import BaseModel
 
 from app.auth.dependencies import get_current_admin_user
 from app.database.connection import db
+from app.config import settings
+from app.core.api_keys import api_keys, PROVIDERS
 from app.integrations.ollama_client import ollama_client
+from app.integrations.groq_client import groq_client
+from app.integrations.gemini_client import gemini_client
 from app.cache.redis_cache import redis_cache
 from app.rag.retriever import get_fragment_count
 from app.rag.dmz_validator import validate_document_dmz
@@ -23,159 +27,218 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+LOCAL_TZ = "America/Guayaquil"
 SPANISH_MONTHS = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
-
-def build_smooth_path(coords):
-    """Genera un path cúbico Bezier suavizado a partir de una lista de tuplas (x, y)."""
-    if not coords:
-        return "M 0 160 L 900 160", "M 0 160 L 900 160 L 900 220 L 0 220 Z"
-    if len(coords) == 1:
-        y = coords[0][1]
-        return f"M 0 {y} L 900 {y}", f"M 0 {y} L 900 {y} L 900 220 L 0 220 Z"
-
-    line_path = f"M {coords[0][0]} {coords[0][1]}"
-    for i in range(len(coords) - 1):
-        p0 = coords[i - 1] if i > 0 else coords[i]
-        p1 = coords[i]
-        p2 = coords[i + 1]
-        p3 = coords[i + 2] if i + 2 < len(coords) else p2
-
-        cp1x = round(p1[0] + (p2[0] - p0[0]) / 6.0, 1)
-        cp1y = round(p1[1] + (p2[1] - p0[1]) / 6.0, 1)
-        cp2x = round(p2[0] - (p3[0] - p1[0]) / 6.0, 1)
-        cp2y = round(p2[1] - (p3[1] - p1[1]) / 6.0, 1)
-
-        line_path += f" C {cp1x} {cp1y}, {cp2x} {cp2y}, {p2[0]} {p2[1]}"
-
-    area_path = line_path + " L 900 220 L 0 220 Z"
-    return line_path, area_path
-
-
-async def compute_activity_chart(category: str = "all", time_range: str = "30days", frequency: str = "diario"):
-    now = datetime.now(timezone.utc)
-    num_points = 9
-
-    if time_range == "24h":
-        start_time = now - timedelta(hours=24)
-        step = timedelta(hours=24) / (num_points - 1)
-        buckets = [start_time + step * i for i in range(num_points)]
-        labels = [f"{b.hour:02d}:00" for b in buckets]
-    elif time_range == "7days":
-        start_time = now - timedelta(days=7)
-        step = timedelta(days=7) / (num_points - 1)
-        buckets = [start_time + step * i for i in range(num_points)]
-        labels = [f"{b.day} {SPANISH_MONTHS[b.month]}" for b in buckets]
-    else:  # 30days
-        start_time = now - timedelta(days=30)
-        step = timedelta(days=30) / (num_points - 1)
-        buckets = [start_time + step * i for i in range(num_points)]
-        labels = [f"{b.day} {SPANISH_MONTHS[b.month]}" for b in buckets]
-
-    buckets[-1] = now
-
-    counts = []
-    for b in buckets:
-        if category and category != "all":
-            cnt = await db.fetchval(
-                "SELECT COUNT(*) FROM mensajes WHERE created_at <= $1 AND topic = $2",
-                b, category
-            ) or 0
-        else:
-            cnt = await db.fetchval(
-                "SELECT COUNT(*) FROM mensajes WHERE created_at <= $1",
-                b
-            ) or 0
-        counts.append(cnt)
-
-    max_count = max(counts) if counts else 0
-    if max_count == 0:
-        max_count = 1
-
-    coords = []
-    points_info = []
-    for i in range(num_points):
-        x = round(i * (900.0 / (num_points - 1)), 1)
-        val = counts[i]
-        ratio = val / max_count
-        y = round(165.0 - (ratio * 125.0), 1)
-        coords.append((x, y))
-        points_info.append({
-            "x": x,
-            "y": y,
-            "label": labels[i],
-            "count": val
-        })
-
-    line_path, area_path = build_smooth_path(coords)
-
-    return {
-        "labels": labels,
-        "counts": counts,
-        "linePath": line_path,
-        "areaPath": area_path,
-        "points": points_info,
-        "maxCount": max_count
-    }
+# rango -> (intervalo total, unidad de agrupación, número de cubetas)
+TIME_RANGES = {
+    "24h": (timedelta(hours=24), "hour", 24),
+    "7days": (timedelta(days=7), "day", 7),
+    "30days": (timedelta(days=30), "day", 30),
+}
 
 
 class UpdateRoleRequest(BaseModel):
     rol: str
 
 
+class UpdateApiKeyRequest(BaseModel):
+    apiKey: str
+
+
+async def compute_activity_chart(category: str, time_range: str) -> dict:
+    """Consultas de estudiantes por hora/día (no acumuladas), en hora local de Ecuador."""
+    _, unit, buckets = TIME_RANGES.get(time_range, TIME_RANGES["30days"])
+    rows = await db.fetch(
+        f"""
+        WITH cubetas AS (
+            SELECT generate_series(
+                date_trunc('{unit}', NOW() AT TIME ZONE '{LOCAL_TZ}') - ($1::int - 1) * INTERVAL '1 {unit}',
+                date_trunc('{unit}', NOW() AT TIME ZONE '{LOCAL_TZ}'),
+                INTERVAL '1 {unit}'
+            ) AS inicio
+        )
+        SELECT c.inicio, COUNT(m.id) AS total
+        FROM cubetas c
+        LEFT JOIN mensajes m
+               ON m.sender = 'user'
+              AND (m.created_at AT TIME ZONE '{LOCAL_TZ}') >= c.inicio
+              AND (m.created_at AT TIME ZONE '{LOCAL_TZ}') <  c.inicio + INTERVAL '1 {unit}'
+              AND ($2 = 'all' OR m.topic = $2)
+        GROUP BY c.inicio
+        ORDER BY c.inicio
+        """,
+        buckets, category or "all",
+    )
+    labels = [
+        f"{r['inicio'].hour:02d}:00" if unit == "hour" else f"{r['inicio'].day} {SPANISH_MONTHS[r['inicio'].month]}"
+        for r in rows
+    ]
+    return {"labels": labels, "counts": [r["total"] for r in rows], "unit": unit}
+
+
 @router.get("/stats")
 async def get_admin_stats(
     category: str = Query(default="all"),
     time_range: str = Query(default="30days"),
-    frequency: str = Query(default="diario"),
     current_admin: dict = Depends(get_current_admin_user)
 ):
-    """Retorna métricas consolidadas del sistema para el panel de administración."""
-    # Asegurar que la tabla auditoria_dmz exista
-    await db.execute("""
-        CREATE TABLE IF NOT EXISTS auditoria_dmz (
-            id VARCHAR(100) PRIMARY KEY,
-            timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            evento VARCHAR(250) NOT NULL,
-            categoria VARCHAR(100) NOT NULL,
-            estado VARCHAR(50) NOT NULL CHECK (estado IN ('APROBADO', 'RECHAZADO')),
-            motivo TEXT
-        );
-    """)
+    """Métricas reales del sistema calculadas en cada petición (el panel las consulta en vivo)."""
+    span, _, _ = TIME_RANGES.get(time_range, TIME_RANGES["30days"])
+    cat = category or "all"
 
-    total_users = await db.fetchval("SELECT COUNT(*) FROM usuarios") or 0
-    total_conversations = await db.fetchval("SELECT COUNT(*) FROM conversaciones") or 0
+    m = await db.fetchrow(
+        f"""
+        SELECT
+            (SELECT COUNT(*) FROM usuarios) AS usuarios,
+            (SELECT COUNT(*) FROM usuarios WHERE created_at >= NOW() - $1::interval) AS usuarios_nuevos,
+            (SELECT COUNT(*) FROM conversaciones) AS conversaciones,
+            (SELECT COUNT(*) FROM conversaciones WHERE created_at >= NOW() - $1::interval) AS conversaciones_periodo,
+            (SELECT COUNT(DISTINCT c.usuario_id) FROM mensajes x JOIN conversaciones c ON c.id = x.conversacion_id
+              WHERE x.sender = 'user' AND x.created_at >= NOW() - $1::interval) AS usuarios_activos,
+            (SELECT COUNT(*) FROM mensajes WHERE sender = 'user' AND ($2 = 'all' OR topic = $2)) AS consultas,
+            (SELECT COUNT(*) FROM mensajes WHERE sender = 'user' AND ($2 = 'all' OR topic = $2)
+               AND created_at >= NOW() - $1::interval) AS consultas_periodo,
+            (SELECT COUNT(*) FROM mensajes WHERE sender = 'user' AND ($2 = 'all' OR topic = $2)
+               AND created_at >= NOW() - 2 * $1::interval AND created_at < NOW() - $1::interval) AS consultas_periodo_anterior,
+            (SELECT COUNT(*) FROM mensajes WHERE sender = 'user' AND ($2 = 'all' OR topic = $2)
+               AND (created_at AT TIME ZONE '{LOCAL_TZ}')::date = (NOW() AT TIME ZONE '{LOCAL_TZ}')::date) AS consultas_hoy,
+            (SELECT COUNT(*) FROM mensajes WHERE sender = 'tutor' AND ($2 = 'all' OR topic = $2)
+               AND created_at >= NOW() - $1::interval) AS respuestas_periodo,
+            (SELECT COUNT(*) FROM mensajes WHERE sender = 'tutor' AND rag_used AND ($2 = 'all' OR topic = $2)
+               AND created_at >= NOW() - $1::interval) AS respuestas_rag_periodo,
+            (SELECT COUNT(*) FROM fragmentos_conocimiento WHERE ($2 = 'all' OR categoria = $2)) AS fragmentos,
+            (SELECT COUNT(*) FROM fragmentos_conocimiento WHERE ($2 = 'all' OR categoria = $2)
+               AND created_at >= NOW() - $1::interval) AS fragmentos_nuevos
+        """,
+        span, cat,
+    )
 
-    if category and category != "all":
-        total_messages = await db.fetchval(
-            "SELECT COUNT(*) FROM mensajes WHERE topic = $1", category
-        ) or 0
-        total_fragments = await db.fetchval(
-            "SELECT COUNT(*) FROM fragmentos_conocimiento WHERE categoria = $1", category
-        ) or 0
-    else:
-        total_messages = await db.fetchval("SELECT COUNT(*) FROM mensajes") or 0
-        total_fragments = await get_fragment_count()
+    top_topics = await db.fetch(
+        """SELECT COALESCE(topic, 'Sin tema') AS tema, COUNT(*) AS total
+           FROM mensajes
+           WHERE sender = 'user' AND created_at >= NOW() - $1::interval AND ($2 = 'all' OR topic = $2)
+           GROUP BY 1 ORDER BY total DESC LIMIT 6""",
+        span, cat,
+    )
 
-    chart_data = await compute_activity_chart(category, time_range, frequency)
+    # Solo agregados anónimos: el panel no expone quién preguntó ni el contenido de las consultas
+    hourly_rows = await db.fetch(
+        f"""SELECT EXTRACT(HOUR FROM created_at AT TIME ZONE '{LOCAL_TZ}')::int AS hora, COUNT(*) AS total
+            FROM mensajes
+            WHERE sender = 'user' AND created_at >= NOW() - $1::interval AND ($2 = 'all' OR topic = $2)
+            GROUP BY 1""",
+        span, cat,
+    )
+    hourly = [0] * 24
+    for r in hourly_rows:
+        hourly[r["hora"]] = r["total"]
+
+    engine_rows = await db.fetch(
+        """SELECT COALESCE(source, 'desconocido') AS motor, COUNT(*) AS total
+           FROM mensajes
+           WHERE sender = 'tutor' AND created_at >= NOW() - $1::interval AND ($2 = 'all' OR topic = $2)
+           GROUP BY 1 ORDER BY total DESC""",
+        span, cat,
+    )
+
+    chart_data = await compute_activity_chart(cat, time_range)
 
     db_ok = await db.is_healthy()
     ollama_ok = await ollama_client.is_healthy()
     redis_ok = await redis_cache.is_healthy()
 
+    respuestas = m["respuestas_periodo"]
+    rag_rate = round(m["respuestas_rag_periodo"] / respuestas * 100, 1) if respuestas else 0.0
+    anterior = m["consultas_periodo_anterior"]
+    tendencia = round((m["consultas_periodo"] - anterior) / anterior * 100, 1) if anterior else None
+
     return {
-        "usersCount": total_users,
-        "conversationsCount": total_conversations,
-        "messagesCount": total_messages,
-        "fragmentsCount": total_fragments,
-        "cosinePrecision": "99.4%",
+        "usersCount": m["usuarios"],
+        "newUsers": m["usuarios_nuevos"],
+        "activeUsers": m["usuarios_activos"],
+        "conversationsCount": m["conversaciones"],
+        "conversationsInRange": m["conversaciones_periodo"],
+        "queriesCount": m["consultas"],
+        "queriesInRange": m["consultas_periodo"],
+        "queriesToday": m["consultas_hoy"],
+        "queriesTrend": tendencia,
+        "repliesInRange": respuestas,
+        "ragUsedCount": m["respuestas_rag_periodo"],
+        "ragUsageRate": rag_rate,
+        "fragmentsCount": m["fragmentos"],
+        "newFragments": m["fragmentos_nuevos"],
+        "topTopics": [{"topic": r["tema"], "count": r["total"]} for r in top_topics],
+        "hourlyUsage": hourly,
+        "engines": [{"source": r["motor"], "count": r["total"]} for r in engine_rows],
         "chart": chart_data,
         "health": {
             "database": "connected" if db_ok else "disconnected",
             "ollama": "connected" if ollama_ok else "disconnected",
             "redis": "connected" if redis_ok else "disconnected",
-        }
+            "gemini": "configured" if api_keys.get("gemini") else "missing",
+            "groq": "configured" if api_keys.get("groq") else "missing",
+        },
+        "serverTime": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ── API Keys de proveedores de IA ────────────────────────────
+
+def _key_client(provider: str):
+    if provider == "groq":
+        return groq_client
+    if provider == "gemini":
+        return gemini_client
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no soportado.")
+
+
+@router.get("/api-keys")
+async def list_api_keys(current_admin: dict = Depends(get_current_admin_user)):
+    """Estado de las API keys (nunca se devuelve la clave completa)."""
+    return [api_keys.describe(p) for p in PROVIDERS]
+
+
+@router.put("/api-keys/{provider}")
+async def update_api_key(
+    provider: str,
+    body: UpdateApiKeyRequest,
+    current_admin: dict = Depends(get_current_admin_user)
+):
+    """Valida la nueva clave contra el proveedor y, si es válida, la guarda cifrada."""
+    client = _key_client(provider)
+    key = body.apiKey.strip()
+    if len(key) < 20 or any(ch.isspace() for ch in key):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El formato de la clave no es válido.")
+
+    valid, message = await client.validate_key(key)
+    if not valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+
+    await api_keys.save(provider, key, current_admin["email"])
+    logger.info("Admin %s renovó la API key de %s", current_admin["email"], provider)
+    return {"message": f"Clave de {PROVIDERS[provider]['label']} actualizada. {message}", "key": api_keys.describe(provider)}
+
+
+@router.post("/api-keys/{provider}/test")
+async def test_api_key(provider: str, current_admin: dict = Depends(get_current_admin_user)):
+    """Comprueba en vivo la clave activa del proveedor."""
+    client = _key_client(provider)
+    key = api_keys.get(provider)
+    if not key:
+        return {"valid": False, "message": "No hay ninguna clave configurada para este proveedor."}
+    valid, message = await client.validate_key(key)
+    return {"valid": valid, "message": message}
+
+
+@router.delete("/api-keys/{provider}")
+async def reset_api_key(provider: str, current_admin: dict = Depends(get_current_admin_user)):
+    """Elimina la clave guardada desde el panel y vuelve a usar la del archivo .env."""
+    _key_client(provider)
+    await api_keys.clear(provider)
+    logger.info("Admin %s restableció la API key de %s al valor del .env", current_admin["email"], provider)
+    return {"message": "Se eliminó la clave del panel; se usa de nuevo la del archivo .env.", "key": api_keys.describe(provider)}
+
 
 
 @router.get("/analytics")
@@ -206,6 +269,7 @@ async def get_admin_analytics(current_admin: dict = Depends(get_current_admin_us
         "embedModel": "nomic-embed-text",
         "indexType": "HNSW",
         "distanceMetric": "Cosine (1 - cos)",
+        "similarityThreshold": settings.SIMILARITY_THRESHOLD,
         "distribution": distribution
     }
 

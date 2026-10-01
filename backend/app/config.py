@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     RAG_TOP_K: int = 5
     CHUNK_SIZE: int = 500
     CHUNK_OVERLAP: int = 50
+    SIMILARITY_THRESHOLD: float = 0.55
 
     # ── Autenticacion ────────────────────────────
     SECRET_KEY: str

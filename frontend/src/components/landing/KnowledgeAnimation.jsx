@@ -18,7 +18,7 @@ export default function KnowledgeAnimation() {
             <div className="knowledge-scene" aria-hidden="true">
                 <svg viewBox="0 0 540 500" className="knowledge-map" fill="none">
                     <defs>
-                        <radialGradient id="knowledge-halo"><stop stopColor="var(--knowledge-cyan)" stopOpacity="var(--knowledge-halo-opacity)"/><stop offset="1" stopColor="var(--knowledge-cyan)" stopOpacity="0"/></radialGradient>
+                        <radialGradient id="knowledge-halo"><stop stopColor="var(--knowledge-halo-color)" stopOpacity="var(--knowledge-halo-opacity)"/><stop offset="1" stopColor="var(--knowledge-halo-color)" stopOpacity="0"/></radialGradient>
                         <linearGradient id="knowledge-thread" x2="1" y2="1"><stop stopColor="var(--knowledge-cyan)"/><stop offset="1" stopColor="var(--knowledge-violet)"/></linearGradient>
                     </defs>
                     <circle cx="270" cy="250" r="232" fill="url(#knowledge-halo)"/>

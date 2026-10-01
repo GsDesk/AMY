@@ -2,19 +2,69 @@
    AMY — Admin Panel Styling (Monochromatic Strict Mode & Zero Emojis)
    ============================================================ */
 
+/* Paleta oscura (por defecto). Solo colores sólidos: sin degradados. */
 :root {
     --tailark-bg: #09090b;
     --tailark-card-bg: #141417;
     --tailark-card-hover: #1f1f23;
+    --tailark-surface: #18181b;
+    --tailark-inset: #0f0f12;
     --tailark-border: #27272a;
     --tailark-border-subtle: #27272a;
+    --tailark-border-strong: #3f3f46;
     --tailark-text: #ffffff;
+    --tailark-text-strong: #e4e4e7;
     --tailark-text-muted: #a1a1aa;
     --tailark-text-dim: #71717a;
+    --tailark-text-faint: #52525b;
     --tailark-primary: #ffffff;
     --tailark-cyan: #38bdf8;
-    --tailark-green: #10b981;
+    --tailark-cyan-text: #7dd3fc;
+    --tailark-cyan-soft: #0c2a3a;
+    --tailark-green: #22c55e;
+    --tailark-green-text: #4ade80;
+    --tailark-green-soft: #0f2a1a;
     --tailark-red: #ef4444;
+    --tailark-red-text: #f87171;
+    --tailark-red-soft: #2d1414;
+    --tailark-violet: #818cf8;
+    --tailark-amber: #fbbf24;
+    --tailark-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* Paleta clara: se activa con el selector de tema global (html[data-theme="light"]) */
+html[data-theme="light"] {
+    --tailark-bg: #f6f6f7;
+    --tailark-card-bg: #ffffff;
+    --tailark-card-hover: #f4f4f5;
+    --tailark-surface: #f4f4f5;
+    --tailark-inset: #f4f4f5;
+    --tailark-border: #e4e4e7;
+    --tailark-border-subtle: #e4e4e7;
+    --tailark-border-strong: #d4d4d8;
+    --tailark-text: #09090b;
+    --tailark-text-strong: #27272a;
+    --tailark-text-muted: #52525b;
+    --tailark-text-dim: #71717a;
+    --tailark-text-faint: #a1a1aa;
+    --tailark-primary: #09090b;
+    --tailark-cyan: #0284c7;
+    --tailark-cyan-text: #0369a1;
+    --tailark-cyan-soft: #e0f2fe;
+    --tailark-green: #16a34a;
+    --tailark-green-text: #15803d;
+    --tailark-green-soft: #dcfce7;
+    --tailark-red: #dc2626;
+    --tailark-red-text: #b91c1c;
+    --tailark-red-soft: #fee2e2;
+    --tailark-violet: #4f46e5;
+    --tailark-amber: #d97706;
+    --tailark-shadow: 0 8px 24px rgba(9, 9, 11, 0.12);
+}
+
+/* El logo es blanco: en tema claro se invierte a negro */
+html[data-theme="light"] .tailark-logo-img {
+    filter: invert(1);
 }
 
 .tailark-layout {
@@ -25,7 +75,7 @@
     color: var(--tailark-text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     position: relative;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 .module-fade-in {
@@ -54,7 +104,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    background: #141417;
+    background: var(--tailark-card-bg);
     border-bottom: 1px solid var(--tailark-border);
     margin: -1rem -1rem 1.2rem -1rem;
     position: sticky;
@@ -63,7 +113,7 @@
 }
 
 .tailark-mobile-menu-btn, .tailark-mobile-back {
-    background: #18181b;
+    background: var(--tailark-surface);
     border: 1px solid var(--tailark-border);
     color: var(--tailark-text);
     padding: 0.4rem;
@@ -77,7 +127,7 @@
 }
 
 .tailark-mobile-menu-btn:hover, .tailark-mobile-back:hover {
-    background: #27272a;
+    background: var(--tailark-border);
 }
 
 .tailark-mobile-brand {
@@ -89,7 +139,7 @@
 /* ── LEFT SIDEBAR ────────────────────────────────────────────────────── */
 .tailark-sidebar {
     width: 250px;
-    background-color: #09090b;
+    background-color: var(--tailark-bg);
     border-right: 1px solid var(--tailark-border);
     display: flex;
     flex-direction: column;
@@ -121,7 +171,7 @@
     justify-content: center;
 }
 
-.tailark-sidebar-close:hover { color: #ffffff; }
+.tailark-sidebar-close:hover { color: var(--tailark-text); }
 
 .tailark-brand {
     display: flex;
@@ -129,7 +179,7 @@
     gap: 0.75rem;
     padding: 0.6rem 0.75rem;
     border-radius: 8px;
-    background: #141417;
+    background: var(--tailark-card-bg);
     border: 1px solid var(--tailark-border);
     flex: 1;
 }
@@ -138,13 +188,20 @@
     width: 28px;
     height: 28px;
     border-radius: 6px;
-    background: #1f1f23;
-    border: 1px solid #3f3f46;
+    background: var(--tailark-card-hover);
+    border: 1px solid var(--tailark-border-strong);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: var(--tailark-text);
     flex-shrink: 0;
+}
+
+.tailark-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 3px;
 }
 
 .tailark-brand-text {
@@ -157,7 +214,7 @@
 .tailark-brand-title {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--tailark-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -196,13 +253,13 @@
 }
 
 .tailark-nav-item:hover {
-    background: #141417;
-    color: #ffffff;
+    background: var(--tailark-card-bg);
+    color: var(--tailark-text);
 }
 
 .tailark-nav-item.active {
-    background: #18181b;
-    color: #ffffff;
+    background: var(--tailark-surface);
+    color: var(--tailark-text);
     border: 1px solid var(--tailark-border);
     font-weight: 600;
 }
@@ -215,58 +272,8 @@
 
 .tailark-nav-item.active svg,
 .tailark-nav-item:hover svg {
-    color: #ffffff;
+    color: var(--tailark-text);
 }
-
-.tailark-projects-section {
-    margin-top: 2rem;
-    padding-top: 1.2rem;
-    border-top: 1px solid var(--tailark-border-subtle);
-}
-
-.tailark-projects-title {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--tailark-text-dim);
-    padding-left: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.tailark-projects-list {
-    list-style: none;
-    padding: 0;
-    margin: 0.75rem 0 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-
-.tailark-project-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.85rem;
-    border-radius: 6px;
-    font-size: 0.82rem;
-    color: var(--tailark-text-muted);
-    cursor: pointer;
-}
-
-.tailark-project-item:hover, .tailark-project-item.active {
-    color: #ffffff;
-    background: #141417;
-}
-
-.tailark-proj-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.dot-blue { background-color: #38bdf8; }
-.dot-gray { background-color: #52525b; }
 
 .tailark-sidebar-footer {
     margin-top: auto;
@@ -282,7 +289,7 @@
     flex: 1;
     padding: 2rem 2.5rem;
     overflow-y: auto;
-    max-width: 1280px;
+    max-width: 1720px;
     min-width: 0;
 }
 
@@ -307,7 +314,7 @@
 }
 
 .tailark-select {
-    background: #141417;
+    background: var(--tailark-card-bg);
     border: 1px solid var(--tailark-border);
     border-radius: 20px;
     padding: 0.45rem 2.2rem 0.45rem 0.9rem;
@@ -321,7 +328,7 @@
 }
 
 .tailark-select:hover {
-    border-color: #3f3f46;
+    border-color: var(--tailark-border-strong);
 }
 
 .tailark-select-chev {
@@ -338,7 +345,7 @@
 .tailark-section-title {
     font-size: 1.35rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--tailark-text);
     margin: 0;
     letter-spacing: -0.02em;
 }
@@ -347,113 +354,6 @@
     font-size: 0.88rem;
     color: var(--tailark-text-muted);
     margin-top: 0.25rem;
-}
-
-/* ── OVERVIEW METRICS CARDS ────────────────────────────────────────── */
-.tailark-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.25rem;
-    margin-bottom: 2.2rem;
-}
-
-.tailark-card {
-    background-color: var(--tailark-card-bg);
-    border: 1px solid var(--tailark-border);
-    border-radius: 12px;
-    padding: 1.25rem 1.4rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-    transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.tailark-card:hover {
-    border-color: #3f3f46;
-    background-color: var(--tailark-card-hover);
-}
-
-.tailark-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.tailark-card-label {
-    font-size: 0.82rem;
-    color: var(--tailark-text-muted);
-    font-weight: 500;
-}
-
-.tailark-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.badge-green {
-    background: rgba(34, 197, 94, 0.1);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-}
-
-.tailark-card-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: -0.03em;
-}
-
-/* ── ACTIVITY CHART SECTION ────────────────────────────────────────── */
-.tailark-chart-container {
-    background-color: var(--tailark-card-bg);
-    border: 1px solid var(--tailark-border);
-    border-radius: 14px;
-    padding: 1.5rem;
-    margin-bottom: 2.2rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.tailark-chart-header {
-    margin-bottom: 1.5rem;
-}
-
-.tailark-chart-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-}
-
-.tailark-chart-subtitle {
-    font-size: 0.82rem;
-    color: var(--tailark-text-muted);
-    margin-top: 0.2rem;
-}
-
-.tailark-svg-chart-wrapper {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.tailark-chart-svg {
-    width: 100%;
-    height: 200px;
-}
-
-.tailark-xaxis {
-    display: flex;
-    justify-content: space-between;
-    padding-top: 0.8rem;
-    font-size: 0.75rem;
-    color: var(--tailark-text-dim);
-    font-family: 'JetBrains Mono', monospace;
 }
 
 /* ── MÓDULO ANALYTICS ──────────────────────────────────────────────── */
@@ -465,7 +365,7 @@
 }
 
 .analytics-card {
-    background: #141417;
+    background: var(--tailark-card-bg);
     border: 1px solid var(--tailark-border);
     border-radius: 12px;
     padding: 1.25rem 1.4rem;
@@ -483,7 +383,7 @@
 .analytics-card-val {
     font-size: 1.8rem;
     font-weight: 700;
-    color: #38bdf8;
+    color: var(--tailark-cyan);
     letter-spacing: -0.02em;
 }
 
@@ -516,7 +416,7 @@
 .progress-track {
     width: 100%;
     height: 8px;
-    background: #1f1f23;
+    background: var(--tailark-card-hover);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -529,10 +429,10 @@
 
 /* ── DRAG & DROP DROPZONE ───────────────────────────────────────────── */
 .file-dropzone {
-    border: 2px dashed #27272a;
+    border: 2px dashed var(--tailark-border);
     border-radius: 12px;
     padding: 2.5rem 1.5rem;
-    background: #09090b;
+    background: var(--tailark-bg);
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -543,14 +443,14 @@
 }
 
 .file-dropzone:hover, .file-dropzone.dragging {
-    border-color: #38bdf8;
-    background: #101015;
+    border-color: var(--tailark-cyan);
+    background: var(--tailark-inset);
 }
 
 .file-dropzone.has-file {
     border-style: solid;
-    border-color: #38bdf8;
-    background: #0e1217;
+    border-color: var(--tailark-cyan);
+    background: var(--tailark-inset);
 }
 
 .dropzone-placeholder {
@@ -563,12 +463,12 @@
 .drop-title {
     font-size: 0.92rem;
     font-weight: 600;
-    color: #f4f4f5;
+    color: var(--tailark-text-strong);
 }
 
 .drop-sub {
     font-size: 0.8rem;
-    color: #71717a;
+    color: var(--tailark-text-dim);
 }
 
 .selected-file-info {
@@ -589,18 +489,18 @@
 .file-name {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--tailark-text);
 }
 
 .file-size {
     font-size: 0.78rem;
-    color: #71717a;
+    color: var(--tailark-text-dim);
 }
 
 .btn-clear-file {
-    background: #18181b;
-    border: 1px solid #27272a;
-    color: #38bdf8;
+    background: var(--tailark-surface);
+    border: 1px solid var(--tailark-border);
+    color: var(--tailark-cyan);
     padding: 0.35rem 0.75rem;
     border-radius: 6px;
     font-size: 0.78rem;
@@ -624,7 +524,7 @@
 .tailark-box-title {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--tailark-text);
     margin: 0;
 }
 
@@ -649,18 +549,18 @@
 }
 
 .tailark-input {
-    background: #09090b;
+    background: var(--tailark-bg);
     border: 1px solid var(--tailark-border);
     border-radius: 8px;
     padding: 0.75rem 1rem;
-    color: #ffffff;
+    color: var(--tailark-text);
     font-size: 0.88rem;
     outline: none;
     transition: border-color 0.15s ease;
 }
 
 .tailark-input:focus {
-    border-color: #38bdf8;
+    border-color: var(--tailark-cyan);
 }
 
 .tailark-form-row {
@@ -670,8 +570,8 @@
 }
 
 .tailark-btn-primary {
-    background: #ffffff;
-    color: #09090b;
+    background: var(--tailark-text);
+    color: var(--tailark-bg);
     border: none;
     border-radius: 8px;
     padding: 0.75rem 1.6rem;
@@ -702,15 +602,15 @@
 }
 
 .tailark-alert.success {
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    color: #4ade80;
+    background: var(--tailark-green-soft);
+    border: 1px solid var(--tailark-green);
+    color: var(--tailark-green-text);
 }
 
 .tailark-alert.rejected {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #f87171;
+    background: var(--tailark-red-soft);
+    border: 1px solid var(--tailark-red);
+    color: var(--tailark-red-text);
 }
 
 /* Tables */
@@ -735,7 +635,7 @@
 .tailark-table-header h3 {
     font-size: 1rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--tailark-text);
     margin: 0;
 }
 
@@ -754,7 +654,7 @@
 }
 
 .tailark-table th {
-    background: #09090b;
+    background: var(--tailark-bg);
     padding: 0.85rem 1.5rem;
     color: var(--tailark-text-muted);
     font-weight: 600;
@@ -777,12 +677,12 @@
 }
 
 .tailark-badge-pill {
-    background: #18181b;
+    background: var(--tailark-surface);
     border: 1px solid var(--tailark-border);
     padding: 0.25rem 0.6rem;
     border-radius: 12px;
     font-size: 0.75rem;
-    color: #38bdf8;
+    color: var(--tailark-cyan);
     font-weight: 500;
     white-space: nowrap;
 }
@@ -796,21 +696,21 @@
 }
 
 .tailark-role-badge.admin {
-    background: rgba(56, 189, 248, 0.12);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.3);
+    background: var(--tailark-cyan-soft);
+    color: var(--tailark-cyan);
+    border: 1px solid var(--tailark-cyan);
 }
 
 .tailark-role-badge.estudiante {
-    background: rgba(161, 161, 170, 0.1);
-    color: #a1a1aa;
-    border: 1px solid rgba(161, 161, 170, 0.2);
+    background: var(--tailark-surface);
+    color: var(--tailark-text-muted);
+    border: 1px solid var(--tailark-border-strong);
 }
 
 .tailark-btn-del {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: var(--tailark-red-soft);
+    color: var(--tailark-red);
+    border: 1px solid var(--tailark-red);
     padding: 0.35rem 0.75rem;
     border-radius: 6px;
     font-size: 0.78rem;
@@ -819,8 +719,8 @@
 }
 
 .tailark-btn-role {
-    background: #18181b;
-    color: #f4f4f5;
+    background: var(--tailark-surface);
+    color: var(--tailark-text-strong);
     border: 1px solid var(--tailark-border);
     padding: 0.35rem 0.75rem;
     border-radius: 6px;
@@ -854,11 +754,12 @@
         z-index: 150;
         transform: translateX(-100%);
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.7);
     }
 
+    /* La sombra solo cuando el menú está abierto (cerrado asomaba por el borde izquierdo) */
     .tailark-layout.mobile-nav-open .tailark-sidebar {
         transform: translateX(0);
+        box-shadow: var(--tailark-shadow);
     }
 
     .tailark-layout.mobile-nav-open .tailark-sidebar-overlay {

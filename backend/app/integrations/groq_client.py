@@ -5,7 +5,7 @@ Modelos disponibles verificados con la API key activa.
 
 import logging
 import httpx
-from app.config import settings
+from app.core.api_keys import api_keys
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,23 @@ class GroqClient:
         self.base_url = "https://api.groq.com/openai/v1"
 
     def _api_key(self) -> str:
-        key = (settings.GROQ_API_KEY or "").strip()
+        key = api_keys.get("groq")
         if not key:
             raise ValueError("No se ha configurado GROQ_API_KEY.")
         return key
+
+    async def validate_key(self, key: str) -> tuple[bool, str]:
+        """Comprueba una API key contra Groq sin guardarla."""
+        try:
+            async with httpx.AsyncClient(base_url=self.base_url, timeout=8.0) as client:
+                r = await client.get("/models", headers={"Authorization": f"Bearer {key}"})
+        except Exception as e:
+            return False, f"No se pudo contactar con Groq: {e}"
+        if r.status_code == 200:
+            return True, "Clave válida: Groq respondió correctamente."
+        if r.status_code in (401, 403):
+            return False, "Groq rechazó la clave (inválida, revocada o caducada)."
+        return False, f"Groq respondió con un error inesperado ({r.status_code})."
 
     async def generate(self, prompt: str, system: str = "") -> str:
         api_key = self._api_key()

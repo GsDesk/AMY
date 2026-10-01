@@ -7,23 +7,48 @@
     overflow: hidden;
     pointer-events: auto;
     z-index: 1;
+    --cube-glow-a: #22d3ee38;
+    --cube-glow-b: #a855f730;
+}
 
-    /* Palette variables for utils.get($container, '--hex-${name}-1') */
-    --hex-red-1: #f43f5e;
-    --hex-orange-1: #fb923c;
-    --hex-yellow-1: #facc15;
-    --hex-green-1: #4ade80;
-    --hex-sky-1: #38bdf8;
-    --hex-purple-1: #a855f7;
-    --hex-pink-1: #f472b6;
+[data-theme="light"] .anime-cube-lattice {
+    --cube-glow-a: #0ea5e930;
+    --cube-glow-b: #8b5cf626;
+}
+
+/* Resplandor detrás del cubo; "late" al ritmo de la onda */
+.cube-lattice-glow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(70%, 520px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 42% 45%, var(--cube-glow-a), transparent 60%),
+        radial-gradient(circle at 60% 58%, var(--cube-glow-b), transparent 62%);
+    filter: blur(28px);
+    pointer-events: none;
+    animation: cube-glow-pulse 3.9s ease-in-out infinite;
+}
+
+@keyframes cube-glow-pulse {
+    0%, 100% { opacity: 0.75; transform: translate(-50%, -50%) scale(0.94); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
 }
 
 .full-container canvas,
 .anime-cube-lattice canvas {
+    position: relative;
     display: block;
     width: 100% !important;
     height: 100% !important;
     outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cube-lattice-glow { animation: none; }
 }
 
 .anime-cube-lattice.webgl-unavailable::after { content: ''; position: absolute; width: 220px; height: 220px; top: calc(50% - 110px); left: calc(50% - 110px); border-radius: 32px; transform: rotate(30deg); background: linear-gradient(135deg, #38bdf8, #8b5cf6); box-shadow: 30px 30px 0 #38bdf825, -30px -30px 0 #8b5cf625; }
