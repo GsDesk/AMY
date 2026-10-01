@@ -8,12 +8,18 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
+# Crear usuario y grupo no privilegiado
+RUN groupadd -g 10001 appgroup && \
+    useradd -u 10001 -g appgroup -s /bin/sh -m appuser
+
 # Instalar dependencias Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código fuente
-COPY . .
+# Copiar código fuente asignando propiedad al usuario no privilegiado
+COPY --chown=appuser:appgroup . .
+
+USER appuser
 
 EXPOSE 8000
 

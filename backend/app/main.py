@@ -102,10 +102,9 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[],
-    allow_origin_regex=r"^https?:\/\/.*",
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -562,17 +561,24 @@ async def ingest_document(
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     db_ok = await db.is_healthy()
-    ollama_ok = await ollama_client.is_healthy()
     from app.cache.redis_cache import redis_cache
     redis_ok = await redis_cache.is_healthy()
-    
+
+    ollama_status = await ollama_client.get_status()
+
+    gemini_active = bool(getattr(settings, "GEMINI_API_KEY", "").strip())
+    groq_active = bool(getattr(settings, "GROQ_API_KEY", "").strip())
+
     fragments = await get_fragment_count()
-    
+    is_ai_ready = gemini_active or groq_active or (ollama_status == "connected")
+
     return HealthResponse(
-        status="ok" if (db_ok and ollama_ok and redis_ok) else "degraded",
+        status="ok" if (db_ok and is_ai_ready and redis_ok) else "degraded",
         database="connected" if db_ok else "disconnected",
-        ollama="connected" if ollama_ok else "disconnected",
+        ollama=ollama_status,
         redis="connected" if redis_ok else "disconnected",
+        gemini="connected" if gemini_active else "disconnected",
+        groq="connected" if groq_active else "disconnected",
         model=settings.OLLAMA_MODEL,
         fragments_count=fragments
     )
@@ -580,9 +586,14 @@ async def health_check():
 
 
 @app.post("/api/rag/generate-embeddings")
-async def generate_embeddings_endpoint():
+@limiter.limit("5/minute")
+async def generate_embeddings_endpoint(
+    request: Request,
+    current_admin: dict = Depends(get_current_admin_user)
+):
     try:
         processed = await compute_missing_embeddings()
+        logger.info("Admin %s ejecuto generacion de embeddings (%d procesados)", current_admin.get("email"), processed)
         return {"processed": processed, "message": f"{processed} embeddings generados."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -49,7 +49,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-> ⏳ **Primera ejecución**: Ollama descargará el modelo Mistral (~4GB).
+> **Primera ejecución**: Ollama descargará el modelo Mistral (~4GB).
 > Los embeddings del dataset semilla se generarán automáticamente.
 
 ### 3. Acceder

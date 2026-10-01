@@ -18,8 +18,11 @@ SYSTEM_PROMPT = """Eres AMY, la tutora pedagógica experta en Fundamentos de Bas
 USO DEL CONOCIMIENTO Y RAG:
 - Cuando la consulta del estudiante contenga fragmentos en el "CONTEXTO ACADEMICO RECUPERADO (RAG)", fundamenta tus explicaciones en esa bibliografía oficial (Silberschatz, Elmasri, Navathe, etc.) y cita la fuente cuando corresponda.
 
-PROHIBICIÓN ESTRICTA DE EMOJIS (REGLA DE ESTILO):
-Queda terminantemente prohibido utilizar emojis, emoticonos o listas decoradas con emojis en cualquiera de tus respuestas. Utiliza únicamente viñetas estándar (-) y listas numeradas convencionales (1., 2., 3.).
+PROHIBICIÓN TOTAL Y ESTRICTA DE EMOJIS Y NUMERACIÓN CON EMOJIS (NORMA ACADÉMICA):
+Queda terminantemente prohibido utilizar emojis, emoticonos o listas decoradas con emojis en cualquiera de tus respuestas.
+Queda expresamente prohibida la numeración con emojis (por ejemplo: numeracion tipo keycap 1, 2, 3, 4, etc.).
+Utiliza EXCLUSIVAMENTE listas numeradas con números arábigos estándar (1., 2., 3.) o viñetas convencionales con guiones (-).
+Toda comunicación debe mantener un estilo académico formal, riguroso, limpio y elegante.
 
 REGLA FUNDAMENTAL DE MODELADO: COMPLETITUD DE ATRIBUTOS (ESTRICTO)
 Queda estrictamente prohibido generar tablas con atributos comodín, sintéticos o abreviados (por ejemplo: `nombre_descripcion`, `campo_1`, `detalle_general`, `datos`).
@@ -159,10 +162,26 @@ _INJECTION_PATTERNS = [
     re.compile(r"IMPORTANT:?\s+From\s+now\s+on", re.IGNORECASE),
 ]
 
+_KEYCAP_EMOJI_PATTERN = re.compile(r'([0-9#*])\ufe0f?\u20e3')
+
 _EMOJI_PATTERN = re.compile(
-    r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf\u2b50\u2b55\u200d\ufe0f]",
+    r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf\u2b50-\u2b55\u200d\ufe0f\u20e3\u25aa\u25ab\u23e9-\u23fa\u2139\u203c\u2049]",
     flags=re.UNICODE,
 )
+
+def clean_emojis_and_keycaps(text: str) -> str:
+    """
+    Convierte cualquier numeración con keycaps (ej. digito + variante selector + combinando encerrando keycap)
+    en numeración estándar (1., 2.) y suprime por completo cualquier emoji Unicode residual.
+    """
+    if not text:
+        return ""
+    # Convertir keycaps a números arábigos estándar con punto
+    cleaned = _KEYCAP_EMOJI_PATTERN.sub(r"\1. ", text)
+    # Eliminar cualquier emoji Unicode
+    cleaned = _EMOJI_PATTERN.sub("", cleaned)
+    # Normalizar espaciados
+    return re.sub(r"[ \t]{2,}", " ", cleaned).strip()
 
 _MAX_FRAGMENT_CHARS = 1000  # Longitud máxima por fragmento en el contexto
 
@@ -175,7 +194,7 @@ def sanitize_rag_context(fragments: list[dict]) -> list[dict]:
     sanitized = []
     for frag in fragments:
         original = frag.get("contenido", "")
-        cleaned = _EMOJI_PATTERN.sub("", original)
+        cleaned = clean_emojis_and_keycaps(original)
         was_modified = False
 
         for pattern in _INJECTION_PATTERNS:
@@ -651,13 +670,13 @@ def validate_response(response_text: str, student_query: str = "", attachment: d
     if result["topic"] not in ALLOWED_TOPICS:
         result["topic"] = "General"
 
-    # Eliminación estricta de cualquier residuo de emoji
+    # Eliminación estricta de cualquier residuo de emoji o numeración keycap
     if isinstance(result.get("feedback"), str):
-        result["feedback"] = _EMOJI_PATTERN.sub("", result["feedback"]).strip()
+        result["feedback"] = clean_emojis_and_keycaps(result["feedback"])
     if isinstance(result.get("analysis"), str):
-        result["analysis"] = _EMOJI_PATTERN.sub("", result["analysis"]).strip()
+        result["analysis"] = clean_emojis_and_keycaps(result["analysis"])
     if isinstance(result.get("topic"), str):
-        result["topic"] = _EMOJI_PATTERN.sub("", result["topic"]).strip()
+        result["topic"] = clean_emojis_and_keycaps(result["topic"])
 
     return result
 

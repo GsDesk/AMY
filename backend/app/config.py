@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 50
 
     # ── Autenticacion ────────────────────────────
-    SECRET_KEY: str = "amy-upec-secret-key-change-in-production-2024"
+    SECRET_KEY: str
     JWT_EXPIRE_MINUTES: int = 480
     # ── Autenticación Microsoft UPEC ─────────────
     AZURE_CLIENT_ID: str = "b70d884c-ba19-48f3-ac91-a1e24f14e544"
@@ -46,6 +46,14 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GOOGLE_CLIENT_ID: str = ""
+
+    # ── Seguridad & CORS ─────────────────────────
+    ALLOWED_ORIGINS: str
+
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        """Retorna la lista de orígenes permitidos para CORS."""
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
 
 

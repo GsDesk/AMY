@@ -2,10 +2,8 @@
 # Tutor IA — Fundamentos de Base de Datos UPEC
 # Docker Compose: Orquestación de servicios contenerizados
 # ============================================================
-# NOTA: Ollama se ejecuta en el HOST local (no en contenedor)
-# para aprovechar toda la RAM del sistema.
-# Asegúrate de tener Ollama corriendo: ollama serve
-# Y el modelo descargado: ollama pull mistral
+# Ollama se ejecuta como servicio de esta composición.
+# Su entrypoint prepara los modelos configurados.
 # ============================================================
 
 services:
@@ -72,9 +70,11 @@ services:
       AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
       AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      SECRET_KEY: ${SECRET_KEY:?Define SECRET_KEY in .env}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?Define ALLOWED_ORIGINS in .env}
       # Umbral mínimo de similitud coseno para el retriever híbrido (0.0 - 1.0)
       SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.55}
     depends_on:
@@ -93,8 +93,7 @@ services:
     container_name: tutor-frontend
     restart: always
     ports:
-      - "80:80"
-      - "5173:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
     networks:
@@ -114,4 +113,3 @@ networks:
   tutor-net:
     driver: bridge
     name: tutor-network
-

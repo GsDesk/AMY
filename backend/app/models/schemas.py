@@ -122,4 +122,6 @@ class HealthResponse(BaseModel):
     redis: str
     model: str
     fragments_count: int = 0
+    gemini: Optional[str] = "disconnected"
+    groq: Optional[str] = "disconnected"
 

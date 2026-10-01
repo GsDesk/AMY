@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 # para reducir tokens de entrada y acelerar la inferencia.
 OLLAMA_SYSTEM = (
     'Eres AMY, tutora de Bases de Datos de la UPEC. '
-    'Responde SOLO con JSON valido sin markdown, con estas claves exactas: '
+    'PROHIBIDO usar emojis o listas con emojis (numeracion tipo keycap). Usa solo numeros convencionales (1., 2.) o vinetas (-). '
+    'Responde SOLO con JSON valido sin markdown exterior, con estas claves exactas: '
     '{"analysis":"...","feedback":"Respuesta en Markdown","topic":"SQL|Modelo E-R|Normalizacion|Fundamentos|Saludos|General|Fuera de Alcance","live_example":null}. '
     'Cuando el usuario pida un diagrama E-R o tablas, incluye en live_example: '
     '{"type":"er_diagram","title":"...","cardinality":"1:N","description":"...","mermaid_code":"erDiagram\\n...","tables":[{"name":"...","columns":[{"name":"...","type":"INT","isPk":true}]}]}. '
@@ -95,6 +96,19 @@ class OllamaClient:
             return available
         except Exception:
             return False
+
+    async def get_status(self) -> str:
+        """Determina si Ollama está conectado, descargando el modelo o desconectado."""
+        try:
+            response = await self.client.get("/api/tags", timeout=3.0)
+            if response.status_code != 200:
+                return "disconnected"
+            models = [m.get("name", "") for m in response.json().get("models", [])]
+            if any(self.model in m for m in models):
+                return "connected"
+            return "downloading"
+        except Exception:
+            return "disconnected"
 
     async def close(self):
         await self.client.aclose()

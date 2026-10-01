@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 # Modelos disponibles en esta cuenta Groq, en orden de preferencia
 # Verificado el 2026-08-21 con la API key activa
 GROQ_MODELS = [
-    "openai/gpt-oss-120b",    # Mayor capacidad — respuestas más completas
-    "qwen/qwen3.6-27b",       # Excelente en español — buena comprensión
-    "groq/compound",          # Modelo compuesto de Groq — rápido y capaz
+    "qwen/qwen3.8-27b",       # Excelente en español — ultrarrápido (<100ms)
+    "openai/gpt-oss-120b",    # Mayor capacidad — 120B con razonamiento
+    "groq/compound",          # Modelo compuesto de Groq
     "groq/compound-mini",     # Más rápido — para respuestas cortas
 ]
 

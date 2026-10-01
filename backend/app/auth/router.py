@@ -271,9 +271,6 @@ async def microsoft_login(body: MicrosoftLoginRequest):
 @router.post("/google-login", response_model=AuthResponse)
 async def google_login(body: GoogleLoginRequest):
     """Inicia sesión o registra un usuario mediante Google OAuth 2.0 (ID Token)."""
-    import base64
-    import json
-
     credential = body.credential.strip()
     if not credential:
         raise HTTPException(
@@ -282,18 +279,25 @@ async def google_login(body: GoogleLoginRequest):
         )
 
     try:
-        parts = credential.split(".")
-        if len(parts) != 3:
-            raise ValueError("Token JWT malformado.")
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as google_requests
 
-        padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
-        payload_bytes = base64.urlsafe_b64decode(padded)
-        payload = json.loads(payload_bytes.decode("utf-8"))
+        google_client_id = getattr(settings, "GOOGLE_CLIENT_ID", "") or None
+        # Verificar criptográficamente la firma del token con las claves públicas de Google
+        payload = id_token.verify_oauth2_token(
+            credential,
+            google_requests.Request(),
+            audience=google_client_id
+        )
+
+        # Validar emisor oficial de Google
+        if payload.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
+            raise ValueError("Emisor del token de Google no válido.")
     except Exception as e:
-        logger.error("Error decodificando token de Google: %s", e)
+        logger.error("Error verificando token de Google: %s", e)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No se pudo procesar el token de autenticación de Google."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticación de Google inválido, alterado o expirado."
         )
 
     email = (payload.get("email") or "").strip().lower()
@@ -340,7 +344,7 @@ async def google_login(body: GoogleLoginRequest):
 @router.post("/forgot-password")
 async def forgot_password(body: ForgotPasswordRequest):
     """Genera un código temporal de recuperación de contraseña de 6 dígitos."""
-    import random
+    import secrets
 
     email = body.email.strip().lower()
     if not email:
@@ -351,14 +355,14 @@ async def forgot_password(body: ForgotPasswordRequest):
 
     row = await db.fetchrow("SELECT id, email, nombre FROM usuarios WHERE email = $1", email)
     if not row:
-        # Por seguridad no filtrar si existe o no, pero responder amigablemente
+        # Por seguridad no filtrar si existe o no, respondiendo mensaje estándar
         return {
             "success": True,
             "message": "Si tu correo está registrado, recibirás un código de recuperación."
         }
 
-    # Generar código numérico de 6 dígitos
-    code = f"{random.randint(100000, 999999)}"
+    # Generar código numérico de 6 dígitos criptográficamente seguro
+    code = f"{secrets.randbelow(900000) + 100000}"
 
     # Guardar en PostgreSQL en tabla codigos_recuperacion con expiración de 15 min
     await db.execute(
@@ -370,11 +374,10 @@ async def forgot_password(body: ForgotPasswordRequest):
         code
     )
 
-    logger.info("Código de recuperación generado para %s: %s", email, code)
+    logger.info("Código de recuperación generado para %s", email)
     return {
         "success": True,
-        "message": "Código de recuperación generado exitosamente.",
-        "code_preview": code
+        "message": "Si tu correo está registrado, recibirás un código de recuperación."
     }
 
 
