@@ -557,12 +557,15 @@ export async function getDmzLogs() {
     return await response.json();
 }
 
-export async function ingestAcademicFile(file, categoria, fuente = '', autor = '') {
+// Devuelve { approved, message, report, category, job_id }: la revisión de contenido es
+// síncrona y, si se aprueba, la indexación continúa en segundo plano (ver getIngestJob)
+export async function ingestAcademicFile(file, categoria, fuente = '', autor = '', url = '') {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('categoria', categoria);
     if (fuente) formData.append('fuente', fuente);
     if (autor) formData.append('autor', autor);
+    if (url) formData.append('url', url);
 
     const token = getToken();
     const headers = { 'ngrok-skip-browser-warning': '69420' };
@@ -586,6 +589,19 @@ export async function ingestAcademicFile(file, categoria, fuente = '', autor = '
     }
 
     return data;
+}
+
+// Progreso de la indexación de un documento aprobado: { status, done, total, fragments, pending }
+export async function getIngestJob(jobId) {
+    const response = await fetch(`${API_BASE}/api/admin/ingest-jobs/${encodeURIComponent(jobId)}`, {
+        headers: authHeaders()
+    });
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+    }
+    if (!response.ok) throw new Error('No se pudo consultar el progreso de la indexación.');
+    return response.json();
 }
 
 export async function ingestKnowledge(contenido, categoria, metadata = {}) {

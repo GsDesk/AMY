@@ -357,3 +357,147 @@
         font-size: 0.64rem;
     }
 }
+
+/* ── Dictado por voz: micrófono con ondas de agua ───────── */
+.mic-wrapper {
+    position: relative;
+    display: flex;
+}
+
+.mic-btn {
+    --mic-level: 0;
+    --mic-color: #38bdf8;
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-primary);
+    background: var(--btn-bg);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    flex-shrink: 0;
+    isolation: isolate;
+}
+
+.mic-btn:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--border-secondary);
+}
+
+.mic-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.mic-icon {
+    position: relative;
+    z-index: 2;
+    transition: transform 0.08s linear;
+}
+
+/* Escuchando: el botón se llena y el icono "late" con la voz */
+.mic-btn.is-listening {
+    color: #ffffff;
+    background: var(--mic-color);
+    border-color: var(--mic-color);
+    box-shadow: 0 0 calc(6px + var(--mic-level) * 22px) rgba(56, 189, 248, calc(0.25 + var(--mic-level) * 0.5));
+}
+
+.mic-btn.is-listening .mic-icon {
+    transform: scale(calc(1 + var(--mic-level) * 0.25));
+}
+
+/* Anillos como ondas en el agua: siempre se propagan suavemente mientras escucha,
+   y crecen y se intensifican cuando detectan la voz (--mic-level) */
+.mic-ripple {
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    border: 1.5px solid var(--mic-color);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.mic-btn.is-listening .mic-ripple {
+    animation: mic-water 1.8s cubic-bezier(0.25, 0.6, 0.3, 1) infinite;
+}
+
+.mic-btn.is-listening .mic-ripple:nth-child(2) { animation-delay: 0.6s; }
+.mic-btn.is-listening .mic-ripple:nth-child(3) { animation-delay: 1.2s; }
+
+@keyframes mic-water {
+    0% {
+        transform: scale(1);
+        opacity: calc(0.35 + var(--mic-level) * 0.6);
+        border-width: calc(1.5px + var(--mic-level) * 2px);
+    }
+    100% {
+        transform: scale(calc(1.7 + var(--mic-level) * 1.1));
+        opacity: 0;
+        border-width: 0.5px;
+    }
+}
+
+.mic-status {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--mic-color, #38bdf8);
+    pointer-events: none;
+}
+
+.mic-error {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: -4rem;
+    width: max-content;
+    max-width: min(260px, 70vw);
+    padding: 0.5rem 0.7rem;
+    border-radius: 8px;
+    background: var(--panel-bg);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: var(--text-primary);
+    font-size: 0.74rem;
+    line-height: 1.35;
+    box-shadow: var(--shadow-md);
+    z-index: 20;
+}
+
+/* Hueco a la derecha del texto para micrófono + modelo + enviar */
+.input-row-main textarea {
+    padding-right: 9.6rem;
+}
+
+@media (max-width: 900px) {
+    .input-wrapper textarea {
+        padding-right: 8.9rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mic-btn.is-listening .mic-ripple { animation: none; opacity: calc(0.2 + var(--mic-level) * 0.6); transform: scale(calc(1.2 + var(--mic-level) * 0.5)); }
+}
+
+html[data-theme="light"] .mic-btn { --mic-color: #0284c7; }
+
+.mic-btn.is-transcribing {
+    color: var(--mic-color);
+    border-color: var(--mic-color);
+}
+
+.mic-btn.is-transcribing .mic-icon {
+    animation: mic-think 1s ease-in-out infinite;
+}
+
+@keyframes mic-think {
+    50% { opacity: 0.35; }
+}

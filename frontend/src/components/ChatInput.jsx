@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import useSpeechInput from '../hooks/useSpeechInput';
 import './ChatInput.css';
 
 const MODEL_OPTIONS = [
@@ -52,6 +53,34 @@ export default function ChatInput({ onSend, disabled, selectedModel = 'auto', on
     const [showModelMenu, setShowModelMenu] = useState(false);
     const textareaRef = useRef(null);
     const fileInputRef = useRef(null);
+    const micRef = useRef(null);
+
+    const autoResize = useCallback(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+    }, []);
+
+    // Dictado: el texto aparece en el cuadro mientras el usuario habla
+    const speech = useSpeechInput({
+        onText: (value) => {
+            setText(value);
+            requestAnimationFrame(() => {
+                autoResize();
+                const el = textareaRef.current;
+                if (el) el.scrollTop = el.scrollHeight;
+            });
+        },
+        levelTargetRef: micRef,
+    });
+
+    // El aviso de error del micrófono desaparece solo
+    useEffect(() => {
+        if (!speech.error) return undefined;
+        const t = setTimeout(speech.clearError, 5000);
+        return () => clearTimeout(t);
+    }, [speech.error, speech.clearError]);
 
     const processFile = useCallback(async (file) => {
         if (!file) return;
@@ -122,6 +151,7 @@ export default function ChatInput({ onSend, disabled, selectedModel = 'auto', on
 
     const handleSend = () => {
         if ((text.trim() || attachment) && !disabled) {
+            if (speech.listening) speech.stop(true);
             onSend(text, attachment);
             setText('');
             setAttachment(null);
@@ -228,6 +258,32 @@ export default function ChatInput({ onSend, disabled, selectedModel = 'auto', on
                     />
 
                     <div className="input-controls">
+                        {speech.supported && (
+                            <div className="mic-wrapper">
+                                <button
+                                    ref={micRef}
+                                    type="button"
+                                    className={`mic-btn ${speech.listening ? 'is-listening' : ''} ${speech.transcribing ? 'is-transcribing' : ''}`}
+                                    onClick={() => speech.toggle(text)}
+                                    disabled={disabled}
+                                    title={speech.listening ? 'Detener dictado' : 'Dictar por voz'}
+                                    aria-label={speech.listening ? 'Detener dictado por voz' : 'Dictar mensaje por voz'}
+                                    aria-pressed={speech.listening}
+                                >
+                                    {/* Ondas de agua que se expanden con el volumen de la voz */}
+                                    <span className="mic-ripple" aria-hidden="true"></span>
+                                    <span className="mic-ripple" aria-hidden="true"></span>
+                                    <span className="mic-ripple" aria-hidden="true"></span>
+                                    <svg className="mic-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <rect x="9" y="2" width="6" height="12" rx="3"/>
+                                        <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                                        <line x1="12" y1="18" x2="12" y2="22"/>
+                                    </svg>
+                                </button>
+                                {speech.error && <div className="mic-error" role="alert">{speech.error}</div>}
+                                {(speech.listening || speech.transcribing) && <span className="mic-status" aria-live="polite">{speech.listening ? 'Escuchando…' : 'Transcribiendo…'}</span>}
+                            </div>
+                        )}
                         <div className="model-selector-wrapper">
                             <button
                                 type="button"

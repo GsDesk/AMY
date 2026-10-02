@@ -1,0 +1,96 @@
+/* ── Proceso "Enseñar a AMY": pasos, revisión página a página y progreso ── */
+.ingest-review {
+    margin-top: 1.2rem;
+    padding: 1.1rem 1.2rem;
+    border-radius: 12px;
+    border: 1px solid var(--tailark-border);
+    background: var(--tailark-inset);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: ingest-in 0.3s ease-out;
+}
+.ingest-review.is-rejected { border-color: var(--tailark-red); }
+.ingest-review.is-done { border-color: var(--tailark-green); }
+
+@keyframes ingest-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.ingest-review-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.ingest-review-file { display: flex; align-items: center; gap: 0.5rem; min-width: 0; color: var(--tailark-text); font-weight: 600; font-size: 0.86rem; }
+.ingest-review-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ingest-review-file svg { flex-shrink: 0; color: var(--tailark-cyan); }
+.ingest-review-close { background: none; border: 1px solid var(--tailark-border); border-radius: 6px; width: 28px; height: 28px; display: grid; place-items: center; color: var(--tailark-text-muted); cursor: pointer; }
+.ingest-review-close:hover { color: var(--tailark-text); border-color: var(--tailark-border-strong); }
+
+/* Pasos */
+.ingest-steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+.ingest-step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; text-align: center; }
+.ingest-step:not(:last-child)::after {
+    content: ''; position: absolute; top: 11px; left: calc(50% + 16px); right: calc(-50% + 16px);
+    height: 2px; background: var(--tailark-border);
+}
+.ingest-step.is-done:not(:last-child)::after { background: var(--tailark-green); }
+.ingest-step-dot {
+    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    border: 2px solid var(--tailark-border-strong); background: var(--tailark-card-bg, var(--tailark-surface)); color: #fff;
+}
+.ingest-step.is-done .ingest-step-dot { background: var(--tailark-green); border-color: var(--tailark-green); }
+.ingest-step.is-failed .ingest-step-dot { background: var(--tailark-red); border-color: var(--tailark-red); }
+.ingest-step.is-active .ingest-step-dot { border-color: var(--tailark-cyan); box-shadow: 0 0 0 4px var(--tailark-cyan-soft); animation: ingest-pulse 1.2s ease-in-out infinite; }
+.ingest-step-label { font-size: 0.74rem; color: var(--tailark-text-muted); font-weight: 600; }
+.ingest-step.is-active .ingest-step-label { color: var(--tailark-cyan-text); }
+.ingest-step.is-failed .ingest-step-label { color: var(--tailark-red-text); }
+@keyframes ingest-pulse { 50% { box-shadow: 0 0 0 7px transparent; } }
+
+.ingest-hint { margin: 0; font-size: 0.8rem; color: var(--tailark-text-muted); }
+
+/* Informe por páginas */
+.ingest-report { display: flex; flex-direction: column; gap: 0.6rem; }
+.ingest-report-row { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem; }
+.ingest-report-title { color: var(--tailark-text-strong); font-weight: 600; }
+.ingest-relevance { font-weight: 700; }
+.ingest-relevance.ok { color: var(--tailark-green-text); }
+.ingest-relevance.bad { color: var(--tailark-red-text); }
+.ingest-meter { position: relative; height: 8px; border-radius: 99px; background: var(--tailark-surface); overflow: visible; }
+.ingest-meter span { display: block; height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+.ingest-meter span.ok { background: var(--tailark-green); }
+.ingest-meter span.bad { background: var(--tailark-red); }
+.ingest-meter i { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--tailark-text-dim); }
+
+.ingest-pages { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.45rem; }
+.ingest-pages li { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 8px; border: 1px solid var(--tailark-border); background: var(--tailark-card-bg, var(--tailark-surface)); font-size: 0.75rem; min-width: 0; }
+.ingest-pages li.ok { border-left: 3px solid var(--tailark-green); }
+.ingest-pages li.bad { border-left: 3px solid var(--tailark-red); }
+.ingest-page-num { font-weight: 700; color: var(--tailark-text); white-space: nowrap; }
+.ingest-page-topic { color: var(--tailark-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Veredicto */
+.ingest-verdict { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.7rem 0.9rem; border-radius: 8px; font-size: 0.8rem; line-height: 1.45; }
+.ingest-verdict strong { font-size: 0.84rem; }
+.ingest-verdict.ok { background: var(--tailark-green-soft); color: var(--tailark-text-strong); }
+.ingest-verdict.ok strong { color: var(--tailark-green-text); }
+.ingest-verdict.bad { background: var(--tailark-red-soft); color: var(--tailark-text-strong); }
+.ingest-verdict.bad strong { color: var(--tailark-red-text); }
+
+/* Progreso de indexación */
+.ingest-progress { display: flex; flex-direction: column; gap: 0.4rem; }
+.ingest-progress-row { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--tailark-text-muted); }
+.ingest-progress-bar { height: 8px; border-radius: 99px; background: var(--tailark-surface); overflow: hidden; }
+.ingest-progress-bar span {
+    display: block; height: 100%; border-radius: 99px; background: var(--tailark-cyan); transition: width 0.5s ease;
+    background-image: linear-gradient(90deg, transparent 0, rgba(255, 255, 255, 0.25) 50%, transparent 100%);
+    background-size: 200% 100%; animation: ingest-shine 1.4s linear infinite;
+}
+@keyframes ingest-shine { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.ingest-done { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.84rem; color: var(--tailark-text-strong); }
+.ingest-link-btn { padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--tailark-green); background: transparent; color: var(--tailark-green-text); font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
+.ingest-link-btn:hover { background: var(--tailark-green-soft); }
+
+@media (max-width: 700px) {
+    .ingest-step-label { font-size: 0.66rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ingest-review *, .ingest-review { animation: none !important; }
+}

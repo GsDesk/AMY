@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { login, googleLogin, getAuthConfig, forgotPassword, resetPassword } from '../services/api';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { DEFAULT_GOOGLE_CLIENT_ID } from '../services/sso';
+import { preloadAppScreens } from '../services/preload';
 import './AuthMotion.css';
 import ThemeToggle from '../components/ThemeToggle';
 import CubeLatticeAnimation from '../components/CubeLatticeAnimation';
@@ -42,6 +43,8 @@ export default function LoginPage() {
         getAuthConfig()
             .then(setAuthConfig)
             .catch((err) => console.error("Error al cargar la configuración de autenticación:", err));
+
+        preloadAppScreens();
     }, []);
 
     const handleGoogleSuccess = async (credentialResponse) => {

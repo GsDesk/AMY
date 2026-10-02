@@ -62,9 +62,11 @@ def detect_content_type(text: str) -> ContentType:
     if _SQL_FENCED_BLOCK.search(text):
         return ContentType.SQL
 
-    # Detectar SQL plano por densidad de keywords
+    # Detectar SQL plano por densidad de keywords. Una línea que empieza por "Commit" o
+    # "Select" no basta: en prosa sobre transacciones es habitual y partía mal el texto.
     sql_hits = sum(1 for kw in _SQL_DENSITY_KEYWORDS if kw in text_lower)
-    if sql_hits >= 2 or _SQL_STATEMENT_STARTERS.search(text):
+    statements = len(_SQL_STATEMENT_STARTERS.findall(text))
+    if sql_hits >= 2 or (statements >= 2 and ";" in text):
         return ContentType.SQL
 
     return ContentType.TEXT
@@ -209,16 +211,36 @@ def chunk_text(
     logger.info("Tipo de contenido detectado: %s", content_type.value)
 
     if content_type == ContentType.SQL:
-        chunks = _extract_sql_blocks(text)
+        chunks = _enforce_max_size(_extract_sql_blocks(text), chunk_size, chunk_overlap)
         logger.info("SQL fragmentado en %d bloques atómicos", len(chunks))
         return chunks
 
     if content_type == ContentType.MERMAID:
-        chunks = _extract_mermaid_blocks(text)
+        chunks = _enforce_max_size(_extract_mermaid_blocks(text), chunk_size, chunk_overlap)
         logger.info("Mermaid fragmentado en %d bloques", len(chunks))
         return chunks
 
-    # ── Modo texto natural ────────────────────────────────────────────────────
+    return _chunk_prose(text, chunk_size, chunk_overlap)
+
+
+def _enforce_max_size(chunks: list[str], chunk_size: int, chunk_overlap: int) -> list[str]:
+    """
+    Red de seguridad: un bloque mucho mayor que chunk_size (p. ej. prosa sin ';' tomada
+    por SQL) supera el contexto del modelo de embeddings, que devuelve un vector vacío.
+    Esos bloques se vuelven a partir como texto natural.
+    """
+    limit = int(chunk_size * 1.5)
+    result: list[str] = []
+    for chunk in chunks:
+        if len(chunk.split()) > limit:
+            result.extend(_chunk_prose(chunk, chunk_size, chunk_overlap))
+        else:
+            result.append(chunk)
+    return result
+
+
+def _chunk_prose(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
+    """División de texto natural por oraciones con solapamiento."""
     cleaned = clean_text(text)
     sentences = split_into_sentences(cleaned)
 

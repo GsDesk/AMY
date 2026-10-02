@@ -1,111 +1,146 @@
-/* WorkflowSourceVisualizer.css — Estilo Minimalista con pathLength 100 */
+/* WorkflowSourceVisualizer.css — flujo RAG con el estilo de la animación de la landing */
 
 .header-workflow-visualizer {
+    --hwv-cyan: #38bdf8;
+    --hwv-violet: #a78bfa;
+    --hwv-halo-opacity: 0.22;
+    --hwv-thread-opacity: 0.28;
+    --hwv-orbit: var(--border-secondary);
+    --hwv-star: var(--text-muted);
+    --hwv-pdf: #ff2a55;
+    --hwv-doc: #2a85ff;
+    --hwv-txt: #ff7000;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    background: #141414;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    padding: 0.35rem 0.8rem;
-    max-width: 400px;
+    gap: 0.1rem;
+    width: min(330px, 40vw);
     margin-left: auto;
     margin-right: 0.5rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    padding: 0.3rem 0.7rem 0.15rem;
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.08), var(--shadow-sm);
+    animation: hwv-enter 0.35s ease-out;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .hwv-status-line {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    width: 100%;
-    margin-bottom: 0.15rem;
 }
 
 .hwv-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: #38bdf8;
+    background: var(--hwv-cyan);
 }
 
-.hwv-dot.loading {
-    animation: hwvPulse 1.4s infinite ease-in-out;
-}
-
-.hwv-dot.done {
-    background-color: #4ade80;
-}
+[data-state="loading"] .hwv-dot { animation: hwv-pulse 1.4s ease-in-out infinite; }
+[data-state="done"] .hwv-dot { background: #4ade80; }
 
 .hwv-status-text {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
+    font-size: 0.66rem;
     font-weight: 500;
-    color: #a3a3a3;
+    color: var(--text-muted);
 }
 
 .hwv-pct {
     margin-left: auto;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
+    font-size: 0.64rem;
     font-weight: 700;
-    color: #38bdf8;
-}
-
-.hwv-graph-wrap {
-    width: 100%;
-    display: flex;
-    justify-content: center;
+    color: var(--hwv-cyan);
 }
 
 .hwv-svg {
     width: 100%;
     height: auto;
-    max-height: 70px;
+    max-height: 56px;
+    overflow: visible;
+    color: var(--hwv-star);
 }
 
-/* Trazos base neutros */
-.hwv-path-base {
-    stroke: #262626;
-    stroke-width: 1.2px;
-    fill: none;
-}
+/* ── Fondo: halo, órbitas y estrellas ── */
+.hwv-halo { transform-origin: 182px 42px; animation: hwv-breathe 3.2s ease-in-out infinite; }
+.hwv-orbit { stroke: var(--hwv-orbit); stroke-width: 0.7; stroke-dasharray: 2 5; transform-origin: 182px 42px; animation: hwv-orbit 24s linear infinite; }
+.hwv-star { animation: hwv-twinkle 3s ease-in-out infinite alternate; }
 
-/* Animación continua del haz de luz basada en pathLength="100" */
-@keyframes flowLaser {
-  0% {
+/* ── Hilos y señales viajeras ── */
+.hwv-thread { stroke-width: 1.2; stroke-opacity: var(--hwv-thread-opacity); }
+.hwv-signal {
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-dasharray: 10 90;
     stroke-dashoffset: 100;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
+    opacity: 0;
+}
+[data-state="loading"] .hwv-signal { opacity: 1; animation: hwv-signal 1.6s linear infinite; }
+
+/* Al terminar, los documentos usados quedan conectados y el resto se atenúa */
+[data-state="done"] .hwv-branch.is-match .hwv-thread { stroke-opacity: 0.75; stroke-width: 1.5; }
+[data-state="done"] .hwv-branch:not(.is-match) .hwv-thread { stroke-opacity: 0.1; }
+[data-state="done"] .hwv-doc:not(.is-match) { opacity: 0.35; }
+
+/* ── Nodos ── */
+.hwv-node rect:first-of-type {
+    fill: var(--bg-card);
+    stroke: var(--border-secondary);
+    stroke-width: 1;
+}
+.hwv-query rect { stroke: rgba(56, 189, 248, 0.45) !important; }
+.hwv-node-title { fill: var(--text-primary); font: 700 8.5px 'JetBrains Mono', monospace; letter-spacing: 0.5px; }
+.hwv-node-sub { fill: var(--hwv-cyan); font: 500 6.5px 'JetBrains Mono', monospace; }
+.hwv-port { fill: var(--hwv-cyan); }
+.hwv-doc-line { stroke: var(--border-secondary); stroke-width: 1.5; stroke-linecap: round; }
+
+.hwv-doc-pdf { --hwv-doc-color: var(--hwv-pdf); }
+.hwv-doc-doc { --hwv-doc-color: var(--hwv-doc); }
+.hwv-doc-txt { --hwv-doc-color: var(--hwv-txt); }
+.hwv-doc-swatch { fill: var(--hwv-doc-color); }
+.hwv-doc.is-match rect:first-of-type { stroke: var(--hwv-doc-color); }
+.hwv-doc .hwv-port { fill: var(--hwv-doc-color); }
+[data-state="loading"] .hwv-doc .hwv-doc-line { stroke-dasharray: 4 4; animation: hwv-scan 0.9s linear infinite; }
+
+/* ── Núcleo que respira ── */
+.hwv-core { transform-origin: 182px 42px; animation: hwv-core 3.2s ease-in-out infinite; }
+.hwv-core-box { fill: var(--bg-card); stroke: url(#hwv-thread); stroke-width: 1.4; }
+.hwv-core-icon { fill: none; stroke: var(--hwv-cyan); stroke-width: 1.4; }
+[data-state="loading"] .hwv-core-box { filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.55)); }
+
+@keyframes hwv-signal { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes hwv-orbit { to { transform: rotate(360deg); } }
+@keyframes hwv-twinkle { from { opacity: 0.2; } to { opacity: 0.85; } }
+@keyframes hwv-breathe { 50% { transform: scale(1.12); opacity: 0.8; } }
+@keyframes hwv-core { 50% { transform: translateY(-1.5px) scale(1.04); } }
+@keyframes hwv-scan { to { stroke-dashoffset: -16; } }
+@keyframes hwv-pulse { 0%, 100% { opacity: 0.35; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes hwv-enter { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+[data-state="done"] .hwv-orbit,
+[data-state="done"] .hwv-halo,
+[data-state="done"] .hwv-core { animation-duration: 8s; }
+
+/* Tema claro: tonos más profundos, como en la landing */
+html[data-theme="light"] .header-workflow-visualizer {
+    --hwv-cyan: #0284c7;
+    --hwv-violet: #7c3aed;
+    --hwv-halo-opacity: 0.3;
+    --hwv-thread-opacity: 0.4;
+    --hwv-orbit: #7c9fbe;
+    --hwv-star: #0369a1;
+    box-shadow: 0 0 24px rgba(14, 165, 233, 0.12), var(--shadow-sm);
 }
 
-.hwv-laser {
-  fill: none;
-  stroke-width: 2.5px;
-  /* 25 unidades de haz visible, 75 unidades de espacio */
-  stroke-dasharray: 25 75;
-  animation: flowLaser 1.4s infinite linear;
+/* En móvil no cabe en el encabezado */
+@media (max-width: 700px) {
+    .header-workflow-visualizer { display: none; }
 }
 
-/* Tramo 1: FUENTE -> BDD (Azul Cian) */
-.hwv-p1 {
-  stroke: #38bdf8;
-  animation-delay: 0s;
-}
-
-/* Tramo 2: BDD -> Documentos (Con ligero retardo para sincronizar) */
-.hwv-p2 {
-  animation-delay: 0.35s;
-}
-
-.hwv-p2-pdf { stroke: #ff2a55; }
-.hwv-p2-doc { stroke: #2a85ff; }
-.hwv-p2-txt { stroke: #ff7000; }
-
-@keyframes hwvPulse {
-    0%, 100% { opacity: 0.3; transform: scale(0.9); }
-    50% { opacity: 1; transform: scale(1.15); }
+@media (prefers-reduced-motion: reduce) {
+    .header-workflow-visualizer * { animation: none !important; }
+    [data-state="loading"] .hwv-signal { stroke-dasharray: none; opacity: 0.6; }
 }

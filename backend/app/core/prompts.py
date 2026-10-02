@@ -3,6 +3,25 @@ Tutor IA UPEC — Templates de Prompts
 Construcción de prompts para el pipeline RAG.
 """
 
+import re
+
+_GREETING_RE = re.compile(
+    r"^\W*(hola|holi|buen[oa]s?\s+(d[ií]as?|tardes?|noches?)|buen\s+d[ií]a|saludos|qu[eé]\s+tal|"
+    r"c[oó]mo\s+est[aá]s|hey|hi)\b",
+    re.IGNORECASE,
+)
+
+
+def _greeting_instruction(student_query: str, chat_history: list[dict] | None) -> str:
+    """Indica al modelo si debe saludar: solo al iniciar la conversación o si le saludan."""
+    if not chat_history:
+        return ("- Es el PRIMER mensaje de la conversación: puedes empezar con un saludo breve "
+                "(una sola frase) y luego responder.")
+    if _GREETING_RE.match(student_query or ""):
+        return "- El estudiante te saluda: devuélvele el saludo en una frase breve y luego responde."
+    return ("- La conversación YA ESTÁ EN CURSO: NO saludes, NO des la bienvenida, NO digas que es un placer "
+            "acompañarle ni menciones que es estudiante de la UPEC. Empieza directamente con el contenido.")
+
 
 def build_rag_prompt(student_query: str, context_fragments: list[dict], chat_history: list[dict] = None) -> str:
     """
@@ -24,7 +43,8 @@ def build_rag_prompt(student_query: str, context_fragments: list[dict], chat_his
 
 NOTA: No se encontro contexto relevante en la base de conocimiento.
 Responde basandote en tu conocimiento general sobre Bases de Datos.
-Recuerda aplicar el metodo socratico y responder en formato JSON."""
+Adapta la explicación al nivel del estudiante, aplica el metodo socratico y responde en formato JSON.
+{_greeting_instruction(student_query, chat_history)}"""
 
     # Construir el bloque de contexto
     context_block = "\n\n".join([
@@ -42,10 +62,11 @@ Recuerda aplicar el metodo socratico y responder en formato JSON."""
 
 INSTRUCCIONES:
 - Usa el contexto academico anterior para fundamentar tu respuesta.
-- Toma en cuenta el historial de la conversacion si el estudiante hace referencia a preguntas anteriores.
+- Ten siempre en cuenta el historial: el nivel del estudiante, lo que ya le explicaste y si está repitiendo una pregunta.
 - Cita la fuente bibliografica cuando sea relevante.
-- Aplica el metodo socratico: guia, no resuelvas.
-- Responde en formato JSON estricto."""
+- Explica primero lo que el estudiante pide, adaptado a su nivel, y luego guíale con una pregunta (método socrático).
+- Responde en formato JSON estricto.
+{_greeting_instruction(student_query, chat_history)}"""
 
 
 def build_embedding_prompt(text: str) -> str:

@@ -107,11 +107,14 @@ export default function ChatWindow({ conversationId, onExampleReceived, onResetE
     }, [lastExample, onExampleReceived]);
 
     const handleSend = useCallback((text, attachment = null) => {
-        if (!isExampleOrProblemQuery(text, attachment) && onResetExample) {
+        // Si la conversación ya tiene tablas en el lienzo, se conservan mientras el estudiante
+        // sigue preguntando sobre ellas; solo se sustituyen cuando AMY envía un ejemplo nuevo
+        const hasExampleInConversation = messages.some(m => m.liveExample?.tables?.length > 0);
+        if (!hasExampleInConversation && !isExampleOrProblemQuery(text, attachment) && onResetExample) {
             onResetExample();
         }
         sendMessage(text, attachment);
-    }, [sendMessage, onResetExample]);
+    }, [sendMessage, onResetExample, messages]);
 
     const handleExplainAndFocus = useCallback((text) => {
         handleSend(text);
@@ -239,7 +242,7 @@ export default function ChatWindow({ conversationId, onExampleReceived, onResetE
                                     <img src="/amy-logo.png" alt="AMY" className="msg-avatar-logo-img" />
                                 </div>
                                 <div className="msg-content">
-                                    <div className="msg-bubble typing-bubble-round">
+                                    <div className="msg-bubble msg-bubble--thinking">
                                         <MorphThinkingAnimation />
                                     </div>
                                 </div>

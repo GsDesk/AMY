@@ -15,6 +15,9 @@ const WELCOME_MESSAGE = {
 export function useChat() {
     const [messages, setMessages] = useState([WELCOME_MESSAGE]);
     const [isLoading, setIsLoading] = useState(false);
+    // Carga del historial al cambiar de conversación: distinto de isLoading para no mostrar
+    // "AMY está pensando", la animación RAG ni el botón Detener mientras se leen los mensajes
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [lastExample, setLastExample] = useState(null);
     const [currentConversationId, setCurrentConversationId] = useState(null);
     const [selectedModel, setSelectedModel] = useState('auto');
@@ -39,7 +42,7 @@ export function useChat() {
 
     const sendMessage = useCallback(async (text, attachment = null) => {
         if ((!text || !text.trim()) && !attachment) return;
-        if (isLoading) return;
+        if (isLoading || isLoadingHistory) return;
 
         stopGeneration();
         const controller = new AbortController();
@@ -285,12 +288,12 @@ export function useChat() {
             window.dispatchEvent(new CustomEvent('amy_conv_updated'));
         }
 
-    }, [isLoading, currentConversationId, selectedModel, stopGeneration]);
+    }, [isLoading, isLoadingHistory, currentConversationId, selectedModel, stopGeneration]);
 
     const loadConversation = useCallback(async (id) => {
         if (!id) return;
         stopGeneration();
-        setIsLoading(true);
+        setIsLoadingHistory(true);
 
         // 1. Cargar inmediatamente de caché local si existe para evitar pantallas vacías
         try {
@@ -298,7 +301,8 @@ export function useChat() {
             if (cachedMsgs) {
                 const parsed = JSON.parse(cachedMsgs);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    setMessages(parsed);
+                    // Un mensaje guardado a medio generar no debe mostrarse como "pensando"
+                    setMessages(parsed.map(m => (m.streaming ? { ...m, streaming: false } : m)));
                 }
             }
         } catch {}
@@ -362,7 +366,7 @@ export function useChat() {
             }
         } finally {
             abortControllerRef.current = null;
-            setIsLoading(false);
+            setIsLoadingHistory(false);
         }
     }, [stopGeneration]);
 
@@ -376,6 +380,7 @@ export function useChat() {
     return {
         messages,
         isLoading,
+        isLoadingHistory,
         sendMessage,
         stopGeneration,
         clearChat,

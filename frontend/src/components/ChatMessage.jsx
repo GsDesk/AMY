@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import SyntaxHighlighter from './SyntaxHighlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MorphThinkingAnimation from './MorphThinkingAnimation';
 import './ChatMessage.css';
@@ -17,6 +17,32 @@ function cleanTextEmojisAndKeycaps(text) {
 }
 
 // ── Helper: Desenvolver texto si viene envuelto en JSON crudo ─────────────────
+// Lee el valor de un campo de texto de un JSON aunque esté incompleto (respuesta en
+// streaming): devuelve lo recibido hasta ahora, o null si el campo aún no ha llegado.
+function readJsonStringField(str, key) {
+    const m = new RegExp(`"${key}"\\s*:\\s*"`).exec(str);
+    if (!m) return null;
+    let out = '';
+    for (let i = m.index + m[0].length; i < str.length; i++) {
+        const ch = str[i];
+        if (ch === '"') return out;            // fin del valor
+        if (ch !== '\\') { out += ch; continue; }
+        const next = str[i + 1];
+        if (next === undefined) return out;    // escape cortado por el streaming
+        i++;
+        if (next === 'n') out += '\n';
+        else if (next === 't') out += '\t';
+        else if (next === 'r') continue;
+        else if (next === 'u') {
+            const hex = str.slice(i + 1, i + 5);
+            if (hex.length < 4) return out;
+            out += String.fromCharCode(parseInt(hex, 16));
+            i += 4;
+        } else out += next;                    // \" \\ \/
+    }
+    return out;
+}
+
 function unwrapText(text) {
     if (!text) return '';
     let str = text.trim();
@@ -26,20 +52,27 @@ function unwrapText(text) {
         str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     }
 
-    // 2. Si el texto es una estructura JSON { ... }
-    if (str.startsWith('{') && str.includes('}')) {
+    // 1b. El modelo a veces escribe unas palabras antes del JSON ("...pilares fundamentales{ "analysis"...").
+    //     Esas palabras se repiten dentro de "feedback": se descartan y se usa el objeto.
+    const embedded = str.search(/\{\s*"(analysis|feedback)"\s*:/);
+    if (embedded > 0) {
+        str = str.slice(embedded);
+    }
+
+    // 2. Respuesta estructurada { "analysis": ..., "feedback": ... }: al estudiante solo se le
+    //    muestra "feedback". El análisis es interno y no debe verse, ni siquiera en streaming.
+    if (str.startsWith('{')) {
         try {
             const obj = JSON.parse(str);
             if (obj?.assistant?.message?.text) return unwrapText(obj.assistant.message.text);
             if (obj?.message?.text) return unwrapText(obj.message.text);
-            if (obj?.feedback) return unwrapText(obj.feedback);
-            if (obj?.text) return unwrapText(obj.text);
+            if (typeof obj?.feedback === 'string') return unwrapText(obj.feedback);
+            if (typeof obj?.text === 'string') return unwrapText(obj.text);
         } catch {
-            const match = str.match(/"feedback"\s*:\s*"([\s\S]*?)"(?:\s*,\s*"[a-z_]+"|\s*\})/) ||
-                          str.match(/"text"\s*:\s*"([\s\S]*?)"/);
-            if (match && match[1]) {
-                str = match[1];
-            }
+            // JSON incompleto (llegando por partes)
+            const partial = readJsonStringField(str, 'feedback') ?? readJsonStringField(str, 'text');
+            // Mientras solo llega el análisis interno, no mostrar nada (se ve "AMY está pensando")
+            return cleanTextEmojisAndKeycaps(partial ?? '');
         }
     }
 
@@ -290,6 +323,8 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
 
     // Desenvolver texto despojándolo de JSON crudo o markdown fences ```json
     const cleanText = useMemo(() => unwrapText(message.text || ''), [message.text]);
+    // AMY aún no ha escrito nada: se muestra solo el indicador compacto, sin burbuja
+    const isThinking = isTutor && isStreaming && !cleanText;
 
     // Detectar diagrama E-R desde live_example o parsear bloque Mermaid si no vino liveExample
     const erDiagram = useMemo(() => {
@@ -360,7 +395,7 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
             )}
 
             <div className="msg-content">
-                <div className={`msg-bubble ${isStreaming ? 'msg-bubble--streaming' : ''}`}>
+                <div className={`msg-bubble ${isStreaming ? 'msg-bubble--streaming' : ''} ${isThinking ? 'msg-bubble--thinking' : ''}`}>
                     {isTutor ? (
                         cleanText ? (
                             <>
@@ -472,7 +507,7 @@ export default function ChatMessage({ message, onExplainCode, onOpenDiagram }) {
                     </div>
                 )}
 
-                {isTutor && message.source && message.source !== 'system' && (
+                {isTutor && !isThinking && message.source && message.source !== 'system' && (
                     <div className="msg-meta">
                         <span className={`source-badge ${isError ? 'badge-error' : 'badge-default'}`}>
                             {isError ? 'Error'

@@ -309,3 +309,17 @@ html[data-theme="light"] .chat-empty-state {
 .menu-toggle-btn.is-collapsed .menu-toggle-chevron {
     transform: rotate(180deg);
 }
+
+/* Cambio de tema tras ocultar/mostrar el sidebar: en Chrome/Brave con GPU el área de
+   mensajes podía quedarse pintada en negro. El desenfoque del panel (opaco, no aportaba
+   nada) la convertía en una capa compuesta aparte y la transición de color no se repintaba. */
+.chat-window.panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.chat-window,
+.chat-messages,
+.chat-empty-state {
+    transition: none;
+}

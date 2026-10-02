@@ -92,6 +92,14 @@ class Database:
             # Intentos fallidos por código de recuperación (limita la fuerza bruta)
             await conn.execute("ALTER TABLE codigos_recuperacion ADD COLUMN IF NOT EXISTS intentos INT NOT NULL DEFAULT 0;")
 
+            # Categoría "Administración de BD" en la base de conocimiento (bases ya creadas)
+            await conn.execute("""
+                ALTER TABLE fragmentos_conocimiento DROP CONSTRAINT IF EXISTS fragmentos_conocimiento_categoria_check;
+                ALTER TABLE fragmentos_conocimiento ADD CONSTRAINT fragmentos_conocimiento_categoria_check
+                    CHECK (categoria IN ('Normalización', 'SQL', 'Modelo E-R', 'Álgebra Relacional', 'Diseño de BD',
+                                         'Transacciones', 'Índices', 'Administración de BD', 'Fundamentos'));
+            """)
+
             # API keys de proveedores de IA renovables desde el panel admin (valor cifrado)
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS configuracion_api (

@@ -311,7 +311,69 @@ html[data-theme="light"] .showcase-avatar-img,
 
 :where(a, button, input, select, textarea):focus-visible { outline: 2px solid #0284c7; outline-offset: 4px; }
 .route-loading { min-height: 100dvh; display: grid; place-items: center; color: var(--text-primary); background: var(--bg-primary); }
+.route-error { place-content: center; gap: 1rem; text-align: center; padding: 1.5rem; }
+.route-error button { justify-self: center; padding: .6rem 1.4rem; border-radius: 8px; border: 1px solid var(--border-secondary); background: var(--btn-bg); color: var(--text-primary); font: inherit; font-weight: 600; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
     .reveal-ready { opacity: 1 !important; transform: none !important; }
+}
+
+/* ── Modo oscuro sereno: el celeste queda como acento puntual ─────────────
+   En oscuro los bordes celestes completos y sus brillos se veían como "neón".
+   Se sustituyen por bordes neutros y el celeste se reserva para pequeños acentos.
+   El modo claro no cambia: ahí el celeste sí ayuda a destacar. */
+html[data-theme="dark"] {
+    --amy-msg-border: #27272a;
+    --amy-msg-accent: rgba(56, 189, 248, 0.45);
+    --border-focus: #52525b;
+}
+
+/* Respuestas de AMY: borde neutro y una barra lateral fina y suave */
+html[data-theme="dark"] .tutor-msg .msg-bubble:not(.msg-bubble--thinking) {
+    border-left: 2px solid var(--amy-msg-accent) !important;
+}
+
+/* Avatares y logo */
+html[data-theme="dark"] .msg-avatar,
+html[data-theme="dark"] .tutor-avatar,
+html[data-theme="dark"] .amy-mark {
+    border-color: var(--border-primary);
+}
+
+/* Etiquetas bajo las respuestas: texto celeste suave, sin marco brillante */
+html[data-theme="dark"] .topic-badge {
+    border-color: var(--border-primary);
+}
+html[data-theme="dark"] .rag-badge,
+html[data-theme="dark"] .example-badge,
+html[data-theme="dark"] .er-btn-badge {
+    color: #7dd3fc;
+    background: rgba(56, 189, 248, 0.06);
+    border-color: rgba(56, 189, 248, 0.18);
+}
+
+/* Botón "Ver Diagrama E-R" */
+html[data-theme="dark"] .er-reopen-btn {
+    border-color: var(--border-primary);
+}
+html[data-theme="dark"] .er-reopen-btn:hover {
+    border-color: var(--border-secondary);
+    box-shadow: none;
+}
+
+/* Cuadro de texto al escribir: sin aro ni brillo celeste */
+html[data-theme="dark"] .input-wrapper:focus-within,
+html[data-theme="dark"] .chat-empty-input-container .input-wrapper:focus-within {
+    border-color: #52525b;
+    box-shadow: 0 0 0 1px rgba(82, 82, 91, 0.5);
+}
+
+/* Conversación activa y buscador del sidebar */
+html[data-theme="dark"] .conv-item.active {
+    border: 1px solid var(--border-secondary);
+    border-left: 2px solid rgba(56, 189, 248, 0.6);
+    box-shadow: none;
+}
+html[data-theme="dark"] .conv-search:focus-within {
+    border-color: #52525b;
 }

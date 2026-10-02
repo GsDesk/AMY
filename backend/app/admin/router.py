@@ -3,6 +3,7 @@ AMY — Router de Administración & Gestión del RAG (DMZ Strict Mode)
 Endpoints restringidos a usuarios con rol 'admin'.
 """
 
+import asyncio
 import io
 import json
 import logging
@@ -21,7 +22,9 @@ from app.integrations.groq_client import groq_client
 from app.integrations.gemini_client import gemini_client
 from app.cache.redis_cache import redis_cache
 from app.rag.retriever import get_fragment_count
-from app.rag.dmz_validator import validate_document_dmz
+from app.rag.dmz_validator import review_document, split_pages
+from app.rag.chunker import chunk_text
+from app.rag.embeddings import generate_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -355,138 +358,162 @@ async def update_user_role(
     return {"message": f"Rol actualizado a '{body.rol}' con éxito."}
 
 
+INGEST_JOB_TTL = 6 * 3600          # el progreso de una indexación se conserva 6 horas
+MAX_FRAGMENTS_PER_DOCUMENT = 1500  # límite de seguridad para libros muy extensos
+_ingest_tasks: set = set()         # referencias a las tareas en segundo plano (evita que el GC las corte)
+
+
+def _extract_pages(filename: str, ext: str, file_bytes: bytes) -> list[str]:
+    """Texto del archivo separado por páginas (reales en PDF, de ~3000 caracteres en el resto)."""
+    if ext == "pdf":
+        import pypdf
+        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+        return [(page.extract_text() or "") for page in reader.pages]
+    if ext in ("docx", "doc"):
+        import docx
+        document = docx.Document(io.BytesIO(file_bytes))
+        return split_pages("\n".join(p.text for p in document.paragraphs if p.text))
+    return split_pages(file_bytes.decode("utf-8", errors="ignore"))
+
+
+async def _set_job(job_id: str, **fields):
+    if redis_cache.redis is None:
+        return
+    key = f"ingest_job:{job_id}"
+    await redis_cache.redis.hset(key, mapping={k: str(v) for k, v in fields.items()})
+    await redis_cache.redis.expire(key, INGEST_JOB_TTL)
+
+
+async def _index_document(job_id: str, text: str, categoria: str, metadata: dict, admin_email: str):
+    """Fragmenta el documento aprobado y genera los embeddings, publicando el progreso en Redis."""
+    try:
+        chunks = chunk_text(text, chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
+        chunks = [c for c in chunks if len(c.strip()) >= 80][:MAX_FRAGMENTS_PER_DOCUMENT]
+        await _set_job(job_id, status="indexing", total=len(chunks), done=0)
+        meta_json = json.dumps(metadata)
+        pending_embeddings = 0
+
+        for i, chunk in enumerate(chunks, 1):
+            try:
+                embedding = await generate_embedding(chunk)
+            except Exception as e:
+                logger.warning("Embedding no generado para un fragmento de %s: %s", metadata.get("fuente"), e)
+                embedding = None
+            if embedding:
+                embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+                await db.execute(
+                    """INSERT INTO fragmentos_conocimiento (categoria, contenido, metadata, embedding)
+                       VALUES ($1, $2, $3::jsonb, $4::vector)""",
+                    categoria, chunk, meta_json, embedding_str,
+                )
+            else:
+                # Sin vector de ceros: se guarda sin embedding y se completa más tarde
+                pending_embeddings += 1
+                await db.execute(
+                    """INSERT INTO fragmentos_conocimiento (categoria, contenido, metadata)
+                       VALUES ($1, $2, $3::jsonb)""",
+                    categoria, chunk, meta_json,
+                )
+            if i % 3 == 0 or i == len(chunks):
+                await _set_job(job_id, done=i)
+
+        await redis_cache.invalidate_responses()
+        await _set_job(job_id, status="done", done=len(chunks), fragments=len(chunks), pending=pending_embeddings)
+        logger.info("Admin %s indexó %s (%d fragmentos)", admin_email, metadata.get("fuente"), len(chunks))
+    except Exception as e:
+        logger.error("Error indexando documento %s: %s", metadata.get("fuente"), e)
+        await _set_job(job_id, status="error", error="No se pudo completar la indexación del documento.")
+
+
 @router.post("/ingest-file")
 async def ingest_academic_file(
     file: UploadFile = File(...),
     categoria: str = Form(...),
     fuente: Optional[str] = Form(None),
     autor: Optional[str] = Form(None),
+    url: Optional[str] = Form(None),
     current_admin: dict = Depends(get_current_admin_user)
 ):
     """
-    Ingesta un archivo académico (.txt, .pdf, .docx, .doc) evaluándolo primeramente
-    en la Zona Militarizada de Seguridad (DMZ).
+    1. Extrae el texto por páginas.
+    2. Revisión de contenido: la IA lee al menos las 2 primeras páginas con contenido y otras
+       repartidas por el documento; si no trata de bases de datos, se rechaza.
+    3. Si se aprueba, la indexación (fragmentos + embeddings) continúa en segundo plano y su
+       progreso se consulta en /ingest-jobs/{job_id}.
     """
     filename = file.filename or "documento"
-    ext = filename.lower().split(".")[-1]
-
+    ext = filename.lower().rsplit(".", 1)[-1]
     if ext not in ("txt", "pdf", "docx", "doc"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Formato no soportado. Debe ser un archivo .txt, .pdf, .docx o .doc."
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Formato no soportado. Debe ser un archivo .txt, .pdf, .docx o .doc.")
 
     file_bytes = await file.read()
-    extracted_text = ""
-
     try:
-        if ext == "txt":
-            extracted_text = file_bytes.decode("utf-8", errors="ignore")
-        elif ext == "pdf":
-            import pypdf
-            reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-            text_parts = [page.extract_text() for page in reader.pages if page.extract_text()]
-            extracted_text = "\n".join(text_parts)
-        elif ext in ("docx", "doc"):
-            import docx
-            doc = docx.Document(io.BytesIO(file_bytes))
-            extracted_text = "\n".join([p.text for p in doc.paragraphs if p.text])
+        pages = _extract_pages(filename, ext, file_bytes)
     except Exception as err:
         logger.error("Error al extraer texto del archivo %s: %s", filename, err)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No se pudo extraer el texto del archivo '{filename}'. Asegúrate de que el documento no esté dañado."
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            f"No se pudo leer el archivo '{filename}'. Asegúrate de que no esté dañado o protegido.")
 
-    if not extracted_text.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo subido está vacío o no contiene texto procesable."
-        )
+    full_text = "\n".join(pages).strip()
+    if not full_text:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "El archivo no contiene texto legible (puede ser un PDF escaneado como imagen).")
 
-    # 1. Evaluación DMZ
-    eval_res = await validate_document_dmz(extracted_text, categoria=categoria)
+    review = await review_document(pages, categoria=categoria)
+    report = review.get("report", {})
+    evento = f"Ingesta de archivo '{filename}' ({len(file_bytes)} bytes, {report.get('total_pages', 0)} páginas)"
 
-    log_id = str(uuid.uuid4())
-    evento_desc = f"Ingesta de archivo '{filename}' ({len(file_bytes)} bytes)"
-
-    if not eval_res["is_valid"]:
-        # Registrar evento RECHAZADO
+    if not review["is_valid"]:
         await db.execute(
             """INSERT INTO auditoria_dmz (id, evento, categoria, estado, motivo)
                VALUES ($1, $2, $3, 'RECHAZADO', $4)""",
-            log_id, evento_desc, categoria, eval_res["reason"]
+            str(uuid.uuid4()), evento, categoria, review["reason"],
         )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=eval_res["reason"]
-        )
+        return {"approved": False, "message": review["reason"], "report": report}
 
-    # 2. Ingesta APROBADA
-    categoria_final = eval_res.get("category", categoria) or categoria
+    categoria_final = review.get("category") or categoria
     await db.execute(
         """INSERT INTO auditoria_dmz (id, evento, categoria, estado, motivo)
            VALUES ($1, $2, $3, 'APROBADO', $4)""",
-        log_id, evento_desc, categoria_final, eval_res["reason"]
+        str(uuid.uuid4()), evento, categoria_final, review["reason"],
     )
 
-    # Dividir texto en fragmentos de ~500 caracteres
-    paragraphs = [p.strip() for p in extracted_text.split("\n\n") if p.strip()]
-    chunks = []
-    curr_chunk = ""
+    metadata = {
+        "fuente": (fuente or "").strip() or filename,
+        "autor": (autor or "").strip() or "Académico UPEC",
+        "archivo_origen": filename,
+        "paginas": report.get("total_pages"),
+    }
+    if url and url.strip():
+        metadata["url"] = url.strip()[:500]
 
-    for p in paragraphs:
-        if len(curr_chunk) + len(p) < 600:
-            curr_chunk += ("\n" + p) if curr_chunk else p
-        else:
-            if len(curr_chunk) >= 80:
-                chunks.append(curr_chunk)
-            curr_chunk = p
-    if len(curr_chunk) >= 80:
-        chunks.append(curr_chunk)
-
-    if not chunks:
-        chunks = [extracted_text[:1000]]
-
-    # Limitar a los 120 mejores fragmentos para libros extensos (evita latencias prolongadas)
-    if len(chunks) > 120:
-        logger.info("El archivo contiene %d fragmentos; limitando a los 120 más representativos.", len(chunks))
-        chunks = chunks[:120]
-
-    # Indexar fragmentos en PostgreSQL
-    created_count = 0
-    meta_json = json.dumps({
-        "fuente": fuente or filename,
-        "autor": autor or "Académico UPEC",
-        "archivo_origen": filename
-    })
-
-    for chunk in chunks:
-        try:
-            embedding = await ollama_client.get_embedding(chunk)
-        except Exception as e:
-            logger.warning("No se pudo obtener embedding para el fragmento: %s", e)
-            embedding = None
-
-        if not embedding:
-            embedding = [0.0] * 768
-
-        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
-        frag_id = str(uuid.uuid4())
-        await db.execute(
-            """INSERT INTO fragmentos_conocimiento (id_fragmento, categoria, contenido, metadata, embedding)
-               VALUES ($1::uuid, $2, $3, $4::jsonb, $5::vector)""",
-            frag_id, categoria_final, chunk, meta_json, embedding_str
-        )
-        created_count += 1
-
-    await redis_cache.invalidate_responses()
-    logger.info("Admin %s ingesto exitosamente %s (%d fragmentos)", current_admin["email"], filename, created_count)
+    job_id = str(uuid.uuid4())
+    await _set_job(job_id, status="indexing", total=0, done=0, filename=filename, category=categoria_final)
+    task = asyncio.create_task(_index_document(job_id, full_text, categoria_final, metadata, current_admin["email"]))
+    _ingest_tasks.add(task)
+    task.add_done_callback(_ingest_tasks.discard)
 
     return {
-        "message": f"Archivo '{filename}' APROBADO por la Zona Militarizada e ingestado con éxito en el RAG.",
-        "fragments_created": created_count
+        "approved": True,
+        "message": review["reason"],
+        "category": categoria_final,
+        "report": report,
+        "job_id": job_id,
     }
+
+
+@router.get("/ingest-jobs/{job_id}")
+async def ingest_job_status(job_id: str, current_admin: dict = Depends(get_current_admin_user)):
+    """Progreso de la indexación de un documento aprobado."""
+    if redis_cache.redis is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "El seguimiento de la indexación no está disponible.")
+    data = await redis_cache.redis.hgetall(f"ingest_job:{job_id}")
+    if not data:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Indexación no encontrada o caducada.")
+    for k in ("total", "done", "fragments", "pending"):
+        if k in data:
+            data[k] = int(data[k])
+    return data
 
 
 @router.get("/knowledge")
@@ -535,7 +562,25 @@ async def list_knowledge_fragments(
             "createdAt": r["created_at"].isoformat() if r["created_at"] else None
         })
 
-    return {"total": total, "items": results}
+    # Resumen para las métricas del panel: fragmentos por categoría y documentos distintos
+    by_category = await db.fetch(
+        """SELECT categoria, COUNT(*) AS n FROM fragmentos_conocimiento
+           GROUP BY categoria ORDER BY n DESC"""
+    )
+    sources = await db.fetchval(
+        "SELECT COUNT(DISTINCT metadata->>'fuente') FROM fragmentos_conocimiento WHERE metadata->>'fuente' IS NOT NULL"
+    ) or 0
+    grand_total = sum(r["n"] for r in by_category)
+
+    return {
+        "total": total,
+        "items": results,
+        "summary": {
+            "total": grand_total,
+            "sources": sources,
+            "categories": [{"categoria": r["categoria"], "count": r["n"]} for r in by_category],
+        },
+    }
 
 
 @router.delete("/knowledge/{id_fragmento}")

@@ -1222,3 +1222,9 @@ html[data-theme="light"] .er-empty-board-icon {
     border: 1px solid rgba(56, 189, 248, 0.35);
     box-shadow: 0 0 18px rgba(56, 189, 248, 0.15);
 }
+
+/* Tema claro: nombres de tablas y columnas (tenían color blanco fijo y no se leían) */
+html[data-theme="light"] .er-table-title { color: #09090b; }
+html[data-theme="light"] .er-col-name { color: #27272a; }
+html[data-theme="light"] .is-pk-row .er-col-name { color: #09090b; }
+html[data-theme="light"] .is-fk-row .er-col-name { color: #0369a1; }

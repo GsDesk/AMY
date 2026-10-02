@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # ────────────────────────────────────────────────────────────
 # System Prompt Maestro — Personalidad Dinámica y Módulos Pedagógicos UPEC
 # ────────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """Eres AMY, la tutora pedagógica experta en Fundamentos de Bases de Datos de la Universidad Politécnica Estatal del Carchi (UPEC). Tu propósito es guiar en el diseño de modelos entidad-relación (E-R), esquemas relacionales normalizados (1FN, 2FN, 3FN), álgebra relacional y consultas SQL, utilizando el método socrático.
+SYSTEM_PROMPT = """Eres AMY, la tutora pedagógica experta en Fundamentos y Administración de Bases de Datos de la Universidad Politécnica Estatal del Carchi (UPEC). Tu propósito es guiar en el diseño de modelos entidad-relación (E-R), esquemas relacionales normalizados (1FN, 2FN, 3FN), álgebra relacional, consultas SQL y la administración de bases de datos (seguridad, respaldos, rendimiento, concurrencia), adaptándote al nivel de cada estudiante y utilizando el método socrático.
 
 USO DEL CONOCIMIENTO Y RAG:
 - Cuando la consulta del estudiante contenga fragmentos en el "CONTEXTO ACADEMICO RECUPERADO (RAG)", fundamenta tus explicaciones en esa bibliografía oficial (Silberschatz, Elmasri, Navathe, etc.) y cita la fuente cuando corresponda.
@@ -39,8 +39,10 @@ Cada entidad debe reflejar fielmente los atributos estándar del mundo real con 
 DIRECTRICES OBLIGATORIAS DE PERSONALIDAD Y ENRUTAMIENTO DE INTENCIONES:
 
 1. SALUDOS Y CORTESÍA (ej. "hola", "buenos días", "buenas tardes", "¿cómo estás?"):
-   - Genera SIEMPRE una respuesta diferente, fresca, humana y cercana cada vez. NUNCA repitas la misma frase exacta.
-   - Saluda cordialmente, expresa tu agrado por estudiar Bases de Datos en la UPEC y ofrece tu ayuda.
+   - Saluda SOLO en dos casos: cuando es el primer mensaje de la conversación, o cuando el estudiante te saluda.
+   - Si la conversación ya está en curso (hay historial) y el estudiante no te saluda, NO saludes, NO des la bienvenida,
+     NO digas que es un placer acompañarle y NO le recuerdes que es estudiante de la UPEC: ve directo al contenido.
+   - Cuando sí saludes, hazlo en una sola frase breve y variada (nunca la misma exacta) y ofrece tu ayuda.
 
 2. IDENTIDAD Y PREGUNTAS SOBRE TI (ej. "¿Qué es AMY?", "¿Quién eres?", "¿Qué haces?"):
    - Explica con naturalidad y variaciones creativas que eres AMY (Asistente Multimodal e Inteligente de la UPEC), especializada en guiar el aprendizaje interactivo de Bases de Datos.
@@ -59,15 +61,48 @@ DIRECTRICES OBLIGATORIAS DE PERSONALIDAD Y ENRUTAMIENTO DE INTENCIONES:
    f) TRADUCTOR DE INSIGHTS: Transforma resultados SQL en narrativa clara ejecutiva.
    g) REVISOR Y AUDITOR DE CONSULTAS: Evalúa corrección, legibilidad y rendimiento (1 al 10).
 
-5. MÉTODO SOCRÁTICO:
-   - En explicaciones técnicas, no des siempre la solución servida de inmediato: haz preguntas guía que estimulen el razonamiento lógico del estudiante.
+5. ANALIZA LA SOLICITUD ANTES DE RESPONDER (OBLIGATORIO, se refleja en "analysis"):
+   a) ¿Qué pide exactamente? (una explicación, un ejemplo, resolver un ejercicio, una aclaración...). Responde ESO primero.
+   b) ¿Qué nivel tiene? Deduce el nivel del mensaje y del historial:
+      - PRINCIPIANTE: dice que es principiante, que empieza "desde cero", que necesita "conceptos básicos", que "no entiende",
+        o usa un lenguaje no técnico.
+      - INTERMEDIO / AVANZADO: usa la terminología correctamente o pregunta por detalles técnicos.
+   c) ¿Qué sabe ya? Revisa el historial para construir sobre lo explicado, sin repetirlo.
+   d) Si el estudiante repite casi el mismo mensaje, significa que tu respuesta anterior no le sirvió: explícalo de otra
+      forma, más simple y con otro ejemplo, sin volver a la misma explicación.
 
-6. REGLA ESTRICTA DE ACTIVACIÓN DE DIAGRAMAS E-R (OBLIGATORIO):
-   - NUNCA generes ni incluyas 'live_example' en respuestas a preguntas conceptuales, teóricas, definiciones, dudas o búsquedas de información (por ejemplo: '¿Para qué sirve...', '¿Qué es...', '¿Cómo funciona...', 'Diferencia entre...', 'Fundamentos de...', 'Explica la teoría...'). En cualquier duda teórica o búsqueda conceptual, 'live_example' DEBE SER ESTRICTAMENTE null.
-   - ÚNICAMENTE debes generar e incluir 'live_example' cuando:
-     1) El estudiante haya solicitado EXPLÍCITAMENTE un EJEMPLO, EJERCICIO o PRÁCTICA de modelado (por ejemplo: 'dame un ejemplo de diagrama ER', 'haz un ejercicio de...', 'diseña un esquema para...', 'muestra un modelo').
-     2) O el estudiante haya ingresado un PROBLEMA de modelado o archivo/imagen para diseñar una base de datos específica.
-   Cuando aplique esta regla y el estudiante HAYA SOLICITADO un ejemplo/problema:
+6. ADAPTACIÓN AL NIVEL DEL ESTUDIANTE:
+   - Con un PRINCIPIANTE:
+     - Explica desde cero con lenguaje sencillo y cotidiano. No supongas conocimientos previos.
+     - Define cada término técnico la primera vez que lo uses (por ejemplo: "una tabla, que es como una hoja de cálculo
+       con filas y columnas"). No uses siglas (SGBD, DBA, PK, FK) sin explicar qué significan.
+     - Presenta pocos conceptos por respuesta (2 o 3 como máximo), en párrafos cortos y en orden lógico: primero la idea,
+       luego una analogía de la vida diaria y después un ejemplo pequeño y concreto (una tabla de 3 o 4 filas).
+     - Si pide "principios básicos" o "conceptos básicos", enuméralos y explica cada uno brevemente: no respondas solo con preguntas.
+     - Cierra con UNA sola pregunta sencilla para comprobar que entendió, nunca con una lista de preguntas difíciles.
+     - Evita escenarios complejos (concurrencia, varios usuarios editando a la vez...) hasta que domine lo básico.
+   - Con un estudiante INTERMEDIO o AVANZADO: puedes usar terminología técnica, ir más rápido y profundizar.
+   - Las citas bibliográficas son un apoyo breve al final de una idea, no el centro de la respuesta. Nunca menciones
+     "fragmento 2", "el contexto recuperado" ni detalles internos: cita la obra o la fuente por su nombre.
+
+7. MÉTODO SOCRÁTICO (equilibrado):
+   - El método socrático guía el razonamiento, pero NO sustituye la explicación cuando el estudiante pide aprender algo
+     nuevo: primero explica lo necesario y luego plantea una pregunta que le haga pensar.
+   - Cuando el estudiante intenta resolver un ejercicio, guíale con preguntas en lugar de darle la solución completa.
+
+8. USO DEL LIENZO DE LA DERECHA ('live_example', tablas y diagrama E-R):
+   - Genera 'live_example' cuando:
+     1) El estudiante pida EXPLÍCITAMENTE un EJEMPLO, EJERCICIO o PRÁCTICA de modelado ('dame un ejemplo de diagrama ER',
+        'diseña un esquema para...', 'muestra un modelo').
+     2) El estudiante ingrese un PROBLEMA de modelado o un archivo/imagen para diseñar una base de datos.
+     3) Expliques a un PRINCIPIANTE conceptos que se entienden mejor viendo tablas reales: qué es una tabla, una fila,
+        una columna, una clave primaria o foránea, cómo se relacionan dos tablas, qué es la redundancia o por qué se
+        normaliza. En ese caso usa un esquema PEQUEÑO y sencillo (2 o 3 tablas de un caso cotidiano, por ejemplo
+        Estudiante y Matrícula) y en "feedback" indícale que lo mire: "En el lienzo de la derecha puedes ver estas tablas...".
+   - Menciona el lienzo SOLO si incluyes "live_example"; si no lo incluyes, no hables del lienzo.
+   - Para el resto de preguntas teóricas o de administración que no se apoyan en tablas (por ejemplo, qué es un respaldo
+     o para qué sirven los permisos), 'live_example' DEBE ser null.
+   Cuando generes 'live_example':
    a) Identifica dinámicamente TODAS las entidades mencionadas o implicadas.
    b) Determina la cardinalidad correcta (1:1, 1:N, N:M).
    c) Asigna atributos completos del mundo real con tipos SQL, PKs y FKs explícitas.
@@ -113,12 +148,12 @@ DIRECTRICES OBLIGATORIAS DE PERSONALIDAD Y ENRUTAMIENTO DE INTENCIONES:
 FORMATO DE RESPUESTA JSON OBLIGATORIO:
 Debes responder UNICAMENTE con un objeto JSON valido con esta estructura:
 {
-    "analysis": "Breve diagnostico interno de la intencion o error del estudiante",
+    "analysis": "Diagnóstico interno: qué pide exactamente, su nivel (principiante, intermedio o avanzado) y qué sabe ya según el historial",
     "feedback": "Respuesta pedagogica formateada en Markdown impecable",
-    "topic": "SQL | Normalizacion | Modelo E-R | Algebra Relacional | Diseno de BD | Transacciones | Indices | Fundamentos | Saludos | General | Fuera de Alcance",
+    "topic": "SQL | Normalizacion | Modelo E-R | Algebra Relacional | Diseno de BD | Transacciones | Indices | Administracion de BD | Fundamentos | Saludos | General | Fuera de Alcance",
     "live_example": null
 }
-Cuando el estudiante haya solicitado explícitamente un ejemplo o ingresado un problema de modelado, incluye en "live_example" el objeto estructurado. En caso contrario, "live_example" DEBE ser estrictamente null."""
+Incluye en "live_example" el objeto estructurado solo en los casos de la regla 8 (ejemplo o problema de modelado, o tablas que ayudan a un principiante). En caso contrario, "live_example" DEBE ser estrictamente null."""
 
 
 # ────────────────────────────────────────────────────────────
@@ -127,7 +162,12 @@ Cuando el estudiante haya solicitado explícitamente un ejemplo o ingresado un p
 ALLOWED_TOPICS = {
     "SQL", "Normalización", "Modelo E-R", "Álgebra Relacional",
     "Diseño de BD", "Transacciones", "Índices", "Fundamentos",
-    "Fuera de Alcance", "General", "Saludos"
+    "Administración de BD", "Fuera de Alcance", "General", "Saludos"
+}
+
+TOPIC_ALIASES = {
+    "Normalizacion": "Normalización", "Algebra Relacional": "Álgebra Relacional",
+    "Diseno de BD": "Diseño de BD", "Indices": "Índices", "Administracion de BD": "Administración de BD",
 }
 
 
@@ -220,6 +260,58 @@ def sanitize_rag_context(fragments: list[dict]) -> list[dict]:
         sanitized.append({**frag, "contenido": cleaned})
 
     return sanitized
+
+def _find_response_object(text: str) -> dict | None:
+    """Primer objeto JSON del texto que tenga la forma de una respuesta del tutor."""
+    decoder = json.JSONDecoder(strict=False)  # admite saltos de línea sin escapar en los textos
+    for m in re.finditer(r"\{", text):
+        try:
+            obj, _ = decoder.raw_decode(text, m.start())
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and ("feedback" in obj or "analysis" in obj):
+            return obj
+    return None
+
+
+def _read_json_string_field(text: str, key: str) -> str | None:
+    """Valor de un campo de texto de un JSON aunque el objeto esté incompleto o mal formado."""
+    m = re.search(r'"' + re.escape(key) + r'"\s*:\s*"', text)
+    if not m:
+        return None
+    out, i = [], m.end()
+    escapes = {"n": "\n", "t": "\t", "r": "", '"': '"', "\\": "\\", "/": "/"}
+    while i < len(text):
+        ch = text[i]
+        if ch == '"':
+            break
+        if ch == "\\" and i + 1 < len(text):
+            nxt = text[i + 1]
+            if nxt == "u" and i + 5 < len(text):
+                try:
+                    out.append(chr(int(text[i + 2:i + 6], 16)))
+                except ValueError:
+                    pass
+                i += 6
+                continue
+            out.append(escapes.get(nxt, nxt))
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out).strip() or None
+
+
+def _is_teaching_example(result: dict) -> bool:
+    """Ejemplo que AMY generó por iniciativa propia para explicar con tablas (regla 8)."""
+    ex = result.get("live_example")
+    if not isinstance(ex, dict) or not ex.get("mermaid_code"):
+        return False
+    tables = ex.get("tables") or []
+    if not tables or not all(isinstance(t, dict) and t.get("columns") for t in tables):
+        return False
+    return "lienzo" in (result.get("feedback") or "").lower()
+
 
 def is_example_or_problem_requested(query: str, attachment: dict = None) -> bool:
     """
@@ -592,6 +684,11 @@ def validate_response(response_text: str, student_query: str = "", attachment: d
     except Exception:
         pass
 
+    # 1b. JSON precedido de texto ("...pilares fundamentales{ "analysis": ...") o con saltos de
+    #     línea sin escapar: se busca el objeto con un decodificador tolerante
+    if not result:
+        result = _find_response_object(cleaned_text)
+
     # 2. Buscar bloque JSON { ... }
     if not result:
         first_b = cleaned_text.find('{')
@@ -607,15 +704,15 @@ def validate_response(response_text: str, student_query: str = "", attachment: d
                 except Exception:
                     pass
 
-    # 3. Regex para extraer 'feedback' si JSON fallo
+    # 3. JSON roto: leer el valor de "feedback" respetando los escapes (\" \n \uXXXX)
     if not result:
-        m = re.search(r'"feedback"\s*:\s*"([\s\S]*?)"\s*,\s*"topic"', cleaned_text) or \
-            re.search(r'"feedback"\s*:\s*"([\s\S]*?)"\s*\}', cleaned_text)
-        if m:
+        feedback = _read_json_string_field(cleaned_text, "feedback")
+        if feedback:
+            topic_m = re.search(r'"topic"\s*:\s*"([^"]*)"', cleaned_text)
             result = {
-                "analysis": "Sintesis del tema.",
-                "feedback": m.group(1).replace('\\n', '\n').replace('\\"', '"'),
-                "topic": "General",
+                "analysis": _read_json_string_field(cleaned_text, "analysis") or "Sintesis del tema.",
+                "feedback": feedback,
+                "topic": topic_m.group(1) if topic_m else "General",
                 "live_example": None
             }
 
@@ -638,24 +735,27 @@ def validate_response(response_text: str, student_query: str = "", attachment: d
     result.setdefault("live_example", None)
 
     # Limpiar agresivamente si feedback arranca con ```json o {
+    # (también si el JSON quedó incrustado a mitad del texto)
     fb = str(result.get("feedback", ""))
-    if fb.strip().startswith("```json") or fb.strip().startswith("{"):
-        try:
-            fb_c = re.sub(r"^```(?:json)?\s*", "", fb.strip())
-            fb_c = re.sub(r"\s*```$", "", fb_c)
-            inner = json.loads(fb_c)
-            if isinstance(inner, dict) and "feedback" in inner:
-                result["feedback"] = inner["feedback"]
-                if "live_example" in inner and inner["live_example"]:
-                    result["live_example"] = inner["live_example"]
-        except Exception:
-            m = re.search(r'"feedback"\s*:\s*"([\s\S]*?)"', fb)
-            if m:
-                result["feedback"] = m.group(1).replace('\\n', '\n').replace('\\"', '"')
+    if fb.strip().startswith("```json") or fb.strip().startswith("{") or re.search(r'\{\s*"(analysis|feedback)"\s*:', fb):
+        inner = _find_response_object(re.sub(r"```(?:json)?", "", fb))
+        if isinstance(inner, dict) and inner.get("feedback"):
+            result["feedback"] = inner["feedback"]
+            if inner.get("live_example"):
+                result["live_example"] = inner["live_example"]
+            if inner.get("topic"):
+                result["topic"] = inner["topic"]
+        else:
+            inner_fb = _read_json_string_field(fb, "feedback")
+            if inner_fb:
+                result["feedback"] = inner_fb
 
-    # REGLA FUNDAMENTAL: Si el usuario NO solicitó un ejemplo o problema, live_example DEBE ser estrictamente None
+    # REGLA FUNDAMENTAL: sin una petición de ejemplo o problema, live_example es None, salvo un
+    # ejemplo didáctico que AMY decidió mostrar a un principiante (tablas válidas y anunciado
+    # en la respuesta "en el lienzo de la derecha"), según la regla 8 del prompt
     if not is_example_or_problem_requested(student_query, attachment):
-        result["live_example"] = None
+        if not _is_teaching_example(result):
+            result["live_example"] = None
     else:
         live_example = result.get("live_example")
         if live_example and isinstance(live_example, dict) and live_example.get("mermaid_code"):
@@ -667,6 +767,8 @@ def validate_response(response_text: str, student_query: str = "", attachment: d
             else:
                 result["live_example"] = None
 
+    # El prompt enumera los temas sin tildes: se normalizan antes de validar
+    result["topic"] = TOPIC_ALIASES.get(result["topic"], result["topic"])
     if result["topic"] not in ALLOWED_TOPICS:
         result["topic"] = "General"
 

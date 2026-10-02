@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
     getAdminStats,
@@ -9,12 +9,14 @@ import {
     getAdminAnalytics,
     getDmzLogs,
     ingestAcademicFile,
+    getIngestJob,
     getApiKeys,
     updateApiKey,
     testApiKey,
     resetApiKey
 } from '../services/api';
 import ThemeToggle from '../components/ThemeToggle';
+import IngestReview from '../components/IngestReview';
 import './AdminPage.css';
 import './AdminDashboard.css';
 
@@ -33,6 +35,12 @@ const KEY_HELP = {
     groq: { url: 'https://console.groq.com/keys', prefix: 'gsk_', role: 'Motor de respaldo (respuestas rápidas)' },
     gemini: { url: 'https://aistudio.google.com/apikey', prefix: 'AIza / AQ.', role: 'Motor principal (streaming y adjuntos)' }
 };
+
+// Áreas temáticas que admite la base de conocimiento (mismas que la restricción de la BD)
+const KNOWLEDGE_CATEGORIES = [
+    'Normalización', 'SQL', 'Modelo E-R', 'Álgebra Relacional', 'Diseño de BD',
+    'Transacciones', 'Índices', 'Administración de BD', 'Fundamentos'
+];
 
 function formatNumber(n) {
     return new Intl.NumberFormat('es-EC').format(n ?? 0);
@@ -161,6 +169,13 @@ export default function AdminPage() {
     const [dmzLogs, setDmzLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [knowledge, setKnowledge] = useState({ items: [], total: 0 });
+    const [knowledgeSearch, setKnowledgeSearch] = useState('');
+    const visibleKnowledge = useMemo(() => {
+        const q = knowledgeSearch.trim().toLowerCase();
+        if (!q) return knowledge.items;
+        return knowledge.items.filter(i =>
+            i.contenido.toLowerCase().includes(q) || (i.metadata?.fuente || '').toLowerCase().includes(q));
+    }, [knowledge.items, knowledgeSearch]);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
     // Filtros superiores
@@ -191,7 +206,8 @@ export default function AdminPage() {
     const [ingestCategory, setIngestCategory] = useState('Normalización');
     const [ingestFuente, setIngestFuente] = useState('');
     const [ingestAutor, setIngestAutor] = useState('');
-    const [dmzResult, setDmzResult] = useState(null);
+    const [ingestUrl, setIngestUrl] = useState('');
+    const [ingestReview, setIngestReview] = useState(null); // proceso «Enseñar a AMY» en curso
 
     const fileInputRef = useRef(null);
 
@@ -304,7 +320,8 @@ export default function AdminPage() {
             return;
         }
         setSelectedFile(file);
-        setDmzResult(null);
+        // Al elegir otro archivo se cierra el resultado anterior, salvo si aún se está aprendiendo
+        setIngestReview(prev => (prev?.phase === "indexing" ? prev : null));
     };
 
     const handleFileUploadSubmit = async (e) => {
@@ -312,28 +329,51 @@ export default function AdminPage() {
         if (!selectedFile) return;
 
         setActionLoading(true);
-        setDmzResult(null);
+        const fileName = selectedFile.name;
+        setIngestReview({ phase: 'reviewing', fileName });
 
         try {
-            const res = await ingestAcademicFile(selectedFile, ingestCategory, ingestFuente, ingestAutor);
-            setDmzResult({
-                success: true,
-                message: res.message || `Archivo '${selectedFile.name}' APROBADO e ingestado con éxito (${res.fragments_created} fragmentos generados).`
+            const res = await ingestAcademicFile(selectedFile, ingestCategory, ingestFuente, ingestAutor, ingestUrl);
+            if (!res.approved) {
+                setIngestReview({ phase: 'rejected', fileName, message: res.message, report: res.report });
+                return;
+            }
+            setIngestReview({
+                phase: 'indexing', fileName, message: res.message, category: res.category,
+                report: res.report, jobId: res.job_id, job: { done: 0, total: 0 }
             });
             setSelectedFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
             setIngestFuente('');
             setIngestAutor('');
-            loadData();
+            setIngestUrl('');
         } catch (err) {
-            setDmzResult({
-                success: false,
-                message: err.message || 'El documento fue RECHAZADO por la Zona Militarizada de Ingesta.'
-            });
+            setIngestReview({ phase: 'error', fileName, message: err.message || 'No se pudo procesar el documento.' });
         } finally {
             setActionLoading(false);
         }
     };
+
+    // Seguimiento del aprendizaje (indexación) del documento aprobado
+    useEffect(() => {
+        if (ingestReview?.phase !== 'indexing' || !ingestReview.jobId) return undefined;
+        let cancelled = false;
+        const timer = setInterval(async () => {
+            try {
+                const job = await getIngestJob(ingestReview.jobId);
+                if (cancelled) return;
+                if (job.status === 'done') {
+                    setIngestReview(prev => ({ ...prev, phase: 'done', job }));
+                    loadData();
+                } else if (job.status === 'error') {
+                    setIngestReview(prev => ({ ...prev, phase: 'error', job, message: job.error }));
+                } else {
+                    setIngestReview(prev => ({ ...prev, job }));
+                }
+            } catch { /* se reintenta en el siguiente ciclo */ }
+        }, 1000);
+        return () => { cancelled = true; clearInterval(timer); };
+    }, [ingestReview?.phase, ingestReview?.jobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleDeleteFragment = async (id) => {
         if (!window.confirm('¿Seguro que deseas eliminar este fragmento de conocimiento del RAG?')) return;
@@ -386,7 +426,8 @@ export default function AdminPage() {
         u.email.toLowerCase().includes(userSearchTerm.toLowerCase())
     );
 
-    const showFilters = activeNav === 'dashboard' || activeNav === 'rag';
+    // En «Cerebro de AMY» el filtro por área se hace con los chips de la biblioteca
+    const showFilters = activeNav === 'dashboard';
     const isLiveModule = LIVE_MODULES.includes(activeNav);
     const secondsAgo = lastUpdated ? Math.max(0, Math.round((now - lastUpdated) / 1000)) : null;
     const rangeLabel = RANGE_LABELS[timeRange];
@@ -492,7 +533,7 @@ export default function AdminPage() {
                         onClick={() => handleSelectNav('rag')}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <span>Gestión RAG (DMZ)</span>
+                        <span>Cerebro de AMY</span>
                     </button>
 
                     <button
@@ -566,6 +607,8 @@ export default function AdminPage() {
                                     <option value="Modelo E-R">Modelo E-R</option>
                                     <option value="Álgebra Relacional">Álgebra Relacional</option>
                                     <option value="Transacciones">Transacciones</option>
+                                    <option value="Índices">Índices</option>
+                                    <option value="Administración de BD">Administración de BD</option>
                                     <option value="Fundamentos">Fundamentos</option>
                                 </select>
                                 <svg className="tailark-select-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
@@ -904,7 +947,7 @@ export default function AdminPage() {
                                 </div>
                             ) : (
                                 <div style={{ color: 'var(--tailark-text-dim)', padding: '2rem 0', textAlign: 'center', fontSize: '0.88rem' }}>
-                                    Aún no se han ingestado fragmentos en la base de datos vectorial. Ingresa documentos en el módulo 'Gestión RAG' para comenzar el entrenamiento.
+                                    Aún no se han ingestado fragmentos en la base de datos vectorial. Sube documentos en «Cerebro de AMY» para empezar.
                                 </div>
                             )}
                         </div>
@@ -915,12 +958,12 @@ export default function AdminPage() {
                 {activeNav === 'insights' && (
                     <div className="module-fade-in">
                         <div className="tailark-section-header">
-                            <h2 className="tailark-section-title">Diagnósticos de IA & Registro DMZ</h2>
+                            <h2 className="tailark-section-title">Diagnósticos de IA & Historial de revisiones</h2>
                             <p className="tailark-section-subtitle">Auditoría real de ingesta de documentos y validación heurística</p>
                         </div>
 
                         <div className="tailark-box">
-                            <h3 className="tailark-box-title">Registro de Auditoría de la Zona Militarizada (DMZ Logs)</h3>
+                            <h3 className="tailark-box-title">Historial de revisiones de documentos</h3>
                             <p className="tailark-box-desc">Historial completo de intentos de ingesta evaluados en tiempo real.</p>
 
                             {dmzLogs.length > 0 ? (
@@ -931,7 +974,7 @@ export default function AdminPage() {
                                                 <th>Marca de Tiempo</th>
                                                 <th>Evento de Ingesta</th>
                                                 <th>Categoría</th>
-                                                <th>Estado DMZ</th>
+                                                <th>Resultado</th>
                                                 <th>Motivo / Diagnóstico</th>
                                             </tr>
                                         </thead>
@@ -941,14 +984,14 @@ export default function AdminPage() {
                                                     <td style={{ color: 'var(--tailark-text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                                                         {log.timestamp ? new Date(log.timestamp).toLocaleString('es-EC') : 'N/A'}
                                                     </td>
-                                                    <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>{log.evento}</td>
+                                                    <td style={{ fontWeight: '500', maxWidth: '340px', overflowWrap: 'anywhere' }}>{log.evento}</td>
                                                     <td><span className="tailark-badge-pill">{log.categoria}</span></td>
                                                     <td>
                                                         <span className={`tailark-role-badge ${log.estado === 'APROBADO' ? 'admin' : 'estudiante'}`} style={log.estado === 'RECHAZADO' ? { color: 'var(--tailark-red)', borderColor: 'var(--tailark-red)', background: 'var(--tailark-red-soft)' } : {}}>
                                                             {log.estado}
                                                         </span>
                                                     </td>
-                                                    <td style={{ color: 'var(--tailark-text-muted)', fontSize: '0.82rem', maxWidth: '300px' }}>{log.motivo}</td>
+                                                    <td style={{ color: 'var(--tailark-text-muted)', fontSize: '0.82rem', minWidth: '280px', maxWidth: '460px', lineHeight: 1.45 }}>{log.motivo}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -963,27 +1006,55 @@ export default function AdminPage() {
                     </div>
                 )}
 
-                {/* ── MÓDULO 4: GESTIÓN RAG (CARGA DRAG & DROP DE ARCHIVOS) ─────────── */}
+                {/* ── MÓDULO 4: CEREBRO DE AMY (BASE DE CONOCIMIENTO RAG) ─────────── */}
                 {activeNav === 'rag' && (
                     <div className="module-fade-in tailark-tab-panel">
-                        <div className="tailark-section-header">
-                            <h2 className="tailark-section-title">Gestión de Conocimiento RAG (DMZ)</h2>
-                            <p className="tailark-section-subtitle">Entrena y administra la base de conocimiento oficial de la UPEC</p>
+                        <div className="tailark-section-header brain-hero">
+                            <span className="brain-hero-eyebrow">Base de conocimiento · RAG</span>
+                            <h2 className="tailark-section-title">Cerebro de AMY</h2>
+                            <p className="tailark-section-subtitle">
+                                Cada libro o apunte que apruebes se convierte en conocimiento que AMY usa para guiar a tus estudiantes, con la fuente siempre a la vista.
+                            </p>
                         </div>
 
-                        {/* Zona de Carga Drag and Drop */}
+                        {/* Métricas de la base de conocimiento */}
+                        <div className="brain-stats">
+                            <div className="brain-stat">
+                                <span className="brain-stat-value">{formatNumber(knowledge.summary?.total ?? knowledge.total)}</span>
+                                <span className="brain-stat-label">Fragmentos de conocimiento</span>
+                            </div>
+                            <div className="brain-stat">
+                                <span className="brain-stat-value">{formatNumber(knowledge.summary?.sources ?? 0)}</span>
+                                <span className="brain-stat-label">Documentos fuente</span>
+                            </div>
+                            <div className="brain-stat">
+                                <span className="brain-stat-value">{formatNumber(knowledge.summary?.categories?.length ?? 0)}</span>
+                                <span className="brain-stat-label">Áreas temáticas</span>
+                            </div>
+                            <div className="brain-stat">
+                                <span className="brain-stat-value">
+                                    {formatNumber(knowledge.summary?.categories?.find(c => c.categoria === 'Administración de BD')?.count ?? 0)}
+                                </span>
+                                <span className="brain-stat-label">Fragmentos de Administración de BD</span>
+                            </div>
+                        </div>
+
+                        {/* Carga de documentos */}
                         <div className="tailark-box">
                             <div className="tailark-box-header">
                                 <div>
-                                    <h3 className="tailark-box-title">Zona Militarizada de Ingesta RAG</h3>
+                                    <h3 className="tailark-box-title">Alimentar a AMY</h3>
                                     <p className="tailark-box-desc">
-                                        Sube archivos académicos (.pdf, .txt, .docx, .doc). El sistema los evaluará y extraerá automáticamente el texto para indexación vectorial socrática.
+                                        Sube libros, artículos o apuntes (.pdf, .txt, .docx, .doc). Antes de aprenderlos, la IA lee las primeras páginas y otras repartidas por todo el documento, y rechaza los que no traten de bases de datos.
                                     </p>
                                 </div>
+                                <span className="brain-shield">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                                    Revisión automática de contenido
+                                </span>
                             </div>
 
                             <form onSubmit={handleFileUploadSubmit}>
-                                {/* Dropzone */}
                                 <div
                                     className={`file-dropzone ${isDragging ? 'dragging' : ''} ${selectedFile ? 'has-file' : ''}`}
                                     onDragOver={handleDragOver}
@@ -1016,34 +1087,29 @@ export default function AdminPage() {
                                         </div>
                                     ) : (
                                         <div className="dropzone-placeholder">
-                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--tailark-text-dim)' }} strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                            <span className="drop-title">Arrastra y suelta tu archivo académico aquí</span>
-                                            <span className="drop-sub">o haz clic para seleccionar un documento (.pdf, .txt, .docx, .doc)</span>
+                                            <span className="brain-drop-icon">
+                                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                            </span>
+                                            <span className="drop-title">Suelta aquí un libro o apunte</span>
+                                            <span className="drop-sub">o haz clic para elegirlo · .pdf, .txt, .docx, .doc</span>
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="tailark-form-row" style={{ marginTop: '1.2rem' }}>
                                     <div className="tailark-form-group">
-                                        <label>Categoría Temática</label>
+                                        <label>Área temática</label>
                                         <select
                                             className="tailark-input"
                                             value={ingestCategory}
                                             onChange={(e) => setIngestCategory(e.target.value)}
                                         >
-                                            <option value="Normalización">Normalización</option>
-                                            <option value="SQL">SQL</option>
-                                            <option value="Modelo E-R">Modelo E-R</option>
-                                            <option value="Álgebra Relacional">Álgebra Relacional</option>
-                                            <option value="Diseño de BD">Diseño de BD</option>
-                                            <option value="Transacciones">Transacciones</option>
-                                            <option value="Índices">Índices</option>
-                                            <option value="Fundamentos">Fundamentos</option>
+                                            {KNOWLEDGE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
 
                                     <div className="tailark-form-group">
-                                        <label>Fuente / Libro (Opcional)</label>
+                                        <label>Fuente / Libro (opcional)</label>
                                         <input
                                             type="text"
                                             className="tailark-input"
@@ -1054,46 +1120,108 @@ export default function AdminPage() {
                                     </div>
                                 </div>
 
+                                <div className="tailark-form-row">
+                                    <div className="tailark-form-group">
+                                        <label>Autor (opcional)</label>
+                                        <input
+                                            type="text"
+                                            className="tailark-input"
+                                            placeholder="ej. Elmasri y Navathe"
+                                            value={ingestAutor}
+                                            onChange={(e) => setIngestAutor(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="tailark-form-group">
+                                        <label>Enlace o DOI (opcional)</label>
+                                        <input
+                                            type="text"
+                                            className="tailark-input"
+                                            placeholder="ej. https://doi.org/10.1109/... (IEEE Xplore, Scopus)"
+                                            value={ingestUrl}
+                                            onChange={(e) => setIngestUrl(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
                                 <button
                                     type="submit"
                                     className="tailark-btn-primary"
-                                    disabled={actionLoading || !selectedFile}
+                                    disabled={actionLoading || !selectedFile || ingestReview?.phase === 'indexing'}
                                 >
-                                    {actionLoading ? 'Procesando en Zona Militarizada...' : 'Evaluar e Ingestar Archivo'}
+                                    {actionLoading ? 'Revisando el documento…'
+                                        : ingestReview?.phase === 'indexing' ? 'AMY está aprendiendo…'
+                                        : 'Enseñar a AMY'}
                                 </button>
                             </form>
 
-                            {dmzResult && (
-                                <div className={`tailark-alert ${dmzResult.success ? 'success' : 'rejected'}`}>
-                                    <span>{dmzResult.message}</span>
-                                </div>
-                            )}
+                            <IngestReview
+                                review={ingestReview}
+                                onClose={() => setIngestReview(null)}
+                                onShowCategory={(cat) => {
+                                    setSelectedCategory(cat);
+                                    document.querySelector('.brain-library-header')?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                            />
                         </div>
 
-                        {/* Explorador de Fragmentos */}
+                        {/* Biblioteca de conocimiento */}
                         <div className="tailark-table-wrapper">
-                            <div className="tailark-table-header">
-                                <h3>Fragmentos Indexados en el RAG ({knowledge.total})</h3>
+                            <div className="tailark-table-header brain-library-header">
+                                <h3>Biblioteca de conocimiento ({formatNumber(knowledge.total)})</h3>
+                                <input
+                                    type="search"
+                                    className="tailark-input brain-search"
+                                    placeholder="Buscar en los fragmentos o fuentes..."
+                                    value={knowledgeSearch}
+                                    onChange={(e) => setKnowledgeSearch(e.target.value)}
+                                    aria-label="Buscar fragmentos"
+                                />
+                            </div>
+
+                            <div className="brain-chips" role="tablist" aria-label="Filtrar por área temática">
+                                <button
+                                    role="tab"
+                                    aria-selected={selectedCategory === 'all'}
+                                    className={`brain-chip ${selectedCategory === 'all' ? 'active' : ''}`}
+                                    onClick={() => setSelectedCategory('all')}
+                                >
+                                    Todas <span>{formatNumber(knowledge.summary?.total ?? knowledge.total)}</span>
+                                </button>
+                                {(knowledge.summary?.categories || []).map(c => (
+                                    <button
+                                        key={c.categoria}
+                                        role="tab"
+                                        aria-selected={selectedCategory === c.categoria}
+                                        className={`brain-chip ${selectedCategory === c.categoria ? 'active' : ''}`}
+                                        onClick={() => setSelectedCategory(c.categoria)}
+                                    >
+                                        {c.categoria} <span>{formatNumber(c.count)}</span>
+                                    </button>
+                                ))}
                             </div>
 
                             <table className="tailark-table">
                                 <thead>
                                     <tr>
-                                        <th>Categoría</th>
-                                        <th>Contenido del Fragmento</th>
-                                        <th>Metadatos</th>
+                                        <th>Área</th>
+                                        <th>Contenido del fragmento</th>
+                                        <th>Fuente</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {knowledge.items.map((item) => (
+                                    {visibleKnowledge.map((item) => (
                                         <tr key={item.id}>
                                             <td><span className="tailark-badge-pill">{item.categoria}</span></td>
                                             <td style={{ maxWidth: '450px', whiteSpace: 'pre-wrap' }}>
                                                 {item.contenido.length > 180 ? item.contenido.substring(0, 180) + '...' : item.contenido}
                                             </td>
                                             <td style={{ color: 'var(--tailark-text-muted)', fontSize: '0.8rem' }}>
-                                                {item.metadata?.fuente ? `Fuente: ${item.metadata.fuente}` : 'Sin metadata'}
+                                                {item.metadata?.url ? (
+                                                    <a href={item.metadata.url} target="_blank" rel="noopener noreferrer" className="brain-source-link">{item.metadata.fuente}</a>
+                                                ) : (item.metadata?.fuente || 'Sin fuente')}
+                                                {item.metadata?.licencia && <span className="brain-license">{item.metadata.licencia}</span>}
                                             </td>
                                             <td>
                                                 <button className="tailark-btn-del" onClick={() => handleDeleteFragment(item.id)}>
@@ -1102,10 +1230,10 @@ export default function AdminPage() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {knowledge.items.length === 0 && (
+                                    {visibleKnowledge.length === 0 && (
                                         <tr>
                                             <td colSpan="4" style={{ textAlign: 'center', color: 'var(--tailark-text-dim)', padding: '2rem' }}>
-                                                No se encontraron fragmentos para la categoría seleccionada.
+                                                {knowledgeSearch ? 'Ningún fragmento coincide con la búsqueda.' : 'Aún no hay conocimiento en esta área. Súbelo desde "Alimentar a AMY".'}
                                             </td>
                                         </tr>
                                     )}

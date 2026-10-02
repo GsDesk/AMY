@@ -790,3 +790,12 @@
 }
 
 
+
+/* Mientras AMY piensa (sin texto todavía): sin tarjeta, solo el indicador animado */
+.tutor-msg .msg-bubble.msg-bubble--thinking {
+    background: transparent !important;
+    border: none !important;
+    border-left: none !important;
+    box-shadow: none !important;
+    padding: 0.1rem 0 !important;
+}

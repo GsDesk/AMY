@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS fragmentos_conocimiento (
         CHECK (categoria IN (
             'Normalización', 'SQL', 'Modelo E-R', 
             'Álgebra Relacional', 'Diseño de BD', 
-            'Transacciones', 'Índices', 'Fundamentos'
+            'Transacciones', 'Índices', 'Administración de BD', 'Fundamentos'
         )),
     
     -- Contenido técnico del fragmento

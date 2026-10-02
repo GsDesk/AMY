@@ -6,7 +6,6 @@
     overflow: hidden;
     position: relative;
     background: var(--bg-primary);
-    transition: background-color 0.25s ease;
 }
 
 .chat-page.with-panel {
@@ -28,6 +27,14 @@
 @keyframes overlay-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
+}
+
+.live-panel-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
 /* ── Sidebar plegable (escritorio) ────────────────── */

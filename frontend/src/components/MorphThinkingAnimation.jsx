@@ -7,10 +7,7 @@ import './MorphThinkingAnimation.css';
  * Animación de pensamiento para AMY impulsada por svg.morphTo de Anime.js v4.
  * Reemplaza la animación previa del astronauta.
  */
-const MorphThinkingAnimation = ({
-    title = "AMY está pensando...",
-    subtitle = "Analizando esquemas y bases de datos"
-}) => {
+const MorphThinkingAnimation = ({ label = "AMY está pensando" }) => {
     const path1Ref = useRef(null);
     const path2Ref = useRef(null);
     const animRef = useRef(null);
@@ -74,12 +71,13 @@ const MorphThinkingAnimation = ({
         };
     }, []);
 
+    // Indicador compacto: solo la figura animada y el texto, sin tarjeta alrededor
     return (
-        <div className="amy-morph-card" role="status" aria-label="AMY está procesando">
-            <div className="amy-morph-stage">
-                <svg viewBox="0 0 304 112" className="amy-morph-svg" preserveAspectRatio="xMidYMid meet">
+        <div className="amy-morph-inline" role="status" aria-label={label}>
+            <span className="amy-morph-stage" aria-hidden="true">
+                <svg viewBox="96 0 112 112" className="amy-morph-svg" preserveAspectRatio="xMidYMid meet">
                     <g
-                        strokeWidth="2"
+                        strokeWidth="3"
                         stroke="currentColor"
                         strokeLinejoin="round"
                         fill="none"
@@ -88,26 +86,20 @@ const MorphThinkingAnimation = ({
                     >
                         <polygon
                             ref={path1Ref}
-                            id="path-1"
                             points="152,4 170,38 204,56 170,74 152,108 134,74 100,56 134,38"
                         />
                         <polygon
                             ref={path2Ref}
-                            id="path-2"
                             style={{ opacity: 0 }}
                             points="152,4 170,38 204,56 170,74 152,108 134,74 100,56 134,38"
                         />
                     </g>
                 </svg>
-            </div>
-
-            <div className="amy-morph-info">
-                <div className="amy-morph-title-row">
-                    <span className="amy-morph-title">{title}</span>
-                    <span className="amy-morph-tag">morphTo</span>
-                </div>
-                <span className="amy-morph-subtitle">{subtitle}</span>
-            </div>
+            </span>
+            <span className="amy-morph-label">
+                {label}
+                <span className="amy-morph-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span>
+            </span>
         </div>
     );
 };

@@ -1,7 +1,11 @@
-import { useState, useCallback, useRef, useEffect, Component } from 'react';
+import { useState, useCallback, useRef, useEffect, Component, lazy, Suspense } from 'react';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
-import LiveExamplePanel from '../components/LiveExamplePanel';
+
+// El panel E-R incluye Mermaid (muy pesado): se descarga solo cuando se abre, para que
+// el chat aparezca rápido tras iniciar sesión, sobre todo en redes móviles
+const loadLiveExamplePanel = () => import('../components/LiveExamplePanel');
+const LiveExamplePanel = lazy(loadLiveExamplePanel);
 import { getUser } from '../services/api';
 import './ChatPage.css';
 
@@ -88,6 +92,12 @@ export default function ChatPage() {
             } catch { /* almacenamiento no disponible */ }
             return next;
         });
+    }, []);
+
+    // Con el chat ya visible, descargar el panel E-R en segundo plano para que abra al instante
+    useEffect(() => {
+        const timer = setTimeout(() => loadLiveExamplePanel().catch(() => {}), 4000);
+        return () => clearTimeout(timer);
     }, []);
 
     // Atajo Ctrl/Cmd + B para mostrar u ocultar el menú lateral
@@ -182,10 +192,12 @@ export default function ChatPage() {
             />
             {activeExample && (
                 <PanelErrorBoundary onClose={() => setActiveExample(null)}>
-                    <LiveExamplePanel
-                        example={activeExample}
-                        onClose={() => setActiveExample(null)}
-                    />
+                    <Suspense fallback={<aside className="live-panel panel live-panel-loading" role="status">Cargando tablero…</aside>}>
+                        <LiveExamplePanel
+                            example={activeExample}
+                            onClose={() => setActiveExample(null)}
+                        />
+                    </Suspense>
                 </PanelErrorBoundary>
             )}
         </div>

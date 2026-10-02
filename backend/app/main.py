@@ -33,6 +33,7 @@ from app.auth.router import router as auth_router
 from app.auth.dependencies import get_current_admin_user, get_current_user
 from app.chat.router import router as chat_router
 from app.admin.router import router as admin_router
+from app.speech.router import router as speech_router
 from app.rag.dmz_validator import validate_document_dmz
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -112,6 +113,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(admin_router)
+app.include_router(speech_router)
 
 
 
@@ -487,7 +489,8 @@ async def chat_stream_endpoint(
 @app.post("/api/rag/ingest", response_model=IngestResponse)
 @limiter.limit("10/minute")
 async def ingest_document(
-    request: IngestRequest,
+    body: IngestRequest,
+    request: Request,
     current_admin: dict = Depends(get_current_admin_user)
 ):
     """
@@ -496,19 +499,19 @@ async def ingest_document(
     """
     try:
         # 1. Pasar por la Zona Militarizada de Ingesta RAG
-        dmz_result = await validate_document_dmz(request.contenido, request.categoria)
+        dmz_result = await validate_document_dmz(body.contenido, body.categoria)
         if not dmz_result["is_valid"]:
             logger.warning("Ingesta RECHAZADA por la Zona Militarizada: %s", dmz_result["reason"])
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=dmz_result["reason"]
             )
 
         # Usar la categoría sugerida por el guardrail si aplica
-        assigned_category = dmz_result.get("category") or request.categoria
+        assigned_category = dmz_result.get("category") or body.categoria
 
         # 2. Fragmentar el contenido aprobado
-        chunks = chunk_text(request.contenido, chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
+        chunks = chunk_text(body.contenido, chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
         if not chunks:
             raise HTTPException(status_code=400, detail="El documento no genero fragmentos validos.")
 
@@ -516,7 +519,7 @@ async def ingest_document(
         for chunk in chunks:
             embedding = await generate_embedding(chunk)
             embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
-            metadata_json = json.dumps(request.metadata)
+            metadata_json = json.dumps(body.metadata)
             await db.execute(
                 """INSERT INTO fragmentos_conocimiento (categoria, contenido, metadata, embedding)
                    VALUES ($1, $2, $3::jsonb, $4::vector)""",
