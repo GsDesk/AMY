@@ -5,6 +5,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import KnowledgeAnimation from '../components/landing/KnowledgeAnimation';
 import { FeatureExplorer, SocraticDemo } from '../components/landing/LandingExplorers';
 import PublicArchitecture from '../components/landing/PublicArchitecture';
+import CampusTour from '../components/landing/campus/CampusTour';
 import './LandingPage.css';
 
 
@@ -32,7 +33,7 @@ export default function LandingPage() {
         let frame;
         const update = () => {
             setIsScrolled(window.scrollY > 40);
-            const sections = ['hero', 'features', 'socratic', 'architecture'];
+            const sections = ['hero', 'features', 'socratic', 'architecture', 'campus'];
             const current = sections.filter(id => document.getElementById(id)?.getBoundingClientRect().top <= 190).pop();
             setActiveSection(current || 'hero');
         };
@@ -77,7 +78,7 @@ export default function LandingPage() {
                     </div>
 
                     <nav className="landing-center-nav" aria-label="Navegación principal">
-                        {[['hero', 'Inicio'], ['features', 'Funcionalidades'], ['socratic', 'Método Socrático'], ['architecture', 'Arquitectura RAG']].map(([id, label]) => (
+                        {[['hero', 'Inicio'], ['features', 'Funcionalidades'], ['socratic', 'Método Socrático'], ['architecture', 'Arquitectura RAG'], ['campus', 'Campus 3D']].map(([id, label]) => (
                             <a key={id} href={`#${id}`} className="landing-nav-link" aria-current={activeSection === id ? 'location' : undefined} onClick={event => handleSectionLink(event, id)}>{label}</a>
                         ))}
                     </nav>
@@ -140,6 +141,10 @@ export default function LandingPage() {
                 <p className="section-description">Una vista conceptual de cómo tu pregunta se conecta con el conocimiento y la orientación del tutor.</p>
                 <PublicArchitecture />
             </section>
+
+            {/* Recorrido 3D por el campus de la UPEC: el lienzo queda fijo y los cortes avanzan con el scroll */}
+            <CampusTour />
+
             <section className="landing-cta" aria-labelledby="cta-title">
                 <span className="section-eyebrow">Tu próxima pregunta es un buen comienzo</span>
                 <h2 id="cta-title">Comprende. Practica. Descubre.</h2>

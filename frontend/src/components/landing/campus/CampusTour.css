@@ -1,0 +1,139 @@
+/* CampusTour.css — recorrido 3D de la UPEC dentro de la landing de AMY.
+   Lienzo fijo (sticky) a pantalla completa y capítulos que se desplazan encima. */
+
+.campus {
+    /* tokens de la escena: el tema oscuro de AMY es el atardecer del campus */
+    --campus-mode: night;
+    --campus-sky-top: #0a1830;
+    --campus-sky-bottom: #6f7fa6;
+    --campus-fog: #3a4763;
+    --campus-edge: #38bdf8;
+    --campus-glass: rgba(var(--bg-primary-rgb), .82);
+    position: relative;
+    width: 100%;
+    background: var(--bg-primary);
+}
+html[data-theme="light"] .campus {
+    --campus-mode: day;
+    --campus-sky-top: #6f92be;
+    --campus-sky-bottom: #e1e7ec;
+    --campus-fog: #d3dce3;
+    --campus-edge: #0284c7;
+    --campus-glass: rgba(var(--bg-primary-rgb), .86);
+}
+
+/* ── Escenario fijo ─────────────────────────────────────────────── */
+.campus-stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+    z-index: 0;
+    background: linear-gradient(var(--campus-sky-top), var(--campus-sky-bottom));
+}
+.campus-canvas { display: block; width: 100%; height: 100%; }
+.campus.no-webgl .campus-canvas { display: none; }
+
+.campus-loading {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font: 500 .78rem 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text-primary); background: var(--campus-glass); border: 1px solid var(--border-primary);
+    padding: .6rem 1rem; border-radius: 8px;
+}
+
+.campus-hud {
+    position: absolute; top: 108px; left: clamp(16px, 4vw, 56px); z-index: 3;
+    display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none;
+    font: 500 .68rem 'JetBrains Mono', monospace; letter-spacing: .08em; font-variant-numeric: tabular-nums;
+}
+.campus-hud span {
+    color: var(--text-primary); background: var(--campus-glass); border: 1px solid var(--border-primary);
+    padding: 4px 8px; border-radius: 6px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.campus-hud .campus-hud-rec { color: var(--accent-cyan); }
+
+/* ── Riel de cortes ─────────────────────────────────────────────── */
+.campus-rail { position: absolute; right: clamp(10px, 2vw, 24px); top: 50%; transform: translateY(-50%); z-index: 3; }
+.campus-rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.campus-rail button {
+    display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 4px 0;
+    background: none; border: 0; cursor: pointer; color: var(--text-muted);
+    font: 500 .66rem 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase;
+}
+.campus-rail button span {
+    opacity: 0; transform: translateX(6px); transition: opacity .25s, transform .25s;
+    color: var(--text-primary); background: var(--campus-glass); border: 1px solid var(--border-primary); padding: 2px 7px; border-radius: 5px;
+}
+.campus-rail button i { display: block; width: 16px; height: 2px; border-radius: 2px; background: currentColor; transition: width .3s, background .3s; }
+.campus-rail button:hover span, .campus-rail button:focus-visible span, .campus-rail button[aria-current="step"] span { opacity: 1; transform: none; }
+.campus-rail button[aria-current="step"] { color: var(--text-primary); }
+.campus-rail button[aria-current="step"] i { width: 32px; background: var(--accent-cyan); }
+.campus-rail button:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; border-radius: 4px; }
+.campus-rail-split { height: 1px; width: 32px; margin: 6px 0 6px auto; background: var(--border-secondary); }
+
+/* ── Etiquetas ancladas al modelo ───────────────────────────────── */
+.campus-labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.campus-tag { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, opacity; }
+.campus-tag i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-cyan); box-shadow: 0 0 0 3px var(--campus-glass); }
+.campus-tag span {
+    position: absolute; left: 14px; bottom: 10px; white-space: nowrap;
+    font: 500 .7rem 'JetBrains Mono', monospace; letter-spacing: .03em; color: var(--text-primary);
+    background: var(--campus-glass); border: 1px solid var(--border-primary); border-radius: 6px; padding: 4px 8px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.campus-tag span b { color: var(--accent-cyan); font-weight: 600; margin-right: 6px; }
+.campus-tag span::before { content: ''; position: absolute; left: -14px; bottom: -10px; width: 16px; height: 1px; background: var(--accent-cyan); transform-origin: left bottom; transform: rotate(-38deg); }
+
+/* ── Capítulos ──────────────────────────────────────────────────── */
+.campus-chapters { position: relative; z-index: 1; margin-top: -100vh; margin-top: -100svh; padding-inline: clamp(16px, 5vw, 72px); pointer-events: none; }
+.campus-chapter { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; padding-block: 120px 48px; scroll-margin-top: 0; }
+.campus-card {
+    pointer-events: auto; width: min(27rem, 100%); min-width: 0;
+    display: flex; flex-direction: column; gap: .75rem; padding: 1.5rem 1.6rem 1.6rem;
+    background: var(--campus-glass); border: 1px solid var(--border-primary); border-radius: 16px;
+    box-shadow: var(--shadow-lg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    color: var(--text-primary);
+}
+.campus-card-intro { width: min(31rem, 100%); }
+.campus-part { display: flex; align-items: center; gap: .6rem; margin: 0; font: 500 .66rem 'JetBrains Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); }
+.campus-part::after { content: ''; flex: 1; height: 1px; background: var(--border-primary); }
+.campus-eyebrow { margin: 0; font: 600 .7rem 'JetBrains Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-cyan); }
+html[data-theme="light"] .campus-eyebrow, html[data-theme="light"] .campus-tag span b, html[data-theme="light"] .campus-hud .campus-hud-rec { color: #0284c7; }
+.campus-card h2, .campus-card h3 { margin: 0; font-weight: 800; letter-spacing: -.035em; line-height: 1.05; text-wrap: balance; color: var(--text-primary); }
+.campus-card h2 { font-size: clamp(2rem, 4.2vw, 3rem); }
+.campus-card h3 { font-size: clamp(1.45rem, 2.6vw, 1.95rem); }
+.campus-card p { margin: 0; font-size: .92rem; line-height: 1.65; color: var(--text-secondary); max-width: 62ch; }
+.campus-amy { display: flex; gap: .55rem; padding: .7rem .85rem; border-radius: 10px; border: 1px solid #38bdf833; background: #38bdf80f; font-size: .85rem !important; }
+.campus-amy span { color: var(--accent-cyan); }
+.campus-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: .25rem 0 0; background: var(--border-primary); border: 1px solid var(--border-primary); border-radius: 10px; overflow: hidden; }
+.campus-facts div { background: var(--bg-card); padding: .55rem .7rem; min-width: 0; }
+.campus-facts dt { font: 500 .62rem 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.campus-facts dd { margin: .15rem 0 0; font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.campus-note { font-size: .78rem !important; color: var(--text-muted) !important; }
+.campus-hint { display: flex; align-items: center; gap: .6rem; font: 500 .7rem 'JetBrains Mono', monospace !important; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted) !important; }
+.campus-hint i { display: block; width: 1px; height: 26px; background: var(--accent-cyan); transform-origin: top; animation: campus-drop 1.8s ease-in-out infinite; }
+@keyframes campus-drop { 0%, 100% { transform: scaleY(.2); } 50% { transform: scaleY(1); } }
+.campus-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .3rem; }
+.campus-actions .btn { padding: .65rem 1rem; font-size: .85rem; }
+
+@media (max-width: 850px) {
+    .campus-hud { top: 146px; }
+}
+@media (max-width: 720px) {
+    .campus-chapter { align-items: flex-end; padding-block: 160px 20px; }
+    .campus-card { padding: 1.1rem 1.15rem 1.2rem; gap: .6rem; }
+    .campus-card p { font-size: .86rem; }
+    .campus-rail { right: 6px; }
+    .campus-rail button span { display: none; }
+    .campus-rail button i { width: 10px; }
+    .campus-rail button[aria-current="step"] i { width: 20px; }
+    .campus-rail-split { width: 20px; }
+    .campus-hud span:not(:last-child) { display: none; }
+    .campus-tag span { font-size: .62rem; }
+    .campus-facts dd { font-size: .95rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .campus-hint i { animation: none; }
+    .campus-rail button span, .campus-rail button i { transition: none; }
+}
